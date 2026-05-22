@@ -1,5 +1,9 @@
 # Neovim Latest — deb Package for Ubuntu
 
+[![Build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![GitHub Releases](https://img.shields.io/github/v/release/CodeSigils/neovim-latest-ubuntu?display_name=tag&sort=semver)](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
+
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu, Linux Mint, and Debian — no snaps, no Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
 ## Quick Start
@@ -29,15 +33,15 @@ This project gives you the latest Neovim as a proper system package — `update-
 
 ## Download from Releases
 
-If a tag has been pushed to GitHub, the CI pipeline produces a `.deb` and attaches it to a release:
+The CI pipeline automatically builds and publishes releases to GitHub:
 
 ```bash
 # Install the latest stable release
-curl -LO https://github.com/neovim-latest-ubuntu/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
+curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-Replace the URL with your repository owner and name.
+On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are automatically created when a tag is pushed to the repository.
 
 ## Build from Source
 
@@ -120,3 +124,23 @@ Copyright Neovim contributors. All rights reserved.
 
 Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 See [`LICENSE`](./LICENSE) for the full text.
+
+---
+
+## About This Project
+
+| Item | Detail |
+|------|--------|
+| **Package** | Neovim built with CPack (upstream-recommended) |
+| **Base OS** | Ubuntu 24.04 LTS |
+| **Build system** | Ninja (auto-detected by Neovim's Makefile) |
+| **Dependencies** | Bundled and statically linked (libuv, LuaJIT, tree-sitter, utf8proc, unibilium) |
+| **CI/CD** | GitHub Actions with container reproducibility |
+| **Verification** | 5-point automated test suite (install, version, deps, alternatives, uninstall) |
+
+## Documentation
+
+- **[AGENTS.md](./AGENTS.md)** — Full agent instructions, research findings, design decisions, staleness guard
+- **[docs/build-plan.md](./docs/build-plan.md)** — Build pipeline details, test strategy, versioning approach
+- **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
+- **[CHANGELOG.md](./CHANGELOG.md)** — Release history (user-facing)
