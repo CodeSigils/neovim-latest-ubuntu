@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build container image
-        run: docker build -t neovim-builder .
+        run: docker build -t neovim-builder -f Containerfile .
 
       - name: Build Neovim .deb
         run: |
