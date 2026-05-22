@@ -51,3 +51,17 @@ All documentation now reflects actual implementation and CI fixes. Ready for com
 - **Download link**: https://github.com/CodeSigils/neovim-latest-ubuntu/releases/download/v0.12.2/nvim-linux-x86_64.deb
 
 All documentation now reflects actual implementation. Project complete and ready for users.
+
+## 2026-05-22 — README Restructured for User-Centric Flow
+
+- **Quick Start**: Now shows pre-built install first (2-line curl + dpkg)
+- **Moved**: "Download from Releases" content integrated into Quick Start
+- **Compilation Instructions**: Now contains all build-from-source content
+  - Prerequisites section (moved from Build from Source)
+  - Manual Build subsection (build in 3 commands)
+  - Containerized Build subsection (with Podman/Docker)
+  - Build Output subsection
+- **Compilation Details**: Reorganized as subsection with Build Configuration + Verification
+- **User flow**: Quick Start (install) → Why? (motivation) → Compilation (custom builds)
+
+New structure prioritizes what users actually want first: pre-built packages.
