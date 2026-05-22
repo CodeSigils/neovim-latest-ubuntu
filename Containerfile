@@ -22,4 +22,4 @@ ENV OUTPUT_DIR=/output
 
 WORKDIR /tmp/build
 
-CMD ["build-neovim", "$VERSION", "$OUTPUT_DIR"]
+CMD build-neovim "${VERSION}" "${OUTPUT_DIR}"
