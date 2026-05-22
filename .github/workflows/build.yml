@@ -1,0 +1,41 @@
+name: Build Neovim deb Package
+
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Neovim version (e.g. 0.14.0)'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build container image
+        run: docker build -t neovim-builder .
+
+      - name: Build Neovim .deb
+        run: |
+          ARGS=""
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            ARGS="-e VERSION=${{ github.event.inputs.version }}"
+          fi
+          docker run --rm $ARGS -v "$PWD:/output" neovim-builder
+
+      - name: Upload .deb as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nvim-linux-x86_64-deb
+          path: nvim-linux-x86_64.deb
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: nvim-linux-x86_64.deb
