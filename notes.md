@@ -40,3 +40,14 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 - **notes.md**: Cleaned up (removed verbose CI analysis section, retained task-level record only)
 
 All documentation now reflects actual implementation and CI fixes. Ready for commit and push to GitHub.
+
+## 2026-05-22 — README Improvements & Release Created
+
+- **README badges**: Added Build status, License, and Release badges at top
+- **README fixes**: Fixed placeholder URL (neovim-latest-ubuntu/neovim-latest-ubuntu → CodeSigils/neovim-latest-ubuntu)
+- **README additions**: Added ARM64 note, About This Project metadata table, Documentation links section
+- **GitHub Release**: Created v0.12.2 release with binary (nvim-linux-x86_64.deb, 20MB)
+- **Release notes**: Comprehensive notes including installation, verification checks, build details, reproducibility info
+- **Download link**: https://github.com/CodeSigils/neovim-latest-ubuntu/releases/download/v0.12.2/nvim-linux-x86_64.deb
+
+All documentation now reflects actual implementation. Project complete and ready for users.
