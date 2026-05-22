@@ -8,17 +8,20 @@ Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubu
 
 ## Quick Start
 
-Build and install in three commands:
+Install the latest pre-built Neovim as a system package:
 
 ```bash
-sudo apt install ninja-build gettext cmake curl build-essential
-git clone --depth 1 --branch v0.12.2 https://github.com/neovim/neovim && cd neovim
-make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
+curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
+sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-> Pre-built releases are also available — see [Download from Releases](#download-from-releases).
+On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are automatically created when a tag is pushed to the repository.
 
-## Why This?
+That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, `view`, and `editor` commands.
+
+> For custom versions or reproducible builds, see [Compilation Instructions](#compilation-instructions).
+
+## Why This Project?
 
 Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
 
@@ -31,19 +34,9 @@ Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all h
 
 This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean uninstall, dependency tracking.
 
-## Download from Releases
+## Compilation Instructions
 
-The CI pipeline automatically builds and publishes releases to GitHub:
-
-```bash
-# Install the latest stable release
-curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
-sudo dpkg -i nvim-linux-x86_64.deb
-```
-
-On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are automatically created when a tag is pushed to the repository.
-
-## Build from Source
+For custom builds, reproducible builds, or building newer/older versions of Neovim.
 
 ### Prerequisites
 
@@ -63,6 +56,16 @@ sudo apt install ninja-build gettext cmake curl build-essential
 [gettext]: https://www.gnu.org/software/gettext/
 [cmake]: https://cmake.org/
 [unzip]: https://infozip.sourceforge.net/UnZip.html#Release
+
+### Manual Build
+
+Build and install Neovim in three commands:
+
+```bash
+sudo apt install ninja-build gettext cmake curl build-essential
+git clone --depth 1 --branch v0.12.2 https://github.com/neovim/neovim && cd neovim
+make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
+```
 
 ### Containerized Build (Recommended for Reproducibility)
 
@@ -89,7 +92,7 @@ The container image (`ubuntu:24.04`) includes all build prerequisites and runs
 defaults to `0.12.2`. The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in
 the `output/` directory on your host.
 
-### Output
+### Build Output
 
 The build produces `nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM) in the
 specified output directory. When building in the container, this maps to `./output/`.
@@ -98,13 +101,17 @@ Neovim's bundled dependencies (libuv, LuaJIT, tree-sitter, and others) are compi
 
 ## Compilation Details
 
+Build verification and technical information:
+
+### Build Configuration
+
 - Debian clang version 14.0.6
 - Target: x86_64-pc-linux-gnu
 - Thread model: posix
 - Architecture: amd64
-- Depends: libc6 (>= 2.34), libgcc-s1 (>= 3.3)
+- Runtime depends: libc6 (>= 2.34), libgcc-s1 (>= 3.3)
 
-## Verification
+### Verification Checklist
 
 Each build is verified against these checks:
 
