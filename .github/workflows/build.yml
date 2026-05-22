@@ -22,20 +22,30 @@ jobs:
 
       - name: Build Neovim .deb
         run: |
-          ARGS=""
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
-            ARGS="-e VERSION=${{ github.event.inputs.version }}"
+          mkdir -p output
+          VERSION="${{ github.event.inputs.version }}"
+          docker run --rm \
+            -e VERSION="${VERSION:-0.12.2}" \
+            -v "$PWD/output:/output" \
+            neovim-builder
+
+      - name: Verify artifact exists
+        run: |
+          if ! find output -name '*.deb' -exit 0 >/dev/null 2>&1; then
+            echo "Error: No .deb package found in output/" >&2
+            ls -la output/
+            exit 1
           fi
-          docker run --rm $ARGS -v "$PWD:/output" neovim-builder
+          ls -lh output/
 
       - name: Upload .deb as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nvim-linux-x86_64-deb
-          path: nvim-linux-x86_64.deb
+          name: nvim-linux-deb
+          path: output/*.deb
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: nvim-linux-x86_64.deb
+          files: output/*.deb

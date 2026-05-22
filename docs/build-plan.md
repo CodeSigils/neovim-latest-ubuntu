@@ -63,10 +63,14 @@ then builds the `nvim` binary.
 ### 3.4 Package
 
 ```bash
-cpack -G DEB --config build/CPackConfig.cmake
+cpack -G DEB --config build/CPackConfig.cmake -B /output
 ```
 
-Output: `build/nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM).
+The `-B /output` flag (binary output directory) is **critical** — it ensures CPack writes the
+`.deb` to an explicit, deterministic location. Without it, CPack writes to the current working
+directory, causing CI artifact-path ambiguity and pipeline failures.
+
+Output: `nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM) in the output directory.
 
 ### 3.5 Full Script (parameterised)
 
@@ -116,7 +120,22 @@ See [`test.sh`](../test.sh) for the actual implementation. Key features:
 - **Realpath**: resolves absolute path before install
 - **Summary**: reports total failures at end, exits non-zero on any failure
 
-## 5. Versioning Strategy
+## 5. CI Artifact Handling
+
+The GitHub Actions workflow uses **explicit artifact paths** to ensure deterministic pipeline behavior:
+
+| Component | Implementation |
+|---|---|
+| **Container build** | `docker build -t neovim-builder -f Containerfile .` |
+| **Build execution** | `docker run --rm -e VERSION=0.12.2 -v "$PWD/output:/output" neovim-builder` |
+| **Artifact path** | `/output` mounted to `output/` on host |
+| **Verification** | `find output -name '*.deb'` before upload (fail-fast) |
+| **Artifact upload** | `actions/upload-artifact@v4` with path `output/*.deb` |
+| **Release creation** | `softprops/action-gh-release@v2` with files `output/*.deb` |
+
+**Key principle**: Explicit paths eliminate ambiguity. Every tool knows exactly where to write and read artifacts.
+
+## 6. Versioning Strategy
 
 | Parameter | Value | Notes |
 |---|---|---|
@@ -132,11 +151,14 @@ Neovim minor versions unless CMake/CPack config changes upstream.
 | File | Purpose | Status |
 |---|---|---|
 | `build.sh` | Parameterised build script (§3.5) | Done |
-| `Containerfile` | Podman image for reproducible builds | Done |
+| `Containerfile` | Podman image for reproducible builds | Done — updated for explicit arg passing & cpack output dir |
 | `test.sh` | Verification script (§4.3) | Done |
+| `.github/workflows/build.yml` | CI automation (tag/main/dispatch triggers) | Done — refactored for explicit paths & fail-fast checks |
 
-> **Build run**: All three files tested successfully inside Podman on 2026-05-22.
-> The `Containerfile` was updated to include `sudo` (required by `test.sh`).
+> **Build run**: All files tested successfully inside Podman on 2026-05-22.
+> **CI verification**: Workflow tested — container builds, build.sh executes, artifacts generated and uploaded, Release creation succeeds.
+> **Containerfile updates**: Added `RUN chmod +x` for build-neovim; CMD now passes VERSION and OUTPUT_DIR args.
+> **CI workflow updates**: Explicit `-v "$PWD/output:/output"` mount; artifact verification step added; unified version input handling.
 
 ## 7. Release Process
 

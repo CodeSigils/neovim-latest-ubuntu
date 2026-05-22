@@ -59,14 +59,14 @@ make -C "$BUILD_DIR" CMAKE_BUILD_TYPE=RelWithDebInfo
 
 # --- Package ---
 echo "==> Running cpack -G DEB..."
-cpack -G DEB --config "$BUILD_DIR/build/CPackConfig.cmake"
-
-# --- Copy output ---
 mkdir -p "$OUTPUT_DIR"
-cp "$BUILD_DIR/build"/nvim-linux-*.deb "$OUTPUT_DIR" 2>/dev/null || {
-  echo "Error: No .deb package found in build output" >&2
+cpack -G DEB --config "$BUILD_DIR/build/CPackConfig.cmake" -B "$OUTPUT_DIR"
+
+# --- Verify output ---
+if ! find "$OUTPUT_DIR" -name 'nvim-linux-*.deb' -exit 0 >/dev/null 2>&1; then
+  echo "Error: No .deb package found in $OUTPUT_DIR" >&2
   exit 1
-}
+fi
 
 echo ""
 echo "Done. Package created:"

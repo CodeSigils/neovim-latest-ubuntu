@@ -15,9 +15,9 @@
 # Neovim Latest — deb Package for Ubuntu
 
 **Document type:** Agent instructions (How-to Guide + Reference)
-**Status:** Active — build verified, pipeline operational
+**Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-22 (CHANGELOG created, notes.md refactored, release tasks updated)
+**Last updated:** 2026-05-22 (CI fixes applied: explicit CPack output path, artifact verification, workflow simplification)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -55,11 +55,13 @@
 
 ## Current Status
 
-> Audit snapshot: 2026-05-22 (build verified end-to-end)
+> Audit snapshot: 2026-05-22 (CI verified, build & release pipeline operational end-to-end)
 
 - **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 5 verification checks pass: install, version match, `ldd` clean, `update-alternatives` registration, and clean uninstall.
-- **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational.
-- **Containerfile** — includes `sudo` (needed by `test.sh` for `dpkg` operations).
+- **CI pipeline verified** — GitHub Actions workflow tests pass: container builds, `build.sh` runs, artifact generated and uploaded, release creation works.
+- **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
+- **Containerfile** — includes `sudo` (needed by `test.sh` for `dpkg` operations) and proper argument forwarding to `build.sh`.
+- **Artifact handling** — CPack now writes directly to `/output` via explicit `-B` flag; CI creates `output/` directory and verifies artifact before upload (fail-fast checks).
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
@@ -464,6 +466,8 @@ After a successful release:
 | 2026-05-22 | CHANGELOG.md created | Keep a Changelog format; user-facing release history replaces notes.md as changelog |
 | 2026-05-22 | notes.md refactored to scratchpad | Clarified role: internal task-level record, not user-facing; CHANGELOG.md is the user-facing log |
 | 2026-05-22 | AGENTS.md §7.2 CHANGELOG section added | Agents instructed to maintain CHANGELOG per release; §8.5 post-release tasks include CHANGELOG update |
+| 2026-05-22 | CI artifact path fixes — `build.sh` + `Containerfile` + workflow | Explicit `-B "$OUTPUT_DIR"` in cpack; output dir mounted at /output; artifact verification step added; fail-fast on missing .deb |
+| 2026-05-22 | GitHub Actions workflow simplified | Removed shell expansion ambiguity; explicit `output/` dir; unified version input; docker env vars clarified |
 
 ### 11. Staleness & Drift Guard
 

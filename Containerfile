@@ -15,10 +15,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY build.sh /usr/local/bin/build-neovim
+RUN chmod +x /usr/local/bin/build-neovim
 
 ENV VERSION=0.12.2
 ENV OUTPUT_DIR=/output
 
 WORKDIR /tmp/build
 
-CMD ["build-neovim"]
+CMD ["build-neovim", "$VERSION", "$OUTPUT_DIR"]

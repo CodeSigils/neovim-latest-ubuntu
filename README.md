@@ -69,27 +69,28 @@ system state and ensures reproducibility:
 # Build the container image (bakes build.sh into the image)
 podman build -t neovim-builder .
 
-# Build Neovim 0.12.2 (outputs .deb to current directory)
-podman run --rm -v "$(pwd):/output" neovim-builder
+# Build Neovim 0.12.2 (outputs .deb to ./output)
+mkdir -p output
+podman run --rm -v "$(pwd)/output:/output" neovim-builder
 
 # Build a different version
-podman run --rm -e VERSION=0.14.0 -v "$(pwd):/output" neovim-builder
+podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
 # Verify the .deb
-./test.sh nvim-linux-x86_64.deb
+./test.sh output/nvim-linux-x86_64.deb
 ```
 
 The container image (`ubuntu:24.04`) includes all build prerequisites and runs
 [`build.sh`](./build.sh) on startup. Set `VERSION` via `-e` to build a specific release;
-defaults to `0.12.2`.
+defaults to `0.12.2`. The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in
+the `output/` directory on your host.
 
 ### Output
 
-The build produces `build/nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM).
+The build produces `nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM) in the
+specified output directory. When building in the container, this maps to `./output/`.
 
-Neovim's bundled dependencies (libuv, LuaJIT, tree-sitter, and others) are compiled to `.deps/` and statically linked — no system library conflicts.
-
-> **Why Ninja?** Neovim's `Makefile` is a thin wrapper that auto-detects the [Ninja](https://ninja-build.org/) build system and uses it by default. Ninja provides faster builds, automatic parallelisation across all CPU cores, and better incremental rebuilds compared to Unix Makefiles. This is the same build system used in Neovim's official CI release workflow.
+Neovim's bundled dependencies (libuv, LuaJIT, tree-sitter, and others) are compiled and statically linked — no system library conflicts.
 
 ## Compilation Details
 
