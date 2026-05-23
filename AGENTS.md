@@ -43,6 +43,7 @@
 ├── CHANGELOG.md        ← User-facing release history (Keep a Changelog format)
 ├── notes.md            ← Agent scratchpad / task-level record (not user-facing)
 ├── .gitignore          ← Generated artifacts excluded from version control
+├── .mailmap            ← Author canonicalization for GitHub contributor graph
 ├── README.md           ← Project documentation (how-to install / build)
 ├── RELEASING.md        ← Release process guide for maintainers (how-to)
 ├── LICENSE             ← Apache 2.0 (Neovim's license)
