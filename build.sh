@@ -63,7 +63,7 @@ mkdir -p "$OUTPUT_DIR"
 cpack -G DEB --config "$BUILD_DIR/build/CPackConfig.cmake" -B "$OUTPUT_DIR"
 
 # --- Verify output ---
-if ! find "$OUTPUT_DIR" -name 'nvim-linux-*.deb' -exit 0 >/dev/null 2>&1; then
+if ! ls "$OUTPUT_DIR"/nvim-linux-*.deb >/dev/null 2>&1; then
   echo "Error: No .deb package found in $OUTPUT_DIR" >&2
   exit 1
 fi

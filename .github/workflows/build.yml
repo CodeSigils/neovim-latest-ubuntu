@@ -21,17 +21,28 @@ jobs:
         run: docker build -t neovim-builder -f Containerfile .
 
       - name: Build Neovim .deb
+        env:
+          VERSION_FROM_INPUT: ${{ github.event.inputs.version || '' }}
+          VERSION_FROM_REF: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
         run: |
           mkdir -p output
-          VERSION="${{ github.event.inputs.version }}"
+          # Priority: workflow_dispatch input > git tag > default
+          if [ -n "$VERSION_FROM_INPUT" ]; then
+            VERSION="$VERSION_FROM_INPUT"
+          elif [ -n "$VERSION_FROM_REF" ]; then
+            VERSION="${VERSION_FROM_REF#v}"
+          else
+            VERSION="0.12.2"
+          fi
+          echo "Building Neovim v${VERSION}"
           docker run --rm \
-            -e VERSION="${VERSION:-0.12.2}" \
+            -e VERSION="$VERSION" \
             -v "$PWD/output:/output" \
             neovim-builder
 
       - name: Verify artifact exists
         run: |
-          if ! find output -name '*.deb' -exit 0 >/dev/null 2>&1; then
+          if ! ls output/*.deb >/dev/null 2>&1; then
             echo "Error: No .deb package found in output/" >&2
             ls -la output/
             exit 1
