@@ -4,20 +4,23 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| f44f2b43-46a5-4188-b14e-d3ba7fdac1ac | 🔴 bugfix | CI fixes and tag version extraction resolved | 2026-05-23 |
+| edb2dd98-a6e5-4973-89bf-38a2a139a2e5 | 🔴 bugfix | Corrected invalid find -exit predicate in CI | 2026-05-23 |
 | 79cc1991-2640-45a9-abe1-b86b2d2637fc | 🔵 discovery | Debian package check in build script | 2026-05-23 |
 | bcb039da-2490-4b5f-9524-34c74bc1a2e6 | 🔵 discovery | Neovim container build process analyzed | 2026-05-23 |
 | 665e98a0-7ffa-4c7c-9637-7f41fd0a7d54 | 🟣 feature | Script to build Neovim .deb packages | 2026-05-23 |
 
-**Key concepts:** build-script, conditional-logic, file-existence-check, containerization, dockerfile, build-environment, dependency-management, packaging, deb-package, continuous-integration
+**Key concepts:** bugfix, CI fixes, tag version extraction, Containerfile CMD, environment variable expansion, CI/CD, findutils, predicate, gotcha, build-script
 
 ### .github/workflows/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| edb2dd98-a6e5-4973-89bf-38a2a139a2e5 | 🔴 bugfix | Corrected invalid find -exit predicate in CI | 2026-05-23 |
 | dd26fe9c-da3c-47af-bd37-10c0949b05d7 | 🟣 feature | Automate Neovim .deb package creation and release | 2026-05-23 |
 | 12b5a1bc-e76e-4eef-8bfd-18da0b19ceb5 | 🔄 refactor | Fix YAML linting errors in build workflow | 2026-05-23 |
 | 979a15a5-0ddf-4c17-a46e-4fe87b94631d | 🟣 feature | Automate Neovim .deb package building and release | 2026-05-23 |
 
-**Key concepts:** ci-cd, github-actions, docker, deb-package, release-automation, yaml-linting, lsp-diagnostics
+**Key concepts:** bugfix, CI/CD, findutils, predicate, gotcha, ci-cd, github-actions, docker, deb-package, release-automation
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
@@ -41,6 +44,7 @@
 ├── notes.md            ← Agent scratchpad / task-level record (not user-facing)
 ├── .gitignore          ← Generated artifacts excluded from version control
 ├── README.md           ← Project documentation (how-to install / build)
+├── RELEASING.md        ← Release process guide for maintainers (how-to)
 ├── LICENSE             ← Apache 2.0 (Neovim's license)
 ├── .omo/               ← OpenCode orchestration state
 │   └── run-continuation/
@@ -439,6 +443,11 @@ After a successful release:
 2. Verify the Release page shows the `.deb` asset
 3. Download and test on a clean target system (Ubuntu, Linux Mint, etc.)
 4. Update `AGENTS.md` Current Status and Decision Log if any new information emerged
+
+### 8.6 Release Documentation
+
+See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide,
+covering tag pushes, manual dispatch, local builds, and troubleshooting.
 
 ### 9. Guardrails (Must Not Do)
 

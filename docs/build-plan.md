@@ -171,6 +171,8 @@ building and releasing the `.deb`:
 2. **Artifact** → `.deb` uploaded as release asset
 3. **Users** → download from Releases page and install via `dpkg -i`
 
+> See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide.
+
 ### 7.2 Manual Build
 
 For testing or offline distribution:
