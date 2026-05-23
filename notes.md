@@ -25,7 +25,7 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 
 - **Fixed build.sh**: Changed `cpack` output handling to use explicit `-B "$OUTPUT_DIR"` flag instead of copying from implicit build/ location. This ensures deterministic artifact placement.
 - **Fixed Containerfile**: Added `RUN chmod +x` for build-neovim script and fixed CMD to pass VERSION and OUTPUT_DIR args.
-- **Fixed CI workflow**: 
+- **Fixed CI workflow**:
   - Created `output/` directory before running container
   - Explicitly pass `VERSION` env var via docker run
   - Added artifact verification step (fail-fast check)
@@ -48,7 +48,7 @@ All documentation now reflects actual implementation and CI fixes. Ready for com
 - **README additions**: Added ARM64 note, About This Project metadata table, Documentation links section
 - **GitHub Release**: Created v0.12.2 release with binary (nvim-linux-x86_64.deb, 20MB)
 - **Release notes**: Comprehensive notes including installation, verification checks, build details, reproducibility info
-- **Download link**: https://github.com/CodeSigils/neovim-latest-ubuntu/releases/download/v0.12.2/nvim-linux-x86_64.deb
+- **Download link**: <https://github.com/CodeSigils/neovim-latest-ubuntu/releases/download/v0.12.2/nvim-linux-x86_64.deb>
 
 All documentation now reflects actual implementation. Project complete and ready for users.
 
@@ -65,3 +65,4 @@ All documentation now reflects actual implementation. Project complete and ready
 - **User flow**: Quick Start (install) → Why? (motivation) → Compilation (custom builds)
 
 New structure prioritizes what users actually want first: pre-built packages.
+

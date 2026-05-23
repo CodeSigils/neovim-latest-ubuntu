@@ -129,9 +129,11 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Container build** | `docker build -t neovim-builder -f Containerfile .` |
 | **Build execution** | `docker run --rm -e VERSION=0.12.2 -v "$PWD/output:/output" neovim-builder` |
 | **Artifact path** | `/output` mounted to `output/` on host |
-| **Verification** | `find output -name '*.deb'` before upload (fail-fast) |
-| **Artifact upload** | `actions/upload-artifact@v4` with path `output/*.deb` |
-| **Release creation** | `softprops/action-gh-release@v2` with files `output/*.deb` |
+| **Lint** | `shellcheck build.sh test.sh` + `hadolint Containerfile` via `hadolint/hadolint-action@v3.3.0` |
+| **Verification** | `ls output/*.deb` before upload (fail-fast) |
+| **Checksums** | `sha256sum *.deb > SHA256SUMS` after verification |
+| **Artifact upload** | `actions/upload-artifact@v7` with multi-line path (`output/*.deb`, `output/SHA256SUMS`) |
+| **Release creation** | `softprops/action-gh-release@v3` with files `output/*.deb` + `output/SHA256SUMS` |
 
 **Key principle**: Explicit paths eliminate ambiguity. Every tool knows exactly where to write and read artifacts.
 
