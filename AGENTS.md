@@ -66,16 +66,17 @@
 │   └── _CPack_Packages/    ← CPack build output (gitignored)
 │
 └── docs/
-    ├── resources.md       ← Curated, evaluated reference resources (committed)
-    ├── build-plan.md      ← Build pipeline, dependencies, test strategy (see §4)
-    └── research/          ← Raw research artefacts (gitignored)
+    ├── resources.md        ← Curated, evaluated reference resources (committed)
+    ├── build-plan.md       ← Build pipeline, dependencies, test strategy (see §4)
+    ├── reproducibility.md  ← Build reproducibility explanation (see §docs)
+    └── research/           ← Raw research artefacts (gitignored)
 ```
 
 ## Current Status
 
-> Audit snapshot: 2026-05-22 (CI verified, build & release pipeline operational end-to-end)
+> Audit snapshot: 2026-05-23 (CI verified, build & release pipeline operational end-to-end)
 
-- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 5 verification checks pass: install, version match, `ldd` clean, `update-alternatives` registration, and clean uninstall.
+- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 6 verification checks pass: install, version match, `ldd` clean, `update-alternatives` registration, smoke test (`--headless +q`), and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
 - **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
@@ -85,6 +86,7 @@
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
 - **notes.md** serves as an agent scratchpad / task-level record (not user-facing).
+- **docs/reproducibility.md** is a Diataxis Explanation document covering how the pipeline achieves build reproducibility, guarantees and limitations, and cross-architecture considerations.
 
 ## Overview
 
@@ -511,6 +513,7 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-23 | Fix CHANGELOG date | `CHANGELOG.md` release date said 2026-05-23 but all build/release work completed on 2026-05-22. Fixed to 2026-05-22. |
 | 2026-05-23 | AGENTS.md stale guard fixes (pre-action gate + drift scan) | Updated C7 check in §11.3 from `nvim-linux64.deb` to `nvim-linux-*.deb` glob. Updated §11.5 offline drift scan with same glob check. |
 | 2026-05-23 | Multi-arch CI matrix: ARM64 + aggregated releases | Added `aarch64` to build matrix using `ubuntu-24.04-arm` runner. Containerfile pin changed from amd64-specific digest to multi-arch manifest list digest. Separated release into its own job that aggregates arch-specific artifacts. ARM has `continue-on-error: true` — additive, doesn't block x86_64. |
+| 2026-05-23 | Reproducibility docs (docs/reproducibility.md) | Created Diataxis Explanation document covering pinned base image, parameterized build, verification chain, reproducibility guarantees and limitations, and cross-architecture considerations. |
 
 ### 11. Staleness & Drift Guard
 
