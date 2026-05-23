@@ -25,3 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Containerfile missing `sudo` — required by `test.sh` for `dpkg` operations.
 - `.gitignore` wildcard `nvim-linux64.deb` expanded to `nvim-linux-*.deb` (covers both x86_64 and aarch64).
 - AGENTS.md stale claims (build artifact name, layout status, inline script examples).
+- CI artifact verification used invalid `find -exit 0` predicate (not a valid GNU findutils option). Replaced with `ls` glob check in `build.sh` and CI workflow. Every CI run previously failed at the verify step regardless of build success.
+- CI never extracted Neovim version from git tags — tag pushes (`v0.13.0`) always built default `0.12.2`. Now uses a priority chain: `workflow_dispatch` input → git tag version → default `0.12.2`.

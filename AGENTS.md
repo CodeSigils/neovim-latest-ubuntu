@@ -4,10 +4,20 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| f7042011-09e7-4389-82d5-cd7b1eb40b1d | 🔵 discovery | Project File Structure Identified | 2026-05-22 |
-| 47922b65-ac1b-4418-a0d0-42e99f8eb1b4 | 🔄 refactor | Changelog Simplified to Task-Level Record | 2026-05-22 |
+| 79cc1991-2640-45a9-abe1-b86b2d2637fc | 🔵 discovery | Debian package check in build script | 2026-05-23 |
+| bcb039da-2490-4b5f-9524-34c74bc1a2e6 | 🔵 discovery | Neovim container build process analyzed | 2026-05-23 |
+| 665e98a0-7ffa-4c7c-9637-7f41fd0a7d54 | 🟣 feature | Script to build Neovim .deb packages | 2026-05-23 |
 
-**Key concepts:** project-structure, documentation, agent-instructions, what_changed, refactor
+**Key concepts:** build-script, conditional-logic, file-existence-check, containerization, dockerfile, build-environment, dependency-management, packaging, deb-package, continuous-integration
+
+### .github/workflows/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| dd26fe9c-da3c-47af-bd37-10c0949b05d7 | 🟣 feature | Automate Neovim .deb package creation and release | 2026-05-23 |
+| 12b5a1bc-e76e-4eef-8bfd-18da0b19ceb5 | 🔄 refactor | Fix YAML linting errors in build workflow | 2026-05-23 |
+| 979a15a5-0ddf-4c17-a46e-4fe87b94631d | 🟣 feature | Automate Neovim .deb package building and release | 2026-05-23 |
+
+**Key concepts:** ci-cd, github-actions, docker, deb-package, release-automation, yaml-linting, lsp-diagnostics
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
@@ -17,7 +27,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-22 (CI fixes applied: explicit CPack output path, artifact verification, workflow simplification)
+**Last updated:** 2026-05-23 (CI fix: `find -exit 0` → `ls` glob check — `-exit` is not a valid findutils predicate, causing all CI runs to fail at artifact verification)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -58,7 +68,8 @@
 > Audit snapshot: 2026-05-22 (CI verified, build & release pipeline operational end-to-end)
 
 - **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 5 verification checks pass: install, version match, `ldd` clean, `update-alternatives` registration, and clean uninstall.
-- **CI pipeline verified** — GitHub Actions workflow tests pass: container builds, `build.sh` runs, artifact generated and uploaded, release creation works.
+- **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
+- **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — includes `sudo` (needed by `test.sh` for `dpkg` operations) and proper argument forwarding to `build.sh`.
 - **Artifact handling** — CPack now writes directly to `/output` via explicit `-B` flag; CI creates `output/` directory and verifies artifact before upload (fail-fast checks).
@@ -468,6 +479,8 @@ After a successful release:
 | 2026-05-22 | AGENTS.md §7.2 CHANGELOG section added | Agents instructed to maintain CHANGELOG per release; §8.5 post-release tasks include CHANGELOG update |
 | 2026-05-22 | CI artifact path fixes — `build.sh` + `Containerfile` + workflow | Explicit `-B "$OUTPUT_DIR"` in cpack; output dir mounted at /output; artifact verification step added; fail-fast on missing .deb |
 | 2026-05-22 | GitHub Actions workflow simplified | Removed shell expansion ambiguity; explicit `output/` dir; unified version input; docker env vars clarified |
+| 2026-05-23 | CI fix: `find -exit 0` → `ls` glob check | `-exit` is not a valid GNU findutils predicate despite being used in initial CI; caused every CI run to fail at artifact verification because `find` errors on unknown `-exit` predicate. Fixed in `build.sh` + `.github/workflows/build.yml`. |
+| 2026-05-23 | CI fix: tag version extraction | `github.event.inputs.version` is empty on tag pushes — CI always built `0.12.2` regardless of pushed tag. Now uses env-level vars with priority chain: dispatch input → git tag → default. |
 
 ### 11. Staleness & Drift Guard
 
