@@ -5,11 +5,11 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 
 ## 2026-05-23
 
-- Drafted Neovim Discussion post proposing community .deb pipeline.
+- Drafted and withdrew Neovim Discussion post — not ready yet.
 - .mailmap added to consolidate contributor attribution.
 - SECURITY.md added with vulnerability reporting policy.
 - Security audit completed — see strategy below.
-- Remaining gaps: ARM64 CI, multi-release track record.
+- Remaining gaps: ARM64 CI, multi-release track record, provenance attestation.
 
 ---
 
