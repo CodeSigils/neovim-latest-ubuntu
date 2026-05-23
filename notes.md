@@ -66,7 +66,7 @@ Mostly to see if this is useful to others, and to get feedback on the approach.
 If maintainers are open to it, I'd be happy to have this listed as a
 community-maintained option somewhere in the docs — but no expectation there.
 
-The repo is MIT-licensed (the pipeline scripts; Neovim itself remains Apache 2.0).
+The repo is Apache 2.0 (Neovim's license).
 
 Thoughts? Feedback? Contributions welcome.
 ```
