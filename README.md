@@ -3,6 +3,7 @@
 [![Build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub Releases](https://img.shields.io/github/v/release/CodeSigils/neovim-latest-ubuntu?display_name=tag&sort=semver)](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg?logo=dependabot)](https://github.com/CodeSigils/neovim-latest-ubuntu/network/updates)
 
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu, Linux Mint, and Debian — no snaps, no Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
