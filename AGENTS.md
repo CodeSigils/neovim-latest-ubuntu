@@ -4,29 +4,23 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| b420dee1-21b6-48bd-8c0d-6d14fb1fb6d2 | ⚖️ decision | Base image pinning, lint job, and checksums | 2026-05-23 |
-| f44f2b43-46a5-4188-b14e-d3ba7fdac1ac | 🔴 bugfix | CI fixes and tag version extraction resolved | 2026-05-23 |
-| edb2dd98-a6e5-4973-89bf-38a2a139a2e5 | 🔴 bugfix | Corrected invalid find -exit predicate in CI | 2026-05-23 |
-| 79cc1991-2640-45a9-abe1-b86b2d2637fc | 🔵 discovery | Debian package check in build script | 2026-05-23 |
-| bcb039da-2490-4b5f-9524-34c74bc1a2e6 | 🔵 discovery | Neovim container build process analyzed | 2026-05-23 |
-| 665e98a0-7ffa-4c7c-9637-7f41fd0a7d54 | 🟣 feature | Script to build Neovim .deb packages | 2026-05-23 |
+| 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
 
-**Key concepts:** hardening, CI/CD, reproducible-builds, linting, checksums, bugfix, CI fixes, tag version extraction, Containerfile CMD, environment variable expansion
+**Key concepts:** dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
 
-**Recent decisions:** Base image pinning, lint job, and checksums
+### .github/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
+
+**Key concepts:** dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
 
 ### .github/workflows/
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| b420dee1-21b6-48bd-8c0d-6d14fb1fb6d2 | ⚖️ decision | Base image pinning, lint job, and checksums | 2026-05-23 |
-| edb2dd98-a6e5-4973-89bf-38a2a139a2e5 | 🔴 bugfix | Corrected invalid find -exit predicate in CI | 2026-05-23 |
-| dd26fe9c-da3c-47af-bd37-10c0949b05d7 | 🟣 feature | Automate Neovim .deb package creation and release | 2026-05-23 |
-| 12b5a1bc-e76e-4eef-8bfd-18da0b19ceb5 | 🔄 refactor | Fix YAML linting errors in build workflow | 2026-05-23 |
-| 979a15a5-0ddf-4c17-a46e-4fe87b94631d | 🟣 feature | Automate Neovim .deb package building and release | 2026-05-23 |
+| 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
 
-**Key concepts:** hardening, CI/CD, reproducible-builds, linting, checksums, bugfix, findutils, predicate, gotcha, ci-cd
-
-**Recent decisions:** Base image pinning, lint job, and checksums
+**Key concepts:** dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
@@ -36,7 +30,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-23 (Hardening: pinned ubuntu:24.04 digest, shellcheck/hadolint CI lint job, SHA256SUMS generation)
+**Last updated:** 2026-05-23 (Quick fixes: dependabot, weekly cron schedule, stale .deb cleanup, CHANGELOG date fix)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -60,8 +54,9 @@
 ├── Containerfile       ← Podman image for reproducible builds (see docs/build-plan.md §4.1)
 ├── test.sh             ← Verification script for .deb (see docs/build-plan.md §4.3)
 ├── .github/            ← CI workflow configuration
+│   ├── dependabot.yml  ← Dependabot: auto-update GitHub Actions deps (weekly)
 │   └── workflows/
-│       └── build.yml   ← GitHub Actions: build + release on tag/main/manual
+│       └── build.yml   ← GitHub Actions: build + release on tag/main/schedule/manual
 │
 ├── [generated — appear only after build]
 │   ├── nvim-linux-*.deb    ← Built package artifact (gitignored)
@@ -415,6 +410,7 @@ release lifecycle:
 |---|---|---|
 | Tag push `v*` (e.g. `v0.13.0`) | Build + create GitHub Release | `.deb` uploaded as release asset |
 | Push to `main` | Build only | `.deb` uploaded as workflow artifact |
+| Schedule (weekly, Mon 06:00 UTC) | Build `latest` | `.deb` uploaded as workflow artifact |
 | Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input | `.deb` uploaded as workflow artifact |
 
 #### 8.2 Release Workflow (tag push)
@@ -497,6 +493,11 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-23 | CI fix: `find -exit 0` → `ls` glob check | `-exit` is not a valid GNU findutils predicate despite being used in initial CI; caused every CI run to fail at artifact verification because `find` errors on unknown `-exit` predicate. Fixed in `build.sh` + `.github/workflows/build.yml`. |
 | 2026-05-23 | CI fix: tag version extraction | `github.event.inputs.version` is empty on tag pushes — CI always built `0.12.2` regardless of pushed tag. Now uses env-level vars with priority chain: dispatch input → git tag → default. |
 | 2026-05-23 | Hardening: pin base image, add linting, checksums | Pinned `ubuntu:24.04` to SHA256 digest for reproducibility. Added `lint` job (shellcheck + hadolint) to CI. Generate SHA256SUMS for release artifacts. |
+| 2026-05-23 | Dependabot: auto-update GitHub Actions deps | Created `.github/dependabot.yml` with weekly schedule for GitHub Actions ecosystem, 5 PR limit, labels, and conventional commit prefix. |
+| 2026-05-23 | Weekly cron build of `latest` | Added `schedule` trigger (Mon 06:00 UTC) to `build.yml`. Changed version extraction priority to detect schedule events and build `latest` (via GitHub API) instead of stale default. |
+| 2026-05-23 | Clean stale `.deb` from project root | Removed `nvim-linux-x86_64.deb` (20MB stale artifact). `.gitignore` already covered the pattern — just needed deletion. |
+| 2026-05-23 | Fix CHANGELOG date | `CHANGELOG.md` release date said 2026-05-23 but all build/release work completed on 2026-05-22. Fixed to 2026-05-22. |
+| 2026-05-23 | AGENTS.md stale guard fixes (pre-action gate + drift scan) | Updated C7 check in §11.3 from `nvim-linux64.deb` to `nvim-linux-*.deb` glob. Updated §11.5 offline drift scan with same glob check. |
 
 ### 11. Staleness & Drift Guard
 
@@ -565,8 +566,8 @@ if [ "$unchecked" -gt 0 ]; then
 fi
 
 # C7: Generated artifacts not accidentally committed
-if [ -f nvim-linux64.deb ]; then
-  echo "DRIFT C7: nvim-linux64.deb is present (should be gitignored)"
+if ls nvim-linux-*.deb >/dev/null 2>&1; then
+  echo "DRIFT C7: nvim-linux-*.deb present in root (should be gitignored)"
 fi
 
 if [ $errors -gt 0 ]; then
@@ -623,12 +624,16 @@ for claim_file in build.sh Containerfile test.sh docs/resources.md; do
 done
 
 # Check no generated artifacts leaked
-for gen_artifact in nvim-linux64.deb _CPack_Packages; do
+for gen_artifact in _CPack_Packages; do
   if [ -e "$gen_artifact" ]; then
     echo "GENERATED ARTIFACT PRESENT: $gen_artifact"
     errors=$((errors+1))
   fi
 done
+if ls nvim-linux-*.deb >/dev/null 2>&1; then
+  echo "GENERATED ARTIFACT PRESENT: nvim-linux-*.deb"
+  errors=$((errors+1))
+fi
 
 # Check Last updated is not more than 90 days old
 last_date=$(grep -oP 'Last updated:\s*\K\d{4}-\d{2}-\d{2}' AGENTS.md)

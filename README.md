@@ -63,7 +63,7 @@ Build and install Neovim in three commands:
 
 ```bash
 sudo apt install ninja-build gettext cmake curl build-essential
-git clone --depth 1 --branch v0.12.2 https://github.com/neovim/neovim && cd neovim
+git clone --depth 1 --branch v<VERSION> https://github.com/neovim/neovim && cd neovim
 make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
@@ -80,7 +80,7 @@ podman build -t neovim-builder .
 mkdir -p output
 podman run --rm -v "$(pwd)/output:/output" neovim-builder
 
-# Build a different version
+# Build a different version (e.g. v0.14.0)
 podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
 # Verify the .deb
@@ -89,8 +89,9 @@ podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
 The container image (`ubuntu:24.04`) includes all build prerequisites and runs
 [`build.sh`](./build.sh) on startup. Set `VERSION` via `-e` to build a specific release;
-defaults to `0.12.2`. The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in
-the `output/` directory on your host.
+defaults to `0.12.2`. Use `VERSION=latest` to build the latest stable release (the CI
+workflow uses this for its weekly scheduled build). The `-v "$(pwd)/output:/output"`
+mount ensures the `.deb` appears in the `output/` directory on your host.
 
 ### Build Output
 
