@@ -7,7 +7,40 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 
 - Drafted Neovim Discussion post proposing community .deb pipeline.
 - .mailmap added to consolidate contributor attribution.
-- Remaining gaps: SECURITY.md, ARM64 CI, multi-release track record.
+- SECURITY.md added with vulnerability reporting policy.
+- Security audit completed — see strategy below.
+- Remaining gaps: ARM64 CI, multi-release track record.
+
+---
+
+## Security Audit Strategy (Future Work)
+
+### Threat Model
+
+| Vector | Risk | Impact |
+|---|---|---|
+| Compromised Neovim source (upstream tag hijack) | Low (signed tags) | Malicious binary shipped |
+| Compromised base image (pinned to digest) | Very Low | Backdoor in build env |
+| Compromised CI dependency (actions/*) | Low-Medium | RCE in CI runner |
+| Compromised apt packages (ninja, cmake, etc.) | Very Low | Backdoor in build deps |
+| Compromised GitHub runner | Low (ephemeral) | Token/artifact theft |
+| Artifact tampering (MITM on download) | Low (SHA256SUMS) | User installs modified .deb |
+
+### Already Mitigated
+
+- Base image pinned to SHA256 digest
+- Dependabot for CI action updates
+- SHA256SUMS for artifact integrity
+- Containerized build (host isolation)
+- test.sh verifies `ldd` (dependency integrity)
+
+### Planned Improvements
+
+| Action | Effort | Impact |
+|---|---|---|
+| GPG-sign SHA256SUMS in CI | Low | Users verify artifact origin |
+| `attest-build-provenance` action | Low-Med | SLSA L1 provenance |
+| SBOM generation | Medium | Transparency, vulnerability scanning |
 
 ---
 
