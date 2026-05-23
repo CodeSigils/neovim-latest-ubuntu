@@ -4,6 +4,8 @@ on:
   push:
     tags: ['v*']
     branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'   # Weekly: Monday 06:00 UTC — builds latest stable
   workflow_dispatch:
     inputs:
       version:
@@ -13,6 +15,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  VERSION_SCHEDULE: ${{ github.event_name == 'schedule' && 'latest' || '' }}
 
 jobs:
   lint:
@@ -41,9 +44,11 @@ jobs:
           VERSION_FROM_REF: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
         run: |
           mkdir -p output
-          # Priority: workflow_dispatch input > git tag > default
+          # Priority: workflow_dispatch input > schedule (latest) > git tag > default
           if [ -n "$VERSION_FROM_INPUT" ]; then
             VERSION="$VERSION_FROM_INPUT"
+          elif [ -n "$VERSION_SCHEDULE" ]; then
+            VERSION="latest"
           elif [ -n "$VERSION_FROM_REF" ]; then
             VERSION="${VERSION_FROM_REF#v}"
           else
