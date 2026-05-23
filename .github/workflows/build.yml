@@ -103,6 +103,10 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v') && !cancelled()
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write        # for softprops/action-gh-release
+      id-token: write         # for actions/attest (OIDC → Sigstore)
+      attestations: write     # for actions/attest (store attestations)
     steps:
       - uses: actions/download-artifact@v7
         with:
@@ -116,6 +120,11 @@ jobs:
         run: |
           sha256sum *.deb > SHA256SUMS
           cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: '*.deb'
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
