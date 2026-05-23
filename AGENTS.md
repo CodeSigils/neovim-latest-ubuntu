@@ -30,7 +30,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-23 (CI fix: `find -exit 0` → `ls` glob check — `-exit` is not a valid findutils predicate, causing all CI runs to fail at artifact verification)
+**Last updated:** 2026-05-23 (Hardening: pinned ubuntu:24.04 digest, shellcheck/hadolint CI lint job, SHA256SUMS generation)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -75,7 +75,7 @@
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
 - **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
-- **Containerfile** — includes `sudo` (needed by `test.sh` for `dpkg` operations) and proper argument forwarding to `build.sh`.
+- **Containerfile** — includes `sudo` (needed by `test.sh` for `dpkg` operations) and proper argument forwarding to `build.sh`. Base image pinned to SHA256 digest for reproducible builds.
 - **Artifact handling** — CPack now writes directly to `/output` via explicit `-B` flag; CI creates `output/` directory and verifies artifact before upload (fail-fast checks).
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
@@ -490,6 +490,7 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-22 | GitHub Actions workflow simplified | Removed shell expansion ambiguity; explicit `output/` dir; unified version input; docker env vars clarified |
 | 2026-05-23 | CI fix: `find -exit 0` → `ls` glob check | `-exit` is not a valid GNU findutils predicate despite being used in initial CI; caused every CI run to fail at artifact verification because `find` errors on unknown `-exit` predicate. Fixed in `build.sh` + `.github/workflows/build.yml`. |
 | 2026-05-23 | CI fix: tag version extraction | `github.event.inputs.version` is empty on tag pushes — CI always built `0.12.2` regardless of pushed tag. Now uses env-level vars with priority chain: dispatch input → git tag → default. |
+| 2026-05-23 | Hardening: pin base image, add linting, checksums | Pinned `ubuntu:24.04` to SHA256 digest for reproducibility. Added `lint` job (shellcheck + hadolint) to CI. Generate SHA256SUMS for release artifacts. |
 
 ### 11. Staleness & Drift Guard
 
