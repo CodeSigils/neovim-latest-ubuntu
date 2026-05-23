@@ -4,23 +4,29 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| b420dee1-21b6-48bd-8c0d-6d14fb1fb6d2 | ⚖️ decision | Base image pinning, lint job, and checksums | 2026-05-23 |
 | f44f2b43-46a5-4188-b14e-d3ba7fdac1ac | 🔴 bugfix | CI fixes and tag version extraction resolved | 2026-05-23 |
 | edb2dd98-a6e5-4973-89bf-38a2a139a2e5 | 🔴 bugfix | Corrected invalid find -exit predicate in CI | 2026-05-23 |
 | 79cc1991-2640-45a9-abe1-b86b2d2637fc | 🔵 discovery | Debian package check in build script | 2026-05-23 |
 | bcb039da-2490-4b5f-9524-34c74bc1a2e6 | 🔵 discovery | Neovim container build process analyzed | 2026-05-23 |
 | 665e98a0-7ffa-4c7c-9637-7f41fd0a7d54 | 🟣 feature | Script to build Neovim .deb packages | 2026-05-23 |
 
-**Key concepts:** bugfix, CI fixes, tag version extraction, Containerfile CMD, environment variable expansion, CI/CD, findutils, predicate, gotcha, build-script
+**Key concepts:** hardening, CI/CD, reproducible-builds, linting, checksums, bugfix, CI fixes, tag version extraction, Containerfile CMD, environment variable expansion
+
+**Recent decisions:** Base image pinning, lint job, and checksums
 
 ### .github/workflows/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| b420dee1-21b6-48bd-8c0d-6d14fb1fb6d2 | ⚖️ decision | Base image pinning, lint job, and checksums | 2026-05-23 |
 | edb2dd98-a6e5-4973-89bf-38a2a139a2e5 | 🔴 bugfix | Corrected invalid find -exit predicate in CI | 2026-05-23 |
 | dd26fe9c-da3c-47af-bd37-10c0949b05d7 | 🟣 feature | Automate Neovim .deb package creation and release | 2026-05-23 |
 | 12b5a1bc-e76e-4eef-8bfd-18da0b19ceb5 | 🔄 refactor | Fix YAML linting errors in build workflow | 2026-05-23 |
 | 979a15a5-0ddf-4c17-a46e-4fe87b94631d | 🟣 feature | Automate Neovim .deb package building and release | 2026-05-23 |
 
-**Key concepts:** bugfix, CI/CD, findutils, predicate, gotcha, ci-cd, github-actions, docker, deb-package, release-automation
+**Key concepts:** hardening, CI/CD, reproducible-builds, linting, checksums, bugfix, findutils, predicate, gotcha, ci-cd
+
+**Recent decisions:** Base image pinning, lint job, and checksums
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
