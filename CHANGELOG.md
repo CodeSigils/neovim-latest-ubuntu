@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Multi-arch CI matrix: builds now run on both `x86_64` (`ubuntu-24.04`) and `aarch64` (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`. ARM builds use `continue-on-error: true` — additive, don't block x86_64 releases.
+- Multi-arch CI matrix: builds now run on both `x86_64` (`ubuntu-24.04`) and `aarch64` (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
+- Release note automation: Release step now uses `generate_release_notes: true` — GitHub auto-generates release body from commit history.
 
 ### Changed
 
 - Containerfile base image pin updated from amd64-specific digest to multi-arch manifest list digest — same `Containerfile` now works on both architectures.
+- ARM builds now enforce pass requirement: `continue-on-error: true` removed. Both architectures must succeed for a release to proceed.
+- Containerfile optimization: `COPY --chmod=755` eliminates separate `RUN chmod` layer; combined `ENV` lines.
 
 ## [0.12.2] — 2026-05-22
 

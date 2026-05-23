@@ -129,7 +129,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Container build** | `docker build -t neovim-builder -f Containerfile .` (multi-arch manifest digest) |
 | **Build execution** | `docker run --rm -e VERSION=x.y.z -v "$PWD/output:/output" neovim-builder` |
 | **Artifact path** | `/output` mounted to `output/` on host |
-| **Architecture matrix** | `x86_64` on `ubuntu-24.04` + `aarch64` on `ubuntu-24.04-arm` (ARM is `continue-on-error: true`) |
+| **Architecture matrix** | `x86_64` on `ubuntu-24.04` + `aarch64` on `ubuntu-24.04-arm` (both must pass) |
 | **Lint** | `shellcheck build.sh test.sh` + `hadolint Containerfile` via `hadolint/hadolint-action@v3.3.0` |
 | **Verification** | `ls output/*.deb` before upload (fail-fast) per arch |
 | **Checksums** | `sha256sum *.deb > SHA256SUMS` after verification (per arch) |
@@ -160,7 +160,7 @@ Neovim minor versions unless CMake/CPack config changes upstream.
 
 > **Build run**: All files tested successfully inside Podman on 2026-05-22.
 > **CI verification**: Workflow tested — container builds, build.sh executes, artifacts generated and uploaded, Release creation succeeds.
-> **Containerfile updates**: Added `RUN chmod +x` for build-neovim; CMD now passes VERSION and OUTPUT_DIR args.
+> **Containerfile updates**: Added `COPY --chmod=755` for build-neovim (eliminates separate RUN layer); CMD now passes VERSION and OUTPUT_DIR args.
 > **CI workflow updates**: Explicit `-v "$PWD/output:/output"` mount; artifact verification step added; unified version input handling.
 
 ## 7. Release Process

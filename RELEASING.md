@@ -215,7 +215,7 @@ GitHub Actions triggers build.yml
 ║  ├─ ubuntu-24.04 → nvim-linux-        ║
 ║  │  x86_64.deb                        ║
 ║  └─ ubuntu-24.04-arm → nvim-linux-    ║
-║     arm64.deb (continue-on-error)     ║
+║     arm64.deb                         ║
 ║  Each matrix entry:                   ║
 ║  ├─ Docker builds Containerfile       ║
 ║  │  → neovim-builder image            ║

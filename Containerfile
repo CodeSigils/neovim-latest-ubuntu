@@ -20,11 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     && rm -rf /var/lib/apt/lists/*
 
-COPY build.sh /usr/local/bin/build-neovim
-RUN chmod +x /usr/local/bin/build-neovim
+COPY --chmod=755 build.sh /usr/local/bin/build-neovim
 
-ENV VERSION=0.12.2
-ENV OUTPUT_DIR=/output
+ENV VERSION=0.12.2 \
+    OUTPUT_DIR=/output
 
 WORKDIR /tmp/build
 

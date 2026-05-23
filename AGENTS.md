@@ -4,9 +4,10 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 8cae6457-5a9b-437a-8651-bc8751e6b3c5 | ✅ change | Reproducibility docs created + committed | 2026-05-23 |
 | 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
 
-**Key concepts:** dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
+**Key concepts:** reproducibility-docs, diataxis, explanation, build-reproducibility, committed, dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
 
 ### .github/
 | ID | Type | Title | Date |
@@ -23,6 +24,13 @@
 
 **Key concepts:** release-watcher, neovim-upstream, github-actions, cron, arm64-naming, dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
 
+### docs/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| 8cae6457-5a9b-437a-8651-bc8751e6b3c5 | ✅ change | Reproducibility docs created + committed | 2026-05-23 |
+
+**Key concepts:** reproducibility-docs, diataxis, explanation, build-reproducibility, committed
+
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
 
@@ -31,7 +39,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-23 (Multi-arch CI matrix: ARM64 build + separate release job)
+**Last updated:** 2026-05-23 (Release note automation, cross-arch enforcement, Containerfile optimization)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -423,7 +431,7 @@ release lifecycle:
 1. Push a tag matching `v*` (e.g. `git tag v0.13.0 && git push origin v0.13.0`)
 2. CI builds the Neovim `.deb` inside a container using `build.sh` for both `x86_64` (ubuntu-24.04) and `aarch64` (ubuntu-24.04-arm) in parallel
 3. Each matrix job uploads its `.deb` + SHA256SUMS as an arch-specific artifact
-4. On success (or ARM failure with `continue-on-error`), a separate `release` job downloads all artifacts and creates the Release with both `.deb` files and combined SHA256SUMS
+4. On success across all architectures, the `release` job downloads all artifacts and creates the Release with both `.deb` files and combined SHA256SUMS
 5. Users can install directly from the Release page:
 
    ```bash
@@ -449,7 +457,7 @@ release lifecycle:
 - Build container: the project's `Containerfile` (Podman-compatible, run via `docker` on GH Actions)
   - Uses multi-arch manifest list digest (`ubuntu:24.04@sha256:c4a8d5...`) so the same `Containerfile` works on both architectures
 - The container image includes all build prerequisites and runs `build.sh` on startup
-- ARM builds have `continue-on-error: true` — failures don't block x86_64 releases or status checks
+- ARM builds are required to pass — both architectures must succeed for the release to proceed
 - Release artifacts are aggregated by a separate `release` job that downloads all matrix artifacts
 
 #### 8.5 Post-Release Tasks
@@ -512,9 +520,12 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-23 | Clean stale `.deb` from project root | Removed `nvim-linux-x86_64.deb` (20MB stale artifact). `.gitignore` already covered the pattern — just needed deletion. |
 | 2026-05-23 | Fix CHANGELOG date | `CHANGELOG.md` release date said 2026-05-23 but all build/release work completed on 2026-05-22. Fixed to 2026-05-22. |
 | 2026-05-23 | AGENTS.md stale guard fixes (pre-action gate + drift scan) | Updated C7 check in §11.3 from `nvim-linux64.deb` to `nvim-linux-*.deb` glob. Updated §11.5 offline drift scan with same glob check. |
-| 2026-05-23 | Multi-arch CI matrix: ARM64 + aggregated releases | Added `aarch64` to build matrix using `ubuntu-24.04-arm` runner. Containerfile pin changed from amd64-specific digest to multi-arch manifest list digest. Separated release into its own job that aggregates arch-specific artifacts. ARM has `continue-on-error: true` — additive, doesn't block x86_64. |
+| 2026-05-23 | Multi-arch CI matrix: ARM64 + aggregated releases | Added `aarch64` to build matrix using `ubuntu-24.04-arm` runner. Containerfile pin changed from amd64-specific digest to multi-arch manifest list digest. Separated release into its own job that aggregates arch-specific artifacts. ARM initially had `continue-on-error: true` (removed 2026-05-23 after pipeline stabilised). |
 | 2026-05-23 | Reproducibility docs (docs/reproducibility.md) | Created Diataxis Explanation document covering pinned base image, parameterized build, verification chain, reproducibility guarantees and limitations, and cross-architecture considerations. |
-
+| 2026-05-23 | Release notes auto-generation | Added `generate_release_notes: true` to `softprops/action-gh-release@v3` step — releases now include auto-generated body from commit history. |
+| 2026-05-23 | Cross-arch enforcement (removed continue-on-error) | Removed `continue-on-error: true` from ARM build matrix entries. Both architectures must now pass for the release to proceed. ARM pipeline proven stable. |
+| 2026-05-23 | Containerfile optimization | `COPY --chmod=755` replaces `COPY + RUN chmod` (saves one layer). Combined `ENV VERSION` and `ENV OUTPUT_DIR` into single `ENV` block. |
+ 
 ### 11. Staleness & Drift Guard
 
 This file drifts when the repo changes but agents follow stale instructions — that's how you get
