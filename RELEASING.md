@@ -55,12 +55,17 @@ That's it. Pushing the tag triggers the CI pipeline (`.github/workflows/build.ym
 
 The pipeline does the following:
 
-1. **Builds the container image** — installs build tools into `ubuntu:24.04`
-2. **Runs build.sh** — clones the tagged Neovim version, compiles with CMake+Ninja,
+1. **Lints the scripts** — runs `shellcheck` on `build.sh`/`test.sh` and `hadolint` on
+   `Containerfile`. If lint fails, the build is blocked — no point building a broken package.
+2. **Builds the container image** — installs build tools into `ubuntu:24.04` (pinned to a
+   SHA256 digest for reproducible builds)
+3. **Runs build.sh** — clones the tagged Neovim version, compiles with CMake+Ninja,
    packages with CPack into a `.deb`
-3. **Verifies the artifact** — checks the `.deb` exists in the output directory
-4. **Uploads the artifact** — available as a workflow run artifact
-5. **Creates a GitHub Release** — attaches the `.deb` as a downloadable asset
+4. **Verifies the artifact** — checks the `.deb` exists in the output directory
+5. **Generates checksums** — produces `SHA256SUMS` alongside the `.deb`
+6. **Uploads artifacts** — both the `.deb` and `SHA256SUMS` are stored as workflow artifacts
+7. **Creates a GitHub Release** — attaches the `.deb` and `SHA256SUMS` as downloadable assets
+   (tag pushes only)
 
 Monitor the run at: https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 
@@ -70,10 +75,17 @@ Once CI completes:
 
 - Check the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
   for the new release with the `.deb` attached.
-- Download and test on a clean system:
+- Verify the checksum to confirm integrity:
 
   ```bash
+  # Download both the .deb and SHA256SUMS
   curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
+  curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/SHA256SUMS
+  sha256sum -c SHA256SUMS
+  ```
+- Install and verify the package:
+
+  ```bash
   sudo dpkg -i nvim-linux-x86_64.deb
   nvim --version
   ```
@@ -181,20 +193,27 @@ You push tag v0.13.0
     ↓
 GitHub Actions triggers build.yml
     ↓
-Docker builds the Containerfile → neovim-builder image
+╔═══════════════════════════════════════╗
+║  Lint job (runs first, blocks build)  ║
+║  ├─ shellcheck build.sh test.sh       ║
+║  └─ hadolint Containerfile            ║
+╚═══════════════════════════════════════╝
     ↓
-docker run neovim-builder (with VERSION=0.13.0)
-    ↓
-Container executes build.sh:
-  1. git clone --branch v0.13.0 neovim
-  2. make CMAKE_BUILD_TYPE=RelWithDebInfo
-  3. cpack -G DEB → nvim-linux-x86_64.deb
-    ↓
-Host verifies .deb exists in output/
-    ↓
-actions/upload-artifact uploads the .deb
-    ↓
-softprops/action-gh-release creates a GitHub Release
+╔═══════════════════════════════════════╗
+║  Build job (needs: lint)              ║
+║  ├─ Docker builds Containerfile       ║
+║  │  → neovim-builder image            ║
+║  ├─ docker run neovim-builder         ║
+║  │  (with VERSION=0.13.0)             ║
+║  │  Container executes build.sh:      ║
+║  │    1. git clone --branch v0.13.0   ║
+║  │    2. make CMAKE_BUILD_TYPE=Rel... ║
+║  │    3. cpack -G DEB → .deb          ║
+║  ├─ Host verifies .deb exists         ║
+║  ├─ sha256sum *.deb > SHA256SUMS      ║
+║  ├─ Upload .deb + SHA256SUMS          ║
+║  └─ (tag only) softprops/gh-release   ║
+╚═══════════════════════════════════════╝
     ↓
 Users download from Releases page
 ```
