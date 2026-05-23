@@ -75,6 +75,12 @@ jobs:
           sha256sum *.deb > SHA256SUMS
           cat SHA256SUMS
 
+      - name: Test .deb package
+        run: |
+          DEB=$(ls output/*.deb | head -1)
+          echo "Testing: $DEB"
+          ./test.sh "$DEB"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
