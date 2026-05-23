@@ -66,19 +66,25 @@ echo "--- Version Check ---"
 check "nvim --version matches v${EXPECTED_VERSION}" \
   bash -c "nvim --version | grep -q 'NVIM v${EXPECTED_VERSION}'"
 
-# Step 3: Check shared library dependencies
+# Step 3: Runtime smoke test
+echo ""
+echo "--- Smoke Test ---"
+check "nvim --headless starts and exits cleanly" timeout 10 nvim --headless +q
+check "nvim --headless +checkhealth runs without crash" timeout 30 nvim --headless +"checkhealth" +q
+
+# Step 4: Check shared library dependencies
 echo ""
 echo "--- Library Dependencies ---"
 check "ldd reports no unresolved dependencies" \
   bash -c "! ldd \"\$(which nvim)\" 2>/dev/null | grep -qi 'not found'"
 
-# Step 4: Verify update-alternatives
+# Step 5: Verify update-alternatives
 echo ""
 echo "--- update-alternatives ---"
 check "update-alternatives registers nvim for vi" \
   bash -c "update-alternatives --display vi 2>/dev/null | grep -q nvim"
 
-# Step 5: Uninstall
+# Step 6: Cleanup
 echo ""
 echo "--- Cleanup ---"
 check "dpkg -r Neovim succeeds" sudo dpkg -r Neovim

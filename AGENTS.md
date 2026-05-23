@@ -18,9 +18,10 @@
 ### .github/workflows/
 | ID | Type | Title | Date |
 |----|------|-------|------|
+| 827815db-1723-4aa5-ba17-0585b967a037 | ✅ change | Upstream release watcher workflow | 2026-05-23 |
 | 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
 
-**Key concepts:** dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
+**Key concepts:** release-watcher, neovim-upstream, github-actions, cron, arm64-naming, dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
