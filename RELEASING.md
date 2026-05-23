@@ -53,19 +53,21 @@ That's it. Pushing the tag triggers the CI pipeline (`.github/workflows/build.ym
 
 ### 3. Wait for CI to finish
 
-The pipeline does the following:
+The pipeline does the following in parallel for both architectures (x86_64 and ARM64):
 
 1. **Lints the scripts** — runs `shellcheck` on `build.sh`/`test.sh` and `hadolint` on
    `Containerfile`. If lint fails, the build is blocked — no point building a broken package.
 2. **Builds the container image** — installs build tools into `ubuntu:24.04` (pinned to a
-   SHA256 digest for reproducible builds)
+   multi-arch manifest digest so the same Containerfile works on both architectures)
 3. **Runs build.sh** — clones the tagged Neovim version, compiles with CMake+Ninja,
-   packages with CPack into a `.deb`
+   packages with CPack into a `.deb` (`nvim-linux-x86_64.deb` or `nvim-linux-aarch64.deb`)
 4. **Verifies the artifact** — checks the `.deb` exists in the output directory
 5. **Generates checksums** — produces `SHA256SUMS` alongside the `.deb`
-6. **Uploads artifacts** — both the `.deb` and `SHA256SUMS` are stored as workflow artifacts
-7. **Creates a GitHub Release** — attaches the `.deb` and `SHA256SUMS` as downloadable assets
-   (tag pushes only)
+6. **Uploads artifacts** — both the `.deb` and per-arch `SHA256SUMS` are stored as
+   arch-specific workflow artifacts
+7. **Aggregates and releases** — a separate `release` job downloads all arch artifacts,
+   regenerates a combined `SHA256SUMS`, and creates the GitHub Release with both `.deb`
+   files attached as downloadable assets (tag pushes only)
 
 Monitor the run at: https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 
@@ -74,19 +76,25 @@ Monitor the run at: https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 Once CI completes:
 
 - Check the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
-  for the new release with the `.deb` attached.
+  for the new release with both `.deb` files attached (one per architecture).
 - Verify the checksum to confirm integrity:
 
   ```bash
-  # Download both the .deb and SHA256SUMS
+  # Download both .deb files and the combined SHA256SUMS
   curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
   curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/SHA256SUMS
   sha256sum -c SHA256SUMS
   ```
-- Install and verify the package:
+- Install and verify the package on your architecture:
 
   ```bash
+  # x86_64 systems
   sudo dpkg -i nvim-linux-x86_64.deb
+
+  # ARM64 systems — use the aarch64 build instead
+  curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-aarch64.deb
+  sudo dpkg -i nvim-linux-aarch64.deb
+
   nvim --version
   ```
 
@@ -174,8 +182,11 @@ need a release from a manual build, push a tag for that version.
 The CI determines the version with this priority:
 
 1. **Manual dispatch input** — if triggered from the Actions tab
-2. **Git tag** — extracted from the pushed tag (strips the leading `v`)
-3. **Default** — `0.12.2` (falls back when neither of the above applies)
+2. **Schedule** — builds `latest` (auto-fetches from GitHub API) on weekly cron (Monday 06:00 UTC)
+3. **Git tag** — extracted from the pushed tag (strips the leading `v`)
+4. **Default** — `0.12.2` (falls back when none of the above apply)
+
+Both architectures receive the same version from the same priority chain.
 
 Check which trigger you used and verify the version in the CI logs.
 
@@ -194,13 +205,18 @@ You push tag v0.13.0
 GitHub Actions triggers build.yml
     ↓
 ╔═══════════════════════════════════════╗
-║  Lint job (runs first, blocks build)  ║
+║  Lint job (runs first)                ║
 ║  ├─ shellcheck build.sh test.sh       ║
 ║  └─ hadolint Containerfile            ║
 ╚═══════════════════════════════════════╝
     ↓
 ╔═══════════════════════════════════════╗
-║  Build job (needs: lint)              ║
+║  Build job (matrix x86_64 + aarch64)  ║
+║  ├─ ubuntu-24.04 → nvim-linux-        ║
+║  │  x86_64.deb                        ║
+║  └─ ubuntu-24.04-arm → nvim-linux-    ║
+║     aarch64.deb (continue-on-error)   ║
+║  Each matrix entry:                   ║
 ║  ├─ Docker builds Containerfile       ║
 ║  │  → neovim-builder image            ║
 ║  ├─ docker run neovim-builder         ║
@@ -211,8 +227,15 @@ GitHub Actions triggers build.yml
 ║  │    3. cpack -G DEB → .deb          ║
 ║  ├─ Host verifies .deb exists         ║
 ║  ├─ sha256sum *.deb > SHA256SUMS      ║
-║  ├─ Upload .deb + SHA256SUMS          ║
-║  └─ (tag only) softprops/gh-release   ║
+║  └─ Upload artifacts (arch-specific) ║
+╚═══════════════════════════════════════╝
+    ↓
+╔═══════════════════════════════════════╗
+║  Release job (tag pushes only)        ║
+║  ├─ Download all arch artifacts       ║
+║  ├─ Regenerate combined SHA256SUMS    ║
+║  └─ softprops/gh-release              ║
+║     (attaches both .deb + SHA256SUMS) ║
 ╚═══════════════════════════════════════╝
     ↓
 Users download from Releases page
@@ -223,7 +246,7 @@ The build script (`build.sh`), container definition (`Containerfile`), and test 
 
 ## Reference
 
-- [`build.sh`](./build.sh) — Parameterised build script
+- [`build.sh`](./build.sh) — Parameterised build script (arch-agnostic, produces `.deb` per `CMAKE_SYSTEM_PROCESSOR`)
 - [`Containerfile`](./Containerfile) — Build environment definition
 - [`test.sh`](./test.sh) — 5-check verification script
 - [`docs/build-plan.md`](./docs/build-plan.md) — Technical build pipeline details

@@ -30,7 +30,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-23 (Quick fixes: dependabot, weekly cron schedule, stale .deb cleanup, CHANGELOG date fix)
+**Last updated:** 2026-05-23 (Multi-arch CI matrix: ARM64 build + separate release job)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -409,23 +409,28 @@ release lifecycle:
 #### 8.1 Release Triggers
 
 | Trigger | Action | Outcome |
-|---|---|---|
-| Tag push `v*` (e.g. `v0.13.0`) | Build + create GitHub Release | `.deb` uploaded as release asset |
-| Push to `main` | Build only | `.deb` uploaded as workflow artifact |
-| Schedule (weekly, Mon 06:00 UTC) | Build `latest` | `.deb` uploaded as workflow artifact |
-| Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input | `.deb` uploaded as workflow artifact |
+|---|---|---|---|
+| Tag push `v*` (e.g. `v0.13.0`) | Build (x86_64 + aarch64) + create GitHub Release | Both `.deb` files uploaded as release assets |
+| Push to `main` | Build only (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
+| Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
+| Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
 
 #### 8.2 Release Workflow (tag push)
 
 1. Push a tag matching `v*` (e.g. `git tag v0.13.0 && git push origin v0.13.0`)
-2. CI builds the Neovim `.deb` inside a container using `build.sh`
-3. On success, a GitHub Release is created with the `.deb` attached as a downloadable asset
-4. Users can install directly from the Release page:
+2. CI builds the Neovim `.deb` inside a container using `build.sh` for both `x86_64` (ubuntu-24.04) and `aarch64` (ubuntu-24.04-arm) in parallel
+3. Each matrix job uploads its `.deb` + SHA256SUMS as an arch-specific artifact
+4. On success (or ARM failure with `continue-on-error`), a separate `release` job downloads all artifacts and creates the Release with both `.deb` files and combined SHA256SUMS
+5. Users can install directly from the Release page:
 
    ```bash
-   # Download and install the latest release
+   # Download and install the latest release (x86_64)
    curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-x86_64.deb
    sudo dpkg -i nvim-linux-x86_64.deb
+
+   # Or for ARM64 systems:
+   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-aarch64.deb
+   sudo dpkg -i nvim-linux-aarch64.deb
    ```
 
 #### 8.3 Version Parameterization
@@ -433,12 +438,16 @@ release lifecycle:
 - The CI workflow reads the git tag for the version (`v0.13.0` → `VERSION=0.13.0`)
 - For manual dispatch, the `version` input overrides this
 - `build.sh` supports `VERSION=latest` to auto-fetch the latest stable tag via GitHub API
+- Both matrix jobs (x86_64, aarch64) receive the same version parameter from the same priority chain
 
 #### 8.4 CI Environment
 
-- Runner: `ubuntu-24.04` (via GitHub Actions)
+- Runner: `ubuntu-24.04` (x86_64) and `ubuntu-24.04-arm` (ARM64) via GitHub Actions matrix
 - Build container: the project's `Containerfile` (Podman-compatible, run via `docker` on GH Actions)
+  - Uses multi-arch manifest list digest (`ubuntu:24.04@sha256:c4a8d5...`) so the same `Containerfile` works on both architectures
 - The container image includes all build prerequisites and runs `build.sh` on startup
+- ARM builds have `continue-on-error: true` — failures don't block x86_64 releases or status checks
+- Release artifacts are aggregated by a separate `release` job that downloads all matrix artifacts
 
 #### 8.5 Post-Release Tasks
 
@@ -500,6 +509,7 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-23 | Clean stale `.deb` from project root | Removed `nvim-linux-x86_64.deb` (20MB stale artifact). `.gitignore` already covered the pattern — just needed deletion. |
 | 2026-05-23 | Fix CHANGELOG date | `CHANGELOG.md` release date said 2026-05-23 but all build/release work completed on 2026-05-22. Fixed to 2026-05-22. |
 | 2026-05-23 | AGENTS.md stale guard fixes (pre-action gate + drift scan) | Updated C7 check in §11.3 from `nvim-linux64.deb` to `nvim-linux-*.deb` glob. Updated §11.5 offline drift scan with same glob check. |
+| 2026-05-23 | Multi-arch CI matrix: ARM64 + aggregated releases | Added `aarch64` to build matrix using `ubuntu-24.04-arm` runner. Containerfile pin changed from amd64-specific digest to multi-arch manifest list digest. Separated release into its own job that aggregates arch-specific artifacts. ARM has `continue-on-error: true` — additive, doesn't block x86_64. |
 
 ### 11. Staleness & Drift Guard
 

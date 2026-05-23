@@ -1,6 +1,8 @@
-# Pin to SHA256 digest for reproducible builds.
-# Update periodically: docker pull ubuntu:24.04, then get the digest.
-FROM ubuntu:24.04@sha256:cdb5fd928fced577cfecf12c8966e830fcdf42ee481fb0b91904eeddc2fe5eff
+# Pin to multi-arch manifest list digest so the same Containerfile works
+# on both x86_64 and arm64 runners (Docker auto-selects per platform).
+# To update: docker pull ubuntu:24.04, then get the manifest list digest with
+# `docker inspect --format='{{index .RepoDigests 0}}' ubuntu:24.04`.
+FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 
 LABEL description="Neovim build environment"
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Multi-arch CI matrix: builds now run on both `x86_64` (`ubuntu-24.04`) and `aarch64` (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`. ARM builds use `continue-on-error: true` — additive, don't block x86_64 releases.
+
+### Changed
+
+- Containerfile base image pin updated from amd64-specific digest to multi-arch manifest list digest — same `Containerfile` now works on both architectures.
+
 ## [0.12.2] — 2026-05-22
 
 ### Added

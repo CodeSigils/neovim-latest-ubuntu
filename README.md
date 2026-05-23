@@ -67,7 +67,7 @@ Build and install Neovim in three commands:
 ```bash
 sudo apt install ninja-build gettext cmake curl build-essential
 git clone --depth 1 --branch v<VERSION> https://github.com/neovim/neovim && cd neovim
-make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
+make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-$(uname -m).deb
 ```
 
 ### Containerized Build (Recommended for Reproducibility)
@@ -87,7 +87,8 @@ podman run --rm -v "$(pwd)/output:/output" neovim-builder
 podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
 # Verify the .deb
-./test.sh output/nvim-linux-x86_64.deb
+# The .deb auto-names based on architecture (x86_64 or aarch64)
+./test.sh output/nvim-linux-$(uname -m).deb
 ```
 
 The container image (`ubuntu:24.04`) includes all build prerequisites and runs

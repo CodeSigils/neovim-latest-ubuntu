@@ -100,7 +100,7 @@ Container image: `ubuntu:24.04` (or `ubuntu:22.04` for broader glibc compat).
 
 ### 4.2 Verification Checklist
 
-- [x] Package installs cleanly: `dpkg -i nvim-linux-x86_64.deb`
+- [x] Package installs cleanly: `dpkg -i nvim-linux-$(uname -m).deb`
 - [x] `nvim --version` reports the expected version
 - [x] Core functionality: open file, edit, save, quit
 - [x] No missing shared library dependencies: `ldd $(which nvim)`
@@ -108,7 +108,7 @@ Container image: `ubuntu:24.04` (or `ubuntu:22.04` for broader glibc compat).
 - [x] `update-alternatives` registers (check `vi --version` points to nvim)
 
 > All checks passed on 2026-05-22 inside a Podman `ubuntu:24.04` container.
-> Build: Neovim v0.12.2, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB).
+> Build: Neovim v0.12.2, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64 via CI).
 
 ### 4.3 Test Script (for automation)
 
@@ -126,14 +126,15 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 
 | Component | Implementation |
 |---|---|
-| **Container build** | `docker build -t neovim-builder -f Containerfile .` |
-| **Build execution** | `docker run --rm -e VERSION=0.12.2 -v "$PWD/output:/output" neovim-builder` |
+| **Container build** | `docker build -t neovim-builder -f Containerfile .` (multi-arch manifest digest) |
+| **Build execution** | `docker run --rm -e VERSION=x.y.z -v "$PWD/output:/output" neovim-builder` |
 | **Artifact path** | `/output` mounted to `output/` on host |
+| **Architecture matrix** | `x86_64` on `ubuntu-24.04` + `aarch64` on `ubuntu-24.04-arm` (ARM is `continue-on-error: true`) |
 | **Lint** | `shellcheck build.sh test.sh` + `hadolint Containerfile` via `hadolint/hadolint-action@v3.3.0` |
-| **Verification** | `ls output/*.deb` before upload (fail-fast) |
-| **Checksums** | `sha256sum *.deb > SHA256SUMS` after verification |
-| **Artifact upload** | `actions/upload-artifact@v7` with multi-line path (`output/*.deb`, `output/SHA256SUMS`) |
-| **Release creation** | `softprops/action-gh-release@v3` with files `output/*.deb` + `output/SHA256SUMS` |
+| **Verification** | `ls output/*.deb` before upload (fail-fast) per arch |
+| **Checksums** | `sha256sum *.deb > SHA256SUMS` after verification (per arch) |
+| **Artifact upload** | `actions/upload-artifact@v7` with arch-specific name (`nvim-linux-deb-${{ matrix.arch }}`) |
+| **Release aggregation** | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
 
 **Key principle**: Explicit paths eliminate ambiguity. Every tool knows exactly where to write and read artifacts.
 
@@ -169,9 +170,9 @@ Neovim minor versions unless CMake/CPack config changes upstream.
 The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that automates
 building and releasing the `.deb`:
 
-1. **Tag push** (`git tag v0.13.0 && git push origin v0.13.0`) → CI builds + creates GitHub Release
-2. **Artifact** → `.deb` uploaded as release asset
-3. **Users** → download from Releases page and install via `dpkg -i`
+1. **Tag push** (`git tag v0.13.0 && git push origin v0.13.0`) → CI builds matrix (x86_64 + aarch64) → release job aggregates artifacts
+2. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-aarch64.deb`) uploaded as release assets with combined SHA256SUMS
+3. **Users** → download the correct `.deb` for their architecture from Releases page and install via `dpkg -i`
 
 > See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide.
 
