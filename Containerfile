@@ -1,4 +1,6 @@
-FROM ubuntu:24.04
+# Pin to SHA256 digest for reproducible builds.
+# Update periodically: docker pull ubuntu:24.04, then get the digest.
+FROM ubuntu:24.04@sha256:cdb5fd928fced577cfecf12c8966e830fcdf42ee481fb0b91904eeddc2fe5eff
 
 LABEL description="Neovim build environment"
 
