@@ -259,7 +259,7 @@ Ninja is the industry-recommended CMake generator — faster builds, automatic p
 | `CPACK_PACKAGE_FILE_NAME` | `nvim-linux-${CMAKE_SYSTEM_PROCESSOR}` |
 | `CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA` | `postinst` + `prerm` scripts |
 
-**Output**: `build/nvim-linux-x86_64.deb` (or `...-aarch64.deb` on ARM)
+**Output**: `build/nvim-linux-x86_64.deb` (or `...-arm64.deb` on ARM)
 
 **Maintainer scripts**:
 - `postinst` — registers Neovim via `update-alternatives` for `vi`, `vim`, `view`, `editor`
@@ -429,8 +429,8 @@ release lifecycle:
    sudo dpkg -i nvim-linux-x86_64.deb
 
    # Or for ARM64 systems:
-   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-aarch64.deb
-   sudo dpkg -i nvim-linux-aarch64.deb
+   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-arm64.deb
+   sudo dpkg -i nvim-linux-arm64.deb
    ```
 
 #### 8.3 Version Parameterization

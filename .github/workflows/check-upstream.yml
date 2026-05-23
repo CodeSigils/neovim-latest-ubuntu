@@ -1,0 +1,101 @@
+name: Check Upstream Release
+
+on:
+  schedule:
+    # Monday 06:30 UTC — 30 min after build cron, gives the weekly build a head start
+    - cron: '30 6 * * 1'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get latest upstream Neovim release
+        id: upstream
+        run: |
+          RESPONSE=$(curl -sL https://api.github.com/repos/neovim/neovim/releases/latest)
+          TAG=$(echo "$RESPONSE" | jq -r '.tag_name // empty')
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "error=No release data from GitHub API" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Get our latest built version
+        id: ours
+        run: |
+          OUR_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$OUR_TAG" ]; then
+            echo "version=none" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${OUR_TAG#v}" >> "$GITHUB_OUTPUT"
+            echo "tag=$OUR_TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compare versions
+        id: compare
+        run: |
+          UPSTREAM="${{ steps.upstream.outputs.version }}"
+          OURS="${{ steps.ours.outputs.version }}"
+          echo "upstream=$UPSTREAM"
+          echo "ours=$OURS"
+          if [ -z "$UPSTREAM" ]; then
+            echo "result=error" >> "$GITHUB_OUTPUT"
+          elif [ "$UPSTREAM" != "$OURS" ]; then
+            echo "result=new" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=same" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure new-release label exists
+        if: steps.compare.outputs.result == 'new'
+        run: |
+          gh label create "new-release" \
+            --description "New upstream Neovim release available" \
+            --color "5319e7" 2>/dev/null || true
+
+      - name: Check for existing issue
+        if: steps.compare.outputs.result == 'new'
+        id: existing-issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const upstream = '${{ steps.upstream.outputs.tag }}';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'new-release'
+            });
+            const exists = issues.some(issue => issue.title.includes(upstream));
+            core.setOutput('exists', exists ? 'true' : 'false');
+
+      - name: Create issue if newer version found
+        if: |
+          steps.compare.outputs.result == 'new' &&
+          steps.existing-issue.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const upstream = '${{ steps.upstream.outputs.tag }}';
+            const ours = '${{ steps.ours.outputs.tag }}';
+            const version = '${{ steps.upstream.outputs.version }}';
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'New upstream Neovim release: ' + upstream,
+              body: '## New Neovim release detected\n\n- **Upstream**: [' + upstream + '](https://github.com/neovim/neovim/releases/tag/' + upstream + ')\n- **Last built**: ' + (ours || '(none yet)') + '\n\n### To ship\n\n```\n# Update CHANGELOG.md, then:\ngit tag ' + upstream + '\ngit push origin ' + upstream + '\n```\n\nThis triggers the build + release workflow.\n\n### Or test locally\n\n```bash\nVERSION=' + version + ' ./build.sh\n```',
+              labels: ['new-release']
+            });
