@@ -36,11 +36,13 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 
 ### Planned Improvements
 
-| Action | Effort | Impact |
-|---|---|---|
-| GPG-sign SHA256SUMS in CI | Low | Users verify artifact origin |
-| `attest-build-provenance` action | Low-Med | SLSA L1 provenance |
-| SBOM generation | Medium | Transparency, vulnerability scanning |
+| Priority | Action | Effort | Impact |
+|---|---|---|---|
+| 1 | `attest-build-provenance` action | Low | SLSA L1 provenance, no key mgmt |
+| 2 | GPG-sign SHA256SUMS in CI | Low | Additional verification layer |
+| 3 | SBOM generation | Medium | Transparency, vulnerability scanning |
+
+**Recommendation**: Start with `attest-build-provenance` (Option B — keyless, zero ops burden). Adds SLSA L1 provenance with a single CI step and `gh attestation verify` for users. GPG signing would be nice-to-have on top but requires key management that isn't justified for this project's scale. See discussion in session transcript for full rationale.
 
 ---
 
