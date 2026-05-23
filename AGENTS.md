@@ -47,6 +47,7 @@
 ├── README.md           ← Project documentation (how-to install / build)
 ├── RELEASING.md        ← Release process guide for maintainers (how-to)
 ├── LICENSE             ← Apache 2.0 (Neovim's license)
+├── SECURITY.md         ← Vulnerability reporting policy
 ├── .omo/               ← OpenCode orchestration state
 │   └── run-continuation/
 ├── .open-mem/          ← OpenCode memory store
