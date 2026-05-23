@@ -1,0 +1,3 @@
+# Normalize line endings — all text files should use LF.
+# This prevents CRLF conversions when cloning on Windows.
+* text=auto eol=lf
