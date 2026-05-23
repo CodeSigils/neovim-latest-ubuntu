@@ -6,6 +6,8 @@
 
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu, Linux Mint, and Debian — no snaps, no Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
+A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. Releases are created when version tags are pushed, and the latest stable is built every Monday — so the latest `.deb` is always available.
+
 ## Quick Start
 
 Install the latest pre-built Neovim as a system package:
@@ -15,7 +17,7 @@ curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/down
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are automatically created when a tag is pushed to the repository.
+On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are automatically created when a tag is pushed to the repository. A weekly scheduled build (Monday 06:00 UTC) packages the latest stable Neovim so the download is always fresh.
 
 That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, `view`, and `editor` commands.
 
