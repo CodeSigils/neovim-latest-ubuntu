@@ -4,7 +4,8 @@ FROM ubuntu:24.04@sha256:cdb5fd928fced577cfecf12c8966e830fcdf42ee481fb0b91904eed
 
 LABEL description="Neovim build environment"
 
-RUN apt-get update && apt-get install -y \
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ninja-build \
     gettext \
     cmake \
@@ -24,4 +25,5 @@ ENV OUTPUT_DIR=/output
 
 WORKDIR /tmp/build
 
+# hadolint ignore=DL3025
 CMD build-neovim "${VERSION}" "${OUTPUT_DIR}"
