@@ -6,6 +6,8 @@ FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194
 
 LABEL description="Neovim build environment"
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 COPY deps/ /tmp/deps/
 
 # hadolint ignore=DL3008
