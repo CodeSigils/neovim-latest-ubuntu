@@ -69,6 +69,12 @@ jobs:
             errors=$((errors+1))
           fi
 
+          # C13: Author attribution guard exists
+          if [ ! -f .github/workflows/check-author.yml ]; then
+            echo "::error title=DRIFT C13::check-author.yml missing"
+            errors=$((errors+1))
+          fi
+
           echo "Pre-Action Gate: $errors error(s)"
           echo "gate_errors=$errors" >> "$GITHUB_OUTPUT"
 
@@ -113,6 +119,12 @@ jobs:
           # C12: nightly.yml exists
           if [ ! -f .github/workflows/nightly.yml ]; then
             echo "::error title=FILE MISSING::.github/workflows/nightly.yml"
+            errors=$((errors+1))
+          fi
+
+          # C13: check-author.yml exists
+          if [ ! -f .github/workflows/check-author.yml ]; then
+            echo "::error title=FILE MISSING::.github/workflows/check-author.yml"
             errors=$((errors+1))
           fi
 

@@ -1,0 +1,131 @@
+name: "Author Attribution Guard"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check-attribution:
+    name: Check Commit Authorship
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for agent authorship and trailers
+        id: check
+        run: |
+          set -euo pipefail
+          errors=0
+
+          # Determine commit range based on event type
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            RANGE="$BASE..$HEAD"
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              # New branch push — check all commits reachable from HEAD
+              RANGE="--root..$AFTER"
+            else
+              RANGE="$BEFORE..$AFTER"
+            fi
+          fi
+
+          # Gather all commits in range
+          COMMITS=$(git log --format="%H" "$RANGE" 2>/dev/null || true)
+          if [ -z "$COMMITS" ]; then
+            echo "No commits in range — skipping check."
+            echo "checked=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Checking commits in range $RANGE"
+
+          for commit_hash in $COMMITS; do
+            author_name=$(git log --format="%an" -1 "$commit_hash")
+            author_email=$(git log --format="%ae" -1 "$commit_hash")
+            committer_name=$(git log --format="%cn" -1 "$commit_hash")
+            committer_email=$(git log --format="%ce" -1 "$commit_hash")
+            commit_subject=$(git log --format="%s" -1 "$commit_hash")
+            commit_body=$(git log --format="%b" -1 "$commit_hash")
+
+            echo "---"
+            echo "Commit: $commit_hash"
+            echo " Subject: $commit_subject"
+            echo " Author: $author_name <$author_email>"
+            echo " Committer: $committer_name <$committer_email>"
+
+            # Check author name against known agent patterns
+            if echo "$author_name" | grep -qiE "^(sisyphus|claude|chatgpt|copilot)$"; then
+              echo "::error::FAIL author name '$author_name' in $commit_hash — looks like an AI agent"
+              errors=$((errors+1))
+            fi
+
+            # Check author email against known agent/CI-bot patterns
+            if echo "$author_email" | grep -qiE "(clio-agent|sisyphus-dev-ai|users\.noreply\.github\.com)"; then
+              echo "::error::FAIL author email '$author_email' in $commit_hash — looks like an AI/CI agent"
+              errors=$((errors+1))
+            fi
+
+            # Check committer name (should match author for human commits)
+            if echo "$committer_name" | grep -qiE "^(sisyphus|claude|chatgpt|copilot)$"; then
+              echo "::error::FAIL committer name '$committer_name' in $commit_hash — looks like an AI agent"
+              errors=$((errors+1))
+            fi
+
+            # Check committer email
+            if echo "$committer_email" | grep -qiE "(clio-agent|sisyphus-dev-ai|users\.noreply\.github\.com)"; then
+              echo "::error::FAIL committer email '$committer_email' in $commit_hash — looks like an AI/CI agent"
+              errors=$((errors+1))
+            fi
+
+            # Check Co-authored-by trailers referencing known agent patterns
+            if echo "$commit_body" | grep -qiE "^co-authored-by:.*(sisyphus|clio-agent|claude|chatgpt|copilot)"; then
+              echo "::error::FAIL Co-authored-by agent trailer in $commit_hash — agents are tools, not contributors"
+              errors=$((errors+1))
+            fi
+
+            # Check Ultraworked with [Sisyphus] footer
+            if echo "$commit_body" | grep -qiE "ultraworked with.*sisyphus"; then
+              echo "::error::FAIL 'Ultraworked with Sisyphus' footer in $commit_hash — agents are tools, not contributors"
+              errors=$((errors+1))
+            fi
+          done
+
+          echo "checked=$(echo "$COMMITS" | wc -l)" >> "$GITHUB_OUTPUT"
+          echo "errors=$errors" >> "$GITHUB_OUTPUT"
+
+          if [ "$errors" -gt 0 ]; then
+            echo "::error::$errors commit(s) with agent attribution detected. Authorship must stay with the human maintainer."
+            exit 1
+          fi
+          echo "✅ All commits clean — no agent attribution detected."
+
+      - name: Report Results
+        if: always()
+        run: |
+          checked=${{ steps.check.outputs.checked || '0' }}
+          errors=${{ steps.check.outputs.errors || '0' }}
+
+          echo "## Author Attribution Guard Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commits checked | $checked |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Violations found | $errors |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$errors" -gt 0 ]; then
+            echo "❌ **FAILED**: Agent attribution detected. Authorship must stay with the human maintainer." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "✅ **PASS**: All commits clean — no agent attribution." >> "$GITHUB_STEP_SUMMARY"
+          fi
