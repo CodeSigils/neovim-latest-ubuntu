@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Nightly builds: new `.github/workflows/nightly.yml` runs daily at 06:00 UTC, building Neovim's `master` branch on both `x86_64` and `aarch64`. Artifacts are uploaded (no release page). `build.sh` now supports `VERSION=nightly`.
+- Nightly artifact cleanup: artifacts auto-expire after 30 days (`retention-days: 30`) — prevents clutter from 2 builds/day × 365 days.
+- Nightly failure alerts: failed nightly builds create a GitHub issue with label `nightly`, linking to the failed run. Duplicate-protected — no new issue if one is already open.
 - Auto-update PR on new upstream release: the `check-upstream` workflow now opens a PR with version bumps, CHANGELOG entry, and documentation updates when a newer Neovim release is detected (instead of just filing an issue).
 - CodeQL scanning for GitHub Actions workflows: runs weekly and on every PR/push to `main`.
 - Multi-arch CI matrix: builds now run on both `x86_64` (`ubuntu-24.04`) and `aarch64` (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
