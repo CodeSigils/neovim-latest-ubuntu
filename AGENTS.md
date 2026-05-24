@@ -4,45 +4,9 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| fd57bbac-6ba8-4f0a-b65a-0686bd24cd83 | 🔵 discovery | Neovim Release Process Documentation | 2026-05-24 |
-| e90d9ef4-5aa6-4695-80d7-e169417a7747 | 🔵 discovery | Discovery of GitHub Actions workflow files | 2026-05-24 |
-| cb4978d6-913f-4be0-a685-b20c492867c2 | 🔵 discovery | Automated staleness checks for build documentation | 2026-05-24 |
-| a4849228-dc26-49e0-a9e4-b8f197213fdc | 🟣 feature | Automated Nightly Neovim Build with .deb Package Generation | 2026-05-24 |
-| 4346d7c1-e6ee-48db-bcf1-9fd8e8c49c43 | 🟣 feature | Automated Neovim Debian Package Builds | 2026-05-24 |
-| 2f6543e3-0d10-46b7-a180-41a5d2bc5cf4 | 🔵 discovery | Neovim Packaging Resources Analysis | 2026-05-24 |
-| 7c065dd8-9df1-4802-8f50-7c625b0161e3 | 🔵 discovery | Neovim version check relies on GitHub API | 2026-05-24 |
-| 673bb339-b391-48e7-a6ab-12836a716005 | 🟣 feature | Automated Release Notes and Multi-Arch Builds | 2026-05-24 |
-| 2b8f2a0e-4ff5-473e-a828-6dd6ca218532 | 🔵 discovery | Offline Drift Scan Identifies Stale Decision Metadata | 2026-05-24 |
-| 740d5a76-30c4-41b7-84e7-82992b99b815 | ✅ change | Nightly builds and CodeQL scanning implemented | 2026-05-24 |
+| c48739e0-4ebd-44f6-bf83-36f030a4aacf | 🔵 discovery | Git user configuration notes found in multiple files | 2026-05-24 |
 
-**Key concepts:** ci-pipeline, release-process, git-tag, deb-package, github-actions, ci-cd, configuration-files, documentation-verification, automation, build-process
-
-### .github/workflows/
-| ID | Type | Title | Date |
-|----|------|-------|------|
-| 673bb339-b391-48e7-a6ab-12836a716005 | 🟣 feature | Automated Release Notes and Multi-Arch Builds | 2026-05-24 |
-| 265ed994-8372-4f3e-841b-d7de03f6baab | 🔵 discovery | CI workflows for Neovim project identified | 2026-05-24 |
-| 740d5a76-30c4-41b7-84e7-82992b99b815 | ✅ change | Nightly builds and CodeQL scanning implemented | 2026-05-24 |
-
-**Key concepts:** release-automation, multi-arch-builds, github-actions, semantic-versioning, ci-cd, workflow-automation, codeql, how-it-works, what-changed, pattern
-
-### .omo/run-continuation/
-| ID | Type | Title | Date |
-|----|------|-------|------|
-| 34d2c23a-b0f0-4882-9bad-06b7952eb71b | ✅ change | Untracked files in .omo and .open-mem directories | 2026-05-24 |
-
-**Key concepts:** untracked files, git status, session continuation, sqlite database
-
-### docs/
-| ID | Type | Title | Date |
-|----|------|-------|------|
-| 2b8f2a0e-4ff5-473e-a828-6dd6ca218532 | 🔵 discovery | Offline Drift Scan Identifies Stale Decision Metadata | 2026-05-24 |
-| 5cd4c3e6-181e-4601-9a37-c79400fb1dc1 | 🔄 refactor | Enhance Neovim build verification and documentation | 2026-05-24 |
-| 5b27a1ca-6609-47a4-902d-a2e2f5a66af8 | ✅ change | Documentation updates | 2026-05-24 |
-| 74a9ed57-1dc0-42f1-8c77-3906e17a0bdf | 🔵 discovery | Documentation directory has content | 2026-05-24 |
-| 6b42d820-cc28-4d20-9141-2c671cbd0dc7 | ✅ change | Local Git repository shows modified files and recent commit history | 2026-05-24 |
-
-**Key concepts:** drift-detection, metadata-staleness, documentation-consistency, how-it-works, what-changed, refactor, documentation, testing, change-log, file-system-discovery
+**Key concepts:** git-configuration, developer-workflow
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
