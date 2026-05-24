@@ -9,7 +9,7 @@
 
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu and Linux Mint — no snaps, no Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
-A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. Releases are created when version tags are pushed, and the latest stable is built every Monday — so the latest `.deb` is always available. [Nightly builds](.github/workflows/nightly.yml) from Neovim's `master` branch run daily — they are **artifacts-only** (download from the workflow run page, not from Releases).
+A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. Releases are created when version tags are pushed. The Monday scheduled build keeps a fresh stable package available as a workflow artifact, while [nightly builds](.github/workflows/nightly.yml) from Neovim's `master` branch run daily and are **artifacts-only** (download from the workflow run page, not from Releases).
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/down
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are automatically created when a tag is pushed to the repository. A weekly scheduled build (Monday 06:00 UTC) packages the latest stable Neovim so the download is always fresh.
+On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are created automatically when a tag is pushed to the repository. A weekly scheduled build (Monday 06:00 UTC) also packages the latest stable Neovim as a workflow artifact, so you can always download a fresh stable build even between tagged releases.
 
 That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, `view`, and `editor` commands.
 
@@ -30,12 +30,12 @@ That's it! Neovim is now installed system-wide with `update-alternatives` regist
 
 Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
 
-| Approach | Drawback |
-| --- | --- |
-| `apt install neovim` | Often lags behind latest release by months |
-| Official AppImage | No system-wide `vi`/`editor` symlink integration |
-| Snap (`snap install nvim`) | Sandboxing breaks file access, slow startup |
-| Build from source manually | No package manager tracking, no clean uninstall |
+| Approach                   | Drawback                                         |
+| -------------------------- | ------------------------------------------------ |
+| `apt install neovim`       | Often lags behind latest release by months       |
+| Official AppImage          | No system-wide `vi`/`editor` symlink integration |
+| Snap (`snap install nvim`) | Sandboxing breaks file access, slow startup      |
+| Build from source manually | No package manager tracking, no clean uninstall  |
 
 This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean uninstall, dependency tracking.
 
@@ -49,17 +49,18 @@ For custom builds, reproducible builds, or building newer/older versions of Neov
 sudo apt install ninja-build gettext cmake curl build-essential
 ```
 
-| Tool                    | Minimum version |
-| ----------------------- | --------------- |
-| [ninja-build]           | 1.11            |
-| [gettext]               | 0.21            |
-| [cmake]                 | 3.25            |
-| curl                    | 7.88            |
+| Tool          | Minimum version |
+| ------------- | --------------- |
+| [ninja-build] | 1.11            |
+| [gettext]     | 0.21            |
+| [cmake]       | 3.25            |
+| curl          | 7.88            |
+
+> **Maintenance note**: These minimum versions were verified against the Neovim release used at the time of writing. When updating to a newer Neovim version, check upstream [BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md) or release notes for any raised dependency requirements and update this table accordingly.
 
 [ninja-build]: https://ninja-build.org/
 [gettext]: https://www.gnu.org/software/gettext/
 [cmake]: https://cmake.org/
-[unzip]: https://infozip.sourceforge.net/UnZip.html#Release
 
 ### Manual Build
 
@@ -109,27 +110,28 @@ Neovim's bundled dependencies (libuv, LuaJIT, tree-sitter, and others) are compi
 
 Build verification and technical information:
 
-### Build Configuration
+### Build environment
 
-- Ubuntu gcc version 11.4.0
-- Target: x86_64-pc-linux-gnu
-- Thread model: posix
-- Architecture: amd64
-- Runtime depends: libc6 (>= 2.34), libgcc-s1 (>= 3.3)
+The container build runs on Ubuntu 24.04 and currently produces packages for both supported CI architectures:
+
+- x86_64
+- aarch64
+
+Compiler, target triple, and resolved runtime dependency details come from the specific build environment and package metadata at build time, so they may change as the Ubuntu 24.04 base image is refreshed. For repo-stable facts, treat the workflow matrix and the generated package itself as the source of truth rather than a hard-coded snapshot.
 
 ### Verification Checklist
 
 Each build is verified against these checks:
 
-| # | Check | Description |
-| --- |------- | ------------- |
-| 1 | Install | `dpkg -i` installs cleanly with `update-alternatives` registration |
-| 2 | Version | `nvim --version` reports the expected release version |
-| 3 | Smoke test | `nvim --headless +q` starts and exits cleanly |
-| 4 | Runtime health | `nvim --headless +checkhealth +q` runs without crash |
-| 5 | Dependencies | `ldd` shows no unresolved shared library dependencies |
-| 6 | Alternatives | `update-alternatives --display vi` shows nvim registered |
-| 7 | Uninstall | `dpkg -r` removes cleanly and unregisters alternatives |
+| #   | Check          | Description                                                        |
+| --- | -------------- | ------------------------------------------------------------------ |
+| 1   | Install        | `dpkg -i` installs cleanly with `update-alternatives` registration |
+| 2   | Version        | `nvim --version` reports the expected release version              |
+| 3   | Smoke test     | `nvim --headless +q` starts and exits cleanly                      |
+| 4   | Runtime health | `nvim --headless +checkhealth +q` runs without crash               |
+| 5   | Dependencies   | `ldd` shows no unresolved shared library dependencies              |
+| 6   | Alternatives   | `update-alternatives --display vi` shows nvim registered           |
+| 7   | Uninstall      | `dpkg -r` removes cleanly and unregisters alternatives             |
 
 These checks are automated in [`test.sh`](./test.sh).
 
@@ -144,13 +146,13 @@ See [`LICENSE`](./LICENSE) for the full text.
 
 ## About This Project
 
-| Item | Detail |
-|------|--------|
-| **Package** | Neovim built with CPack (upstream-recommended) |
-| **Base OS** | Ubuntu 24.04 LTS |
-| **Build system** | Ninja (auto-detected by Neovim's Makefile) |
-| **Dependencies** | Bundled and statically linked (libuv, LuaJIT, tree-sitter, utf8proc, unibilium) |
-| **CI/CD** | GitHub Actions with container reproducibility |
+| Item             | Detail                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| **Package**      | Neovim built with CPack (upstream-recommended)                                                |
+| **Base OS**      | Ubuntu 24.04 LTS                                                                              |
+| **Build system** | Ninja (auto-detected by Neovim's Makefile)                                                    |
+| **Dependencies** | Bundled and statically linked (libuv, LuaJIT, tree-sitter, utf8proc, unibilium)               |
+| **CI/CD**        | GitHub Actions with container reproducibility                                                 |
 | **Verification** | 7-point automated test suite (install, version, smoke, health, deps, alternatives, uninstall) |
 
 ## Documentation
