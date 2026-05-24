@@ -161,7 +161,7 @@ via [`nightly.yml`](.github/workflows/nightly.yml). They produce `.deb` packages
 both x86_64 and ARM64.
 
 > **Nightly builds do NOT create Releases.** Artifacts are available from the workflow
-> run page and expire after 90 days (GitHub's default retention).
+> run page and expire after 30 days (workflow-configured retention).
 
 ### Trigger a manual nightly build
 
