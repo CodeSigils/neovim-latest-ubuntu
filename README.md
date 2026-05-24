@@ -5,10 +5,11 @@
 [![GitHub Releases](https://img.shields.io/github/v/release/CodeSigils/neovim-latest-ubuntu?display_name=tag&sort=semver)](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg?logo=dependabot)](https://github.com/CodeSigils/neovim-latest-ubuntu/network/updates)
 [![CodeQL](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml)
+[![Nightly](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml)
 
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu, Linux Mint, and Debian — no snaps, no Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
-A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. Releases are created when version tags are pushed, and the latest stable is built every Monday — so the latest `.deb` is always available.
+A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. Releases are created when version tags are pushed, and the latest stable is built every Monday — so the latest `.deb` is always available. [Nightly builds](.github/workflows/nightly.yml) from Neovim's `master` branch run daily (artifacts available from the workflow run page).
 
 ## Quick Start
 

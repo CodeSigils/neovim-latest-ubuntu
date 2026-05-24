@@ -527,6 +527,7 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-23 | Containerfile optimization | `COPY --chmod=755` replaces `COPY + RUN chmod` (saves one layer). Combined `ENV VERSION` and `ENV OUTPUT_DIR` into single `ENV` block. |
 | 2026-05-24 | Auto-update PR on upstream release (Option B) | Modified `check-upstream.yml` to create a PR with version bumps, CHANGELOG entry, and doc updates when upstream Neovim releases a newer version. PR replaces issue as primary notification; issue remains as fallback. |
 | 2026-05-24 | CodeQL scanning + badge (Option D) | Created `.github/workflows/codeql.yml` analyzing GitHub Actions workflows for security issues. Added CodeQL badge to README. Runs weekly and on every PR/push to `main`. |
+| 2026-05-24 | Nightly builds (recommended next step) | Added `VERSION=nightly` support to `build.sh` (clones master branch). Created `.github/workflows/nightly.yml` — daily cron at 06:00 UTC, builds x86_64 + aarch64 in parallel, tests, uploads artifacts. No release creation. |
  
 ### 11. Staleness & Drift Guard
 

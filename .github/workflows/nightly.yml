@@ -1,0 +1,63 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # Daily: 06:00 UTC (same time as weekly stable build)
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build container image
+        run: docker build -t neovim-builder -f Containerfile .
+
+      - name: Build nightly Neovim
+        run: |
+          mkdir -p output
+          docker run --rm \
+            -e VERSION=nightly \
+            -v "$PWD/output:/output" \
+            neovim-builder
+
+      - name: Verify artifact exists
+        run: |
+          if ! ls output/*.deb >/dev/null 2>&1; then
+            echo "Error: No .deb package found in output/" >&2
+            ls -la output/
+            exit 1
+          fi
+          ls -lh output/
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd output
+          sha256sum *.deb > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Test .deb package
+        run: |
+          DEB=$(ls output/*.deb | head -1)
+          echo "Testing: $DEB"
+          ./test.sh "$DEB"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nvim-nightly-deb-${{ matrix.arch }}
+          path: |
+            output/*.deb
+            output/SHA256SUMS

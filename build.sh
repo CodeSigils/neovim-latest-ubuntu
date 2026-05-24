@@ -33,12 +33,13 @@ fi
 BUILD_DIR="$(mktemp -d)"
 trap 'rm -rf "$BUILD_DIR"' EXIT
 
-echo "==> Building Neovim v${VERSION}..."
 echo "    Build dir: $BUILD_DIR"
 echo "    Output dir: $OUTPUT_DIR"
 
-# --- Handle "latest" alias ---
-if [[ "$VERSION" == "latest" ]]; then
+# --- Resolve version aliases ---
+if [[ "$VERSION" == "nightly" ]]; then
+  echo "==> Building Neovim nightly (master branch)..."
+elif [[ "$VERSION" == "latest" ]]; then
   echo "==> Detecting latest Neovim stable version..."
   VERSION="$(curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
     | grep -oP '"tag_name": "\K[^"]+' | sed 's/^v//')"
@@ -47,11 +48,18 @@ if [[ "$VERSION" == "latest" ]]; then
     exit 1
   fi
   echo "    Latest stable: v${VERSION}"
+else
+  echo "==> Building Neovim v${VERSION}..."
 fi
 
 # --- Clone ---
-echo "==> Cloning Neovim v${VERSION}..."
-git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
+if [[ "$VERSION" == "nightly" ]]; then
+  echo "==> Cloning Neovim master branch..."
+  git clone --depth 1 --branch master https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
+else
+  echo "==> Cloning Neovim v${VERSION}..."
+  git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
+fi
 
 # --- Build (via upstream Makefile which handles bundled deps first) ---
 echo "==> Building (make CMAKE_BUILD_TYPE=RelWithDebInfo)..."
