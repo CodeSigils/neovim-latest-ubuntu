@@ -93,7 +93,7 @@ This fills the gap: latest Neovim, native `.deb`, zero config.
 - This is not a distro-quality Debian package (no `debian/` directory, no lintian
   override, no system library linking — it uses upstream's CPack with bundled deps).
 - ARM64 builds are planned but not yet in CI.
-- Nightly builds are not provided (stable releases only).
+- Nightly builds are provided (workflow artifacts only — no Release page).
 
 ### Why I'm posting
 
