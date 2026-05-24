@@ -81,7 +81,7 @@ system state and ensures reproducibility:
 # Build the container image (bakes build.sh into the image)
 podman build -t neovim-builder .
 
-# Build Neovim 0.12.2 (outputs .deb to ./output)
+# Build the default version (outputs .deb to ./output)
 mkdir -p output
 podman run --rm -v "$(pwd)/output:/output" neovim-builder
 
@@ -95,7 +95,7 @@ podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
 The container image (`ubuntu:24.04`) includes all build prerequisites and runs
 [`build.sh`](./build.sh) on startup. Set `VERSION` via `-e` to build a specific release;
-defaults to `0.12.2`. Use `VERSION=latest` to build the latest stable release (the CI
+defaults to the version in `build.sh`. Use `VERSION=latest` to build the latest stable release (the CI
 workflow uses this for its weekly scheduled build). The `-v "$(pwd)/output:/output"`
 mount ensures the `.deb` appears in the `output/` directory on your host.
 
@@ -126,9 +126,11 @@ Each build is verified against these checks:
 | --- |------- | ------------- |
 | 1 | Install | `dpkg -i` installs cleanly with `update-alternatives` registration |
 | 2 | Version | `nvim --version` reports the expected release version |
-| 3 | Dependencies | `ldd` shows no unresolved shared library dependencies |
-| 4 | Alternatives | `update-alternatives --display vi` shows nvim registered |
-| 5 | Uninstall | `dpkg -r` removes cleanly and unregisters alternatives |
+| 3 | Smoke test | `nvim --headless +q` starts and exits cleanly |
+| 4 | Runtime health | `nvim --headless +checkhealth +q` runs without crash |
+| 5 | Dependencies | `ldd` shows no unresolved shared library dependencies |
+| 6 | Alternatives | `update-alternatives --display vi` shows nvim registered |
+| 7 | Uninstall | `dpkg -r` removes cleanly and unregisters alternatives |
 
 These checks are automated in [`test.sh`](./test.sh).
 
@@ -150,7 +152,7 @@ See [`LICENSE`](./LICENSE) for the full text.
 | **Build system** | Ninja (auto-detected by Neovim's Makefile) |
 | **Dependencies** | Bundled and statically linked (libuv, LuaJIT, tree-sitter, utf8proc, unibilium) |
 | **CI/CD** | GitHub Actions with container reproducibility |
-| **Verification** | 5-point automated test suite (install, version, deps, alternatives, uninstall) |
+| **Verification** | 7-point automated test suite (install, version, smoke, health, deps, alternatives, uninstall) |
 
 ## Documentation
 

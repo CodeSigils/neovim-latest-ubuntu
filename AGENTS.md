@@ -4,32 +4,45 @@
 ### ./
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| 8cae6457-5a9b-437a-8651-bc8751e6b3c5 | ✅ change | Reproducibility docs created + committed | 2026-05-23 |
-| 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
+| fd57bbac-6ba8-4f0a-b65a-0686bd24cd83 | 🔵 discovery | Neovim Release Process Documentation | 2026-05-24 |
+| e90d9ef4-5aa6-4695-80d7-e169417a7747 | 🔵 discovery | Discovery of GitHub Actions workflow files | 2026-05-24 |
+| cb4978d6-913f-4be0-a685-b20c492867c2 | 🔵 discovery | Automated staleness checks for build documentation | 2026-05-24 |
+| a4849228-dc26-49e0-a9e4-b8f197213fdc | 🟣 feature | Automated Nightly Neovim Build with .deb Package Generation | 2026-05-24 |
+| 4346d7c1-e6ee-48db-bcf1-9fd8e8c49c43 | 🟣 feature | Automated Neovim Debian Package Builds | 2026-05-24 |
+| 2f6543e3-0d10-46b7-a180-41a5d2bc5cf4 | 🔵 discovery | Neovim Packaging Resources Analysis | 2026-05-24 |
+| 7c065dd8-9df1-4802-8f50-7c625b0161e3 | 🔵 discovery | Neovim version check relies on GitHub API | 2026-05-24 |
+| 673bb339-b391-48e7-a6ab-12836a716005 | 🟣 feature | Automated Release Notes and Multi-Arch Builds | 2026-05-24 |
+| 2b8f2a0e-4ff5-473e-a828-6dd6ca218532 | 🔵 discovery | Offline Drift Scan Identifies Stale Decision Metadata | 2026-05-24 |
+| 740d5a76-30c4-41b7-84e7-82992b99b815 | ✅ change | Nightly builds and CodeQL scanning implemented | 2026-05-24 |
 
-**Key concepts:** reproducibility-docs, diataxis, explanation, build-reproducibility, committed, dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
-
-### .github/
-| ID | Type | Title | Date |
-|----|------|-------|------|
-| 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
-
-**Key concepts:** dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
+**Key concepts:** ci-pipeline, release-process, git-tag, deb-package, github-actions, ci-cd, configuration-files, documentation-verification, automation, build-process
 
 ### .github/workflows/
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| 827815db-1723-4aa5-ba17-0585b967a037 | ✅ change | Upstream release watcher workflow | 2026-05-23 |
-| 5a6cb112-db42-4402-a274-443fa76b292a | ✅ change | Quick-fix recommendations implemented | 2026-05-23 |
+| 673bb339-b391-48e7-a6ab-12836a716005 | 🟣 feature | Automated Release Notes and Multi-Arch Builds | 2026-05-24 |
+| 265ed994-8372-4f3e-841b-d7de03f6baab | 🔵 discovery | CI workflows for Neovim project identified | 2026-05-24 |
+| 740d5a76-30c4-41b7-84e7-82992b99b815 | ✅ change | Nightly builds and CodeQL scanning implemented | 2026-05-24 |
 
-**Key concepts:** release-watcher, neovim-upstream, github-actions, cron, arm64-naming, dependabot, scheduled-builds, staleness-fix, changelog-fix, cleanup
+**Key concepts:** release-automation, multi-arch-builds, github-actions, semantic-versioning, ci-cd, workflow-automation, codeql, how-it-works, what-changed, pattern
+
+### .omo/run-continuation/
+| ID | Type | Title | Date |
+|----|------|-------|------|
+| 34d2c23a-b0f0-4882-9bad-06b7952eb71b | ✅ change | Untracked files in .omo and .open-mem directories | 2026-05-24 |
+
+**Key concepts:** untracked files, git status, session continuation, sqlite database
 
 ### docs/
 | ID | Type | Title | Date |
 |----|------|-------|------|
-| 8cae6457-5a9b-437a-8651-bc8751e6b3c5 | ✅ change | Reproducibility docs created + committed | 2026-05-23 |
+| 2b8f2a0e-4ff5-473e-a828-6dd6ca218532 | 🔵 discovery | Offline Drift Scan Identifies Stale Decision Metadata | 2026-05-24 |
+| 5cd4c3e6-181e-4601-9a37-c79400fb1dc1 | 🔄 refactor | Enhance Neovim build verification and documentation | 2026-05-24 |
+| 5b27a1ca-6609-47a4-902d-a2e2f5a66af8 | ✅ change | Documentation updates | 2026-05-24 |
+| 74a9ed57-1dc0-42f1-8c77-3906e17a0bdf | 🔵 discovery | Documentation directory has content | 2026-05-24 |
+| 6b42d820-cc28-4d20-9141-2c671cbd0dc7 | ✅ change | Local Git repository shows modified files and recent commit history | 2026-05-24 |
 
-**Key concepts:** reproducibility-docs, diataxis, explanation, build-reproducibility, committed
+**Key concepts:** drift-detection, metadata-staleness, documentation-consistency, how-it-works, what-changed, refactor, documentation, testing, change-log, file-system-discovery
 
 💡 *Use `mem-find` to search full details. Use `mem-create` to save important decisions.*
 <!-- /open-mem-context -->
@@ -39,7 +52,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-23 (Release note automation, cross-arch enforcement, Containerfile optimization)
+**Last updated:** 2026-05-24 (Nightly builds, CodeQL, auto-update PR, docs staleness fixes, checklist/claim inventory fixes)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -82,9 +95,9 @@
 
 ## Current Status
 
-> Audit snapshot: 2026-05-23 (CI verified, build & release pipeline operational end-to-end)
+> Audit snapshot: 2026-05-24 (CI verified, build & release pipeline operational end-to-end)
 
-- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 6 verification checks pass: install, version match, `ldd` clean, `update-alternatives` registration, smoke test (`--headless +q`), and clean uninstall.
+- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
 - **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
@@ -382,8 +395,10 @@ The approach must support future Neovim versions with minimal friction. Consider
 
 - [x] Package installs cleanly via `dpkg -i`
 - [x] `nvim --version` reports the expected version
-- [x] Core functionality works (open file, edit, save, quit)
+- [x] Smoke test: `nvim --headless +q` starts and exits cleanly
+- [x] Runtime health: `nvim --headless +checkhealth +q` runs without crash
 - [x] No missing shared library dependencies (`ldd` check)
+- [x] `update-alternatives` registers nvim for `vi`/`vim`/`editor`
 - [x] Package uninstalls cleanly via `dpkg -r`
 
 ### 7. Documentation
@@ -530,6 +545,7 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-24 | Auto-update PR on upstream release (Option B) | Modified `check-upstream.yml` to create a PR with version bumps, CHANGELOG entry, and doc updates when upstream Neovim releases a newer version. PR replaces issue as primary notification; issue remains as fallback. |
 | 2026-05-24 | CodeQL scanning + badge (Option D) | Created `.github/workflows/codeql.yml` analyzing GitHub Actions workflows for security issues. Added CodeQL badge to README. Runs weekly and on every PR/push to `main`. |
 | 2026-05-24 | Nightly builds (recommended next step) | Added `VERSION=nightly` support to `build.sh` (clones master branch). Created `.github/workflows/nightly.yml` — daily cron at 06:00 UTC, builds x86_64 + aarch64 in parallel, tests, uploads artifacts. No release creation. |
+| 2026-05-24 | Checklist/claim inventory fixes after audit | 4 fixes: §6.2 checklist expanded from 5→7 items (added smoke test, runtime health, update-alternatives); C2/C5 claims updated from "5 checks" to "7 checks"; §11.5 drift scan fixed `grep -oP`→`sed` for systems without Perl regex; docs/build-plan.md §4.2 checklist synced to 7 items. |
  
 ### 11. Staleness & Drift Guard
 
@@ -544,10 +560,10 @@ command that proves or disproves the claim.
 | # | Claim Location | Claim | Verification Command |
 |---|---|---|---|
 | C1 | Header (§ Status) | `build verified, pipeline operational` | `ls -1 build.sh Containerfile test.sh` — all 3 exist |
-| C2 | Current Status § | `Build verified` — all 5 checks pass | `manually: run test.sh in Podman` |
+| C2 | Current Status § | `Build verified` — all 7 checks pass | `manually: run test.sh in Podman` |
 | C3 | Current Status § | `Pipeline files tested and operational` | `bash -c 'test -x build.sh && test -x test.sh && echo OK'` |
 | C4 | Repository Layout | Tree matches actual committed files | `ls -1 build.sh Containerfile test.sh .github/workflows/build.yml docs/ AGENTS.md notes.md README.md LICENSE .gitignore 2>/dev/null \| head -10; echo "---"; for f in build.sh Containerfile test.sh .github/workflows/build.yml AGENTS.md notes.md README.md LICENSE .gitignore; do test -f "$f" && echo "OK: $f" || echo "MISSING: $f"; done; for d in docs docs/resources.md docs/build-plan.md; do test -e "$d" && echo "OK: $d" || echo "MISSING: $d"; done` — all entries should show OK |
-| C5 | §6.2 Verification Checklist | All 5 items checked `[x]` | `grep -c '\[x\]' AGENTS.md` — exit code 0 |
+| C5 | §6.2 Verification Checklist | All 7 items checked `[x]` | `grep -c '\[x\]' AGENTS.md` — exit code 0 |
 | C6 | Decision Log | Last entry dated correctly, reflects current state | `tail -1 AGENTS.md \| grep -q "$(date +%Y-%m-%d)"` (note: last-edit date, not strict match) |
 | C7 | § Repository Layout | `[generated]` items (nvim-linux-*.deb, _CPack_Packages/) are gitignored | `test -f nvim-linux-x86_64.deb; deb_exist=$?; grep -q 'nvim-linux-\*' .gitignore; gitignored=$?; [ "$deb_exist" -eq 0 ] && [ "$gitignored" -eq 0 ] && echo "exists+gitignored" || echo "check needed"` |
 | C8 | Header (§ Last updated) | Date matches today or last known edit date | `grep 'Last updated:' AGENTS.md` |
@@ -668,7 +684,7 @@ if ls nvim-linux-*.deb >/dev/null 2>&1; then
 fi
 
 # Check Last updated is not more than 90 days old
-last_date=$(grep -oP 'Last updated:\s*\K\d{4}-\d{2}-\d{2}' AGENTS.md)
+last_date=$(sed -n 's/^.*Last updated:\*\* *\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md)
 if [ -n "$last_date" ]; then
   days_old=$(( ( $(date +%s) - $(date -d "$last_date" +%s) ) / 86400 ))
   if [ "$days_old" -gt 90 ]; then
@@ -678,7 +694,7 @@ if [ -n "$last_date" ]; then
 fi
 
 # Check Last updated matches most recent Decision Log entry
-last_decision=$(grep -oP '^\| \K\d{4}-\d{2}-\d{2}' AGENTS.md | tail -1)
+last_decision=$(sed -n 's/^| \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md | tail -1)
 if [ -n "$last_decision" ] && [ "$last_decision" != "$last_date" ]; then
   echo "DRIFT: Last updated ($last_date) ≠ most recent decision ($last_decision)"
   errors=$((errors+1))

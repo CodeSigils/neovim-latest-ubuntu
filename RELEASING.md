@@ -248,6 +248,6 @@ The build script (`build.sh`), container definition (`Containerfile`), and test 
 
 - [`build.sh`](./build.sh) — Parameterised build script (arch-agnostic, produces `.deb` per `CMAKE_SYSTEM_PROCESSOR`)
 - [`Containerfile`](./Containerfile) — Build environment definition
-- [`test.sh`](./test.sh) — 5-check verification script
+- [`test.sh`](./test.sh) — 7-check verification script
 - [`docs/build-plan.md`](./docs/build-plan.md) — Technical build pipeline details
 - [`AGENTS.md`](./AGENTS.md) — Project knowledge base and decision history

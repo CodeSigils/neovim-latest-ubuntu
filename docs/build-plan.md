@@ -2,7 +2,7 @@
 
 **Document type:** Plan (design document — implemented and verified)
 **Status:** Implemented — verified 2026-05-22
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-24
 
 ## 1. Approach
 
@@ -102,10 +102,11 @@ Container image: `ubuntu:24.04` (or `ubuntu:22.04` for broader glibc compat).
 
 - [x] Package installs cleanly: `dpkg -i nvim-linux-$(uname -m).deb`
 - [x] `nvim --version` reports the expected version
-- [x] Core functionality: open file, edit, save, quit
+- [x] Smoke test: `nvim --headless +q` starts and exits cleanly
+- [x] Runtime health: `nvim --headless +checkhealth +q` runs without crash
 - [x] No missing shared library dependencies: `ldd $(which nvim)`
-- [x] Package uninstalls cleanly: `dpkg -r Neovim`
 - [x] `update-alternatives` registers (check `vi --version` points to nvim)
+- [x] Package uninstalls cleanly: `dpkg -r Neovim`
 
 > All checks passed on 2026-05-22 inside a Podman `ubuntu:24.04` container.
 > Build: Neovim v0.12.2, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64 via CI).
