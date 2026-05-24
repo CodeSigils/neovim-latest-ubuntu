@@ -1,7 +1,7 @@
 # Ubuntu Packaging Resources
 
 **Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu.
-**Last updated:** 2026-05-22
+**Last updated:** 2026-05-24
 
 All resources below have been evaluated against five criteria:
 - **Authoritative** — official docs > blog posts > forum answers
@@ -68,7 +68,7 @@ All resources below have been evaluated against five criteria:
 
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
-| [Creating Debian packages from upstream Git (2025)](https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial) | ✅ Debian | ✅ 2025 | ✅ | ✅ | ✅ |
+| [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | ✅ Debian | ✅ Latest | ✅ | ✅ | ⚠️ Wiki format |
 | [Making a .deb package for CMake C/C++ project (2025)](https://www.baeldung.com/linux/package-deb-change-repack) | ⚠️ Tutorial | ✅ 2025 | ✅ | ✅ | ✅ |
 | [Creating and Hosting Your Own Deb Packages (Earthly)](https://earthly.dev/blog/creating-and-hosting-your-own-deb-packages-and-apt-repo/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ✅ |
 | [Ultimate Guide to Debian Packaging](https://dario.griffo.io/posts/ultimate-guide-debian-packaging/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ✅ |
@@ -176,7 +176,7 @@ include(CPack)
 
 ### Reference (Bookmark for Specific Questions)
 
-7. **Debian Policy Manual** — Ultimate authority on package structure
-8. **debmake-doc** — Modern tooling-focused guide
-9. **ttroy50/cmake-examples** — Minimal CPack DEB example to learn the pattern
-10. **PX4/PX4-Autopilot CPack config** — Complex real-world CPack pattern
+1. **Debian Policy Manual** — Ultimate authority on package structure
+2. **debmake-doc** — Modern tooling-focused guide
+3. **ttroy50/cmake-examples** — Minimal CPack DEB example to learn the pattern
+4. **PX4/PX4-Autopilot CPack config** — Complex real-world CPack pattern
