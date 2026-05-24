@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Clarified release-vs-artifact docs across README/RELEASING/AGENTS; aligned staleness docs with CI warning/error semantics)
+**Last updated:** 2026-05-24 (Clarified release-vs-artifact docs across README/RELEASING/AGENTS; aligned staleness docs with CI warning/error semantics; tightened authorship guard to strict canonical identity enforcement)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -487,15 +487,17 @@ manual trigger instructions and artifact download steps.
 
 #### 9.1 Agent Attribution (CI-Enforced — HARD BLOCK)
 
-**Agents are tools, not contributors.** Authorship stays exclusively with the human maintainer (`CodeSigils <toolsoftrade.web@gmail.com>`). The [`check-author.yml`](.github/workflows/check-author.yml) workflow runs on every push/PR to `main` and **fails the build** if any of these are detected:
+**Agents are tools, not contributors.** Authorship stays exclusively with the human maintainer (`CodeSigils <toolsoftrade.web@gmail.com>`). The [`check-author.yml`](.github/workflows/check-author.yml) workflow runs on every push/PR to `main` and **fails the build** unless BOTH the author and committer exactly match that canonical identity. It also hard-fails if any of these are detected:
 
-- **Author name** matches an agent pattern (`Sisyphus`, `Claude`, `ChatGPT`, `Copilot`)
-- **Author email** matches an agent/CI-bot pattern (`clio-agent@`, `sisyphus-dev-ai@`, `users.noreply.github.com`)
-- **Committer** differs from author with agent patterns (same checks as above)
+- **Author name** is not exactly `CodeSigils`
+- **Author email** is not exactly `toolsoftrade.web@gmail.com`
+- **Committer name** is not exactly `CodeSigils`
+- **Committer email** is not exactly `toolsoftrade.web@gmail.com`
+- **Known agent patterns** appear in author/committer fields (`Sisyphus`, `Claude`, `ChatGPT`, `Copilot`, `clio-agent@`, `sisyphus-dev-ai@`, `users.noreply.github.com`)
 - **`Co-authored-by:` trailer** references an agent name or email
 - **`Ultraworked with [Sisyphus]`** footer in the commit body
 
-Before staging any commit, `git config user.name` and `git config user.email` MUST be set to the canonical maintainer identity. The `.githooks/prepare-commit-msg` hook (activate via `git config core.hooksPath .githooks`) auto-strips known agent trailers as a safety net, but **do not rely on it** — the CI guard is the hard enforcement layer.
+Before staging any commit, `git config user.name` and `git config user.email` MUST be set to the canonical maintainer identity. Strict mode means GitHub web-flow or bot committer identities are also rejected here — commits must be authored and committed locally as the maintainer. The `.githooks/prepare-commit-msg` hook (activate via `git config core.hooksPath .githooks`) auto-strips known agent trailers as a safety net, but **do not rely on it** — the CI guard is the hard enforcement layer.
 
 Example of correct authorship:
 ```
@@ -571,6 +573,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
 | 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples from `arm64` to `aarch64` to match actual output naming. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
 | 2026-05-24 | Staleness CI/docs semantics aligned | Documented that `staleness.yml` hard-fails on structural drift but keeps freshness checks as warnings. Added C13 (`check-author.yml`) to §11.3 and synced §11.5 with CI's warning/error behavior and AGENTS age warning. |
+| 2026-05-24 | Agent attribution guard hardened to strict canonical identity enforcement | `check-author.yml` now enforces exact author+committer identity (`CodeSigils <toolsoftrade.web@gmail.com>`) in addition to rejecting agent trailers/patterns. This intentionally blocks GitHub web-flow/bot committer identities on `main`. |
 | 2026-05-24 | Release-surface docs clarified | Kept tag-only GitHub Releases as the canonical versioned channel. Clarified in README/RELEASING/AGENTS that scheduled, branch, and manual builds publish workflow artifacts only; no plan rewrite needed unless a moving `latest-stable` release channel is intentionally added later. |
 
 ### 11. Staleness & Drift Guard

@@ -8,6 +8,8 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CANONICAL_AUTHOR_NAME: CodeSigils
+  CANONICAL_AUTHOR_EMAIL: toolsoftrade.web@gmail.com
 
 jobs:
   check-attribution:
@@ -18,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for agent authorship and trailers
+      - name: Enforce canonical human authorship and strip agent attribution
         id: check
         run: |
           set -euo pipefail
@@ -64,7 +66,26 @@ jobs:
             echo " Author: $author_name <$author_email>"
             echo " Committer: $committer_name <$committer_email>"
 
-            # Check author name against known agent patterns
+            # Strict policy: both author and committer must match the canonical
+            # human maintainer identity for this repo.
+            if [ "$author_name" != "$CANONICAL_AUTHOR_NAME" ]; then
+              echo "::error::FAIL author name '$author_name' in $commit_hash — expected '$CANONICAL_AUTHOR_NAME'"
+              errors=$((errors+1))
+            fi
+            if [ "$author_email" != "$CANONICAL_AUTHOR_EMAIL" ]; then
+              echo "::error::FAIL author email '$author_email' in $commit_hash — expected '$CANONICAL_AUTHOR_EMAIL'"
+              errors=$((errors+1))
+            fi
+            if [ "$committer_name" != "$CANONICAL_AUTHOR_NAME" ]; then
+              echo "::error::FAIL committer name '$committer_name' in $commit_hash — expected '$CANONICAL_AUTHOR_NAME'"
+              errors=$((errors+1))
+            fi
+            if [ "$committer_email" != "$CANONICAL_AUTHOR_EMAIL" ]; then
+              echo "::error::FAIL committer email '$committer_email' in $commit_hash — expected '$CANONICAL_AUTHOR_EMAIL'"
+              errors=$((errors+1))
+            fi
+
+            # Defense in depth: explicitly call out known agent patterns
             if echo "$author_name" | grep -qiE "^(sisyphus|claude|chatgpt|copilot)$"; then
               echo "::error::FAIL author name '$author_name' in $commit_hash — looks like an AI agent"
               errors=$((errors+1))
@@ -105,10 +126,10 @@ jobs:
           echo "errors=$errors" >> "$GITHUB_OUTPUT"
 
           if [ "$errors" -gt 0 ]; then
-            echo "::error::$errors commit(s) with agent attribution detected. Authorship must stay with the human maintainer."
+            echo "::error::$errors authorship violation(s) detected. Author and committer must both remain the canonical human maintainer identity."
             exit 1
           fi
-          echo "✅ All commits clean — no agent attribution detected."
+          echo "✅ All commits clean — canonical human authorship enforced."
 
       - name: Report Results
         if: always()
@@ -121,11 +142,12 @@ jobs:
           echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Commits checked | $checked |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Canonical author required | $CANONICAL_AUTHOR_NAME <$CANONICAL_AUTHOR_EMAIL> |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Violations found | $errors |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$errors" -gt 0 ]; then
-            echo "❌ **FAILED**: Agent attribution detected. Authorship must stay with the human maintainer." >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ **FAILED**: Canonical human authorship violated. Author and committer must both stay with the human maintainer." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "✅ **PASS**: All commits clean — no agent attribution." >> "$GITHUB_STEP_SUMMARY"
+            echo "✅ **PASS**: All commits clean — canonical human authorship enforced." >> "$GITHUB_STEP_SUMMARY"
           fi
