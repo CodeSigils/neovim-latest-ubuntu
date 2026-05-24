@@ -525,6 +525,8 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-23 | Release notes auto-generation | Added `generate_release_notes: true` to `softprops/action-gh-release@v3` step — releases now include auto-generated body from commit history. |
 | 2026-05-23 | Cross-arch enforcement (removed continue-on-error) | Removed `continue-on-error: true` from ARM build matrix entries. Both architectures must now pass for the release to proceed. ARM pipeline proven stable. |
 | 2026-05-23 | Containerfile optimization | `COPY --chmod=755` replaces `COPY + RUN chmod` (saves one layer). Combined `ENV VERSION` and `ENV OUTPUT_DIR` into single `ENV` block. |
+| 2026-05-24 | Auto-update PR on upstream release (Option B) | Modified `check-upstream.yml` to create a PR with version bumps, CHANGELOG entry, and doc updates when upstream Neovim releases a newer version. PR replaces issue as primary notification; issue remains as fallback. |
+| 2026-05-24 | CodeQL scanning + badge (Option D) | Created `.github/workflows/codeql.yml` analyzing GitHub Actions workflows for security issues. Added CodeQL badge to README. Runs weekly and on every PR/push to `main`. |
  
 ### 11. Staleness & Drift Guard
 
