@@ -52,7 +52,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Repo layout tree fix + dead URL replacement)
+**Last updated:** 2026-05-24 (CI enforcement of staleness guard)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -552,8 +552,12 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-24 | Checklist/claim inventory fixes after audit | 4 fixes: §6.2 checklist expanded from 5→7 items (added smoke test, runtime health, update-alternatives); C2/C5 claims updated from "5 checks" to "7 checks"; §11.5 drift scan fixed `grep -oP`→`sed` for systems without Perl regex; docs/build-plan.md §4.2 checklist synced to 7 items. |
 | 2026-05-24 | Repo layout tree fix: add missing files | Added `.gitattributes` and all 4 workflow files (`check-upstream.yml`, `codeql.yml`, `nightly.yml`) to the repository layout tree in AGENTS.md. Tree was stale — only listed `build.yml`. |
 | 2026-05-24 | Dead URL replacement in docs/resources.md | Replaced baeldung.com (403) with seriyps.com tutorial on CMake .deb packaging. Replaced linuxvox.com (520) with Ubuntu official install-built-packages docs. |
+| 2026-05-24 | CI enforcement of staleness guard | Created `.github/workflows/staleness.yml` running §11.3 and §11.5 scans on every push/PR to `main`. Drift detected = CI fails. Merge blocked until fixed. |
 
 ### 11. Staleness & Drift Guard
+
+> **CI-enforced**: The [`staleness.yml`](.github/workflows/staleness.yml) workflow runs §11.3 and §11.5
+> on every push/PR to `main`. If drift is detected, CI fails — merge blocked until fixed.
 
 This file drifts when the repo changes but agents follow stale instructions — that's how you get
 "no build has been run yet" in a file that describes a successful build. This guard prevents that.
@@ -734,6 +738,8 @@ You must:
 
 **Zero-tolerance**: If you read a claim, have the tools to verify it, and propagate it without
 verifying — that's a violation. Verify-before-use is not optional.
+
+> **Automated enforcement**: CI runs `staleness.yml` on every push/PR — drift will fail the build.
 
 ### 12. References
 
