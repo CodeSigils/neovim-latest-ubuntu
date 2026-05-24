@@ -25,7 +25,7 @@ All resources below have been evaluated against five criteria:
 | [Neovim release.yml (release workflow)](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml) | ✅ Official | ✅ Latest | ✅✅ Full CI config | ✅ | ✅ |
 | [PR #22773 — ci!: remove the .deb release](https://github.com/neovim/neovim/pull/22773) | ✅ Official (merged) | ✅ 2023 (v0.9) | ✅ | N/A | ⚠️ PR context |
 | [neovim/neovim-releases](https://github.com/neovim/neovim-releases) | ✅ Official | ✅ Latest | ✅ | ✅ | ✅ |
-| [code-of-hephaestus/neovim-builds](https://github.com/reaper8055/neovim-builds) | ⚠️ Third-party (transferred to @reaper8055) | ✅ 2026 | ✅✅ | ✅ | ✅ |
+| [reaper8055/neovim-builds](https://github.com/reaper8055/neovim-builds) | ⚠️ Third-party | ✅ 2026 | ✅✅ | ✅ | ✅ |
 
 ### Notes
 

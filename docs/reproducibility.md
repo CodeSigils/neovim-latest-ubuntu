@@ -46,7 +46,7 @@ Then update the `FROM` line and verify the build still passes.
 
 ### 2. Parameterized Build Script
 
-`build.sh` accepts exactly one variable: the Neovim version. Everything else is
+`build.sh` accepts two variables: the Neovim version and output directory. Everything else is
 deterministic:
 
 | Parameter | Source | Default |
@@ -73,7 +73,7 @@ clean-build.sh will behave identically every time.
 
 ### 4. Verification Checklist (test.sh)
 
-Every built `.deb` passes the same six checks before it's considered valid:
+Every built `.deb` passes the same seven checks before it's considered valid:
 
 1. **Install**: `dpkg -i` succeeds (auto-fixes dependencies if needed)
 2. **Version match**: `nvim --version` reports the expected Neovim version

@@ -76,9 +76,9 @@ Output: `nvim-linux-x86_64.deb` (or `nvim-linux-arm64.deb` on ARM) in the output
 
 See [`build.sh`](../build.sh) for the actual implementation. Key features:
 
-- **Version**: positional arg, `VERSION` env var, or `latest` alias (auto-fetches from GitHub API)
-- **Output**: positional arg or `OUTPUT_DIR` env var; defaults to current directory
-- **Build tool**: uses upstream `Makefile` (`make CMAKE_BUILD_TYPE=RelWithDebInfo`) which auto-detects Ninja
+- **Version**: first positional arg, `VERSION` env var, or `latest` alias (auto-fetches from GitHub API)
+- **Output**: second positional arg or `OUTPUT_DIR` env var; defaults to current directory
+- **Build tool**: uses direct CMake+Ninja (`cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo` then `cmake --build build --target package`)
 - **Temp dir**: `mktemp -d` with `trap` cleanup
 - **Error handling**: checks for missing `.deb` in output, empty version
 
@@ -96,7 +96,7 @@ VERSION=latest ./build.sh           # Auto-detect latest stable
 All verification occurs in a **Podman container** matching the target OS. This ensures
 reproducibility and isolates from host system state.
 
-Container image: `ubuntu:24.04` (or `ubuntu:22.04` for broader glibc compat).
+Container image: `ubuntu:24.04`.
 
 ### 4.2 Verification Checklist
 
@@ -145,7 +145,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 |---|---|---|
 | `VERSION` | `0.12.2` (default) | Git tag — `v${VERSION}` |
 | Output name | `nvim-linux-{arch}.deb` | From upstream CPack config |
-| Script parameter | First arg to build script | Future-proof for version bumps |
+| Script parameter | `VERSION` as first arg or env var (`OUTPUT_DIR` is container-managed in CI/local container runs) | Future-proof for version bumps |
 
 For new releases: change `VERSION` and re-run. No structural changes expected between
 Neovim minor versions unless CMake/CPack config changes upstream.
