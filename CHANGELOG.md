@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AGENTS.md repository layout tree expanded: added `.gitattributes` and all 4 workflow files (`build.yml`, `check-upstream.yml`, `codeql.yml`, `nightly.yml`).
 - docs/resources.md: replaced dead Baeldung (403) and LinuxVox (520) URLs with working alternatives.
 - RELEASING.md: added Nightly Builds section with manual trigger and artifact download instructions.
+- README.md: corrected ARM DEB artifact name from `nvim-linux-arm64.deb` to `nvim-linux-aarch64.deb` (matches `$(uname -m)` output); updated build environment from "Debian clang" to "Ubuntu gcc" (matches 24.04 container); removed `unzip` from prerequisites table (not used in build pipeline).
+- RELEASING.md: clarified nightly artifact retention as "30 days (workflow-configured)" instead of "GitHub's default 90 days".
+
+### Fixed
+
+- docs/reproducibility.md: corrected verification checklist count from "six" to "seven" checks.
+- docs/build-plan.md: synced stale documentation — build command from `make` to direct `cmake -B build -G Ninja`, Ubuntu reference from 22.04 to 24.04, build.sh parameters from one variable to two (VERSION + OUTPUT_DIR).
+- docs/resources.md: corrected attribution from `code-of-hephaestus/neovim-builds` to `reaper8055/neovim-builds`.
+- .mailmap: added agent identity mappings for Claude, ChatGPT, and Copilot — all canonicalised to maintainer identity.
+- AGENTS.md: various stale claim fixes and added agent attribution guard (CI-enforced `check-author.yml`).
 
 ## [0.12.2] — 2026-05-22
 
