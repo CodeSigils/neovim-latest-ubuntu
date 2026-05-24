@@ -14,12 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeQL scanning for GitHub Actions workflows: runs weekly and on every PR/push to `main`.
 - Multi-arch CI matrix: builds now run on both `x86_64` (`ubuntu-24.04`) and `aarch64` (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
 - Release note automation: Release step now uses `generate_release_notes: true` — GitHub auto-generates release body from commit history.
+- Staleness guard CI enforcement: new `.github/workflows/staleness.yml` runs the AGENTS.md §11.3 pre-action gate and §11.5 offline drift scan on every push/PR to `main`. Drift (missing files, leaked artifacts, stale dates, missing docs) fails CI.
+- Nightly build documentation: added Nightly Builds section to `RELEASING.md` and §8.7 to `AGENTS.md` covering triggers, artifact download, and key differences from stable releases.
+- Anti-drift hardening: added C11 (RELEASING.md covers nightly) and C12 (nightly.yml exists) to AGENTS.md claim inventory. Pre-action gate, offline drift scan, and CI all enforce these new claims.
 
 ### Changed
 
 - Containerfile base image pin updated from amd64-specific digest to multi-arch manifest list digest — same `Containerfile` now works on both architectures.
 - ARM builds now enforce pass requirement: `continue-on-error: true` removed. Both architectures must succeed for a release to proceed.
 - Containerfile optimization: `COPY --chmod=755` eliminates separate `RUN chmod` layer; combined `ENV` lines.
+- AGENTS.md repository layout tree expanded: added `.gitattributes` and all 4 workflow files (`build.yml`, `check-upstream.yml`, `codeql.yml`, `nightly.yml`).
+- docs/resources.md: replaced dead Baeldung (403) and LinuxVox (520) URLs with working alternatives.
+- RELEASING.md: added Nightly Builds section with manual trigger and artifact download instructions.
 
 ## [0.12.2] — 2026-05-22
 
