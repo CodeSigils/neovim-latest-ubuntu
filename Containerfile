@@ -6,19 +6,13 @@ FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194
 
 LABEL description="Neovim build environment"
 
+COPY deps/ /tmp/deps/
+
 # hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ninja-build \
-    gettext \
-    cmake \
-    curl \
-    ca-certificates \
-    git \
-    build-essential \
-    lua5.1 \
-    file \
-    sudo \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-build-deps.txt | xargs -r apt-get install -y --no-install-recommends \
+    && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-ci-extra-deps.txt | xargs -r apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/deps
 
 COPY --chmod=755 build.sh /usr/local/bin/build-neovim
 

@@ -27,7 +27,7 @@ jobs:
           echo "=== §11.3 Pre-Action Staleness Gate ==="
 
           # C1: Pipeline files exist
-          for f in build.sh Containerfile test.sh; do
+          for f in build.sh Containerfile test.sh scripts/check-dependencies.py; do
             if [ ! -f "$f" ]; then
               echo "::error title=DRIFT C1::$f missing"
               errors=$((errors+1))
@@ -35,7 +35,7 @@ jobs:
           done
 
           # C4: Layout sanity — core committed files
-          for f in build.sh Containerfile test.sh AGENTS.md README.md LICENSE; do
+          for f in build.sh Containerfile test.sh AGENTS.md README.md LICENSE deps/ubuntu-build-deps.txt deps/ubuntu-ci-extra-deps.txt scripts/check-dependencies.py; do
             if [ ! -f "$f" ]; then
               echo "::error title=DRIFT C4::$f missing from expected layout"
               errors=$((errors+1))
@@ -88,7 +88,7 @@ jobs:
           echo "=== §11.5 Offline Drift Scan ==="
 
           # Claimed files exist
-          for claim_file in build.sh Containerfile test.sh docs/resources.md; do
+          for claim_file in build.sh Containerfile test.sh docs/resources.md deps/ubuntu-build-deps.txt deps/ubuntu-ci-extra-deps.txt scripts/check-dependencies.py; do
             if [ ! -f "$claim_file" ]; then
               echo "::error title=FILE MISSING::$claim_file"
               errors=$((errors+1))
@@ -125,6 +125,12 @@ jobs:
           # C13: check-author.yml exists
           if [ ! -f .github/workflows/check-author.yml ]; then
             echo "::error title=FILE MISSING::.github/workflows/check-author.yml"
+            errors=$((errors+1))
+          fi
+
+          # Dependency consistency guard stays wired in and passing
+          if ! python3 scripts/check-dependencies.py; then
+            echo "::error title=DOC DRIFT::dependency manifests / README / Containerfile are out of sync"
             errors=$((errors+1))
           fi
 

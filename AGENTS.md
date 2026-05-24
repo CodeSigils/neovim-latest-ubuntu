@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Clarified release-vs-artifact docs across README/RELEASING/AGENTS; aligned staleness docs with CI warning/error semantics; tightened authorship guard to strict canonical identity enforcement)
+**Last updated:** 2026-05-24 (Clarified release-vs-artifact docs across README/RELEASING/AGENTS; aligned staleness docs with CI warning/error semantics; tightened authorship guard to strict canonical identity enforcement; added dependency manifest enforcement for README/CI consistency)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -42,6 +42,11 @@
 ├── build.sh            ← Parameterised build script (see docs/build-plan.md §3.5)
 ├── Containerfile       ← Podman image for reproducible builds (see docs/build-plan.md §4.1)
 ├── test.sh             ← Verification script for .deb (see docs/build-plan.md §4.3)
+├── deps/
+│   ├── ubuntu-build-deps.txt    ← Source of truth for manual host prerequisites (README + docs)
+│   └── ubuntu-ci-extra-deps.txt ← Extra packages required only by CI/container automation
+├── scripts/
+│   └── check-dependencies.py    ← Enforces dependency-list consistency across docs + CI
 ├── .github/            ← CI workflow configuration
 │   ├── dependabot.yml  ← Dependabot: auto-update GitHub Actions deps (weekly)
 │   └── workflows/
@@ -71,8 +76,8 @@
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
 - **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
-- **Containerfile** — includes `sudo` (needed by `test.sh` for `dpkg` operations) and proper argument forwarding to `build.sh`. Base image pinned to SHA256 digest for reproducible builds.
-- **Artifact handling** — CPack now writes directly to `/output` via explicit `-B` flag; CI creates `output/` directory and verifies artifact before upload (fail-fast checks).
+- **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned to SHA256 digest for reproducible builds.
+- **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in CI to fail on drift between docs, manifests, Containerfile, and script expectations.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
@@ -214,7 +219,7 @@ make CMAKE_BUILD_TYPE=RelWithDebInfo          # convenience wrapper around cmake
 cd build && cpack -G DEB                      # produces nvim-linux-x86_64.deb
 ```
 
-**Build prerequisites** (Ubuntu 24.04 Noble): `ninja-build gettext cmake curl build-essential`
+**Build prerequisites** (Ubuntu 24.04 Noble): `ninja-build gettext cmake curl git build-essential` for manual/source builds. In this repo, `deps/ubuntu-build-deps.txt` is the source of truth for that host list, while CI/container-only extras live in `deps/ubuntu-ci-extra-deps.txt`.
 
 **Ninja build system**: `ninja-build` is a build prerequisite (listed in upstream BUILD.md). Neovim's CI explicitly uses `-G Ninja`, and the convenience `Makefile` auto-detects Ninja and uses it by default when available:
 
@@ -573,6 +578,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
 | 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples from `arm64` to `aarch64` to match actual output naming. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
 | 2026-05-24 | Staleness CI/docs semantics aligned | Documented that `staleness.yml` hard-fails on structural drift but keeps freshness checks as warnings. Added C13 (`check-author.yml`) to §11.3 and synced §11.5 with CI's warning/error behavior and AGENTS age warning. |
+| 2026-05-24 | Dependency manifests + CI drift check added | Added `deps/ubuntu-build-deps.txt` (manual host prerequisites), `deps/ubuntu-ci-extra-deps.txt` (CI/container-only extras), and `scripts/check-dependencies.py` enforced in `build.yml`. This keeps README dependency instructions aligned with the actual build/test environment and caught the missing `git` prerequisite. |
 | 2026-05-24 | Agent attribution guard hardened to strict canonical identity enforcement | `check-author.yml` now enforces exact author+committer identity (`CodeSigils <toolsoftrade.web@gmail.com>`) in addition to rejecting agent trailers/patterns. This intentionally blocks GitHub web-flow/bot committer identities on `main`. |
 | 2026-05-24 | Release-surface docs clarified | Kept tag-only GitHub Releases as the canonical versioned channel. Clarified in README/RELEASING/AGENTS that scheduled, branch, and manual builds publish workflow artifacts only; no plan rewrite needed unless a moving `latest-stable` release channel is intentionally added later. |
 

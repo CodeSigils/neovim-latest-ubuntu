@@ -19,14 +19,28 @@ Not using:
 
 ### 2.1 Build Dependencies
 
-Install on the build host (Ubuntu 24.04 Noble or compatible):
+Install on the build host (Ubuntu 24.04 Noble or compatible). Source of truth:
+[`deps/ubuntu-build-deps.txt`](../deps/ubuntu-build-deps.txt).
 
 ```bash
 sudo apt update
-sudo apt install -y ninja-build gettext cmake curl build-essential
+sudo apt install -y ninja-build gettext cmake curl git build-essential
 ```
 
-### 2.2 Runtime Dependencies (auto-detected by CPack)
+### 2.2 CI / Container Automation Dependencies
+
+The CI/container image installs the same build-host list plus these extras from
+[`deps/ubuntu-ci-extra-deps.txt`](../deps/ubuntu-ci-extra-deps.txt):
+
+- `ca-certificates` — HTTPS certificate roots for downloads/API calls
+- `file` — package/binary inspection helper inside the build image
+- `lua5.1` — build/runtime helper package kept in the reproducible image
+- `sudo` — required because [`test.sh`](../test.sh) exercises install/remove flows with `dpkg`
+
+`scripts/check-dependencies.py` is the enforcement layer: it fails CI if README prerequisites,
+dependency manifest files, Containerfile wiring, and build/test script expectations drift apart.
+
+### 2.3 Runtime Dependencies (auto-detected by CPack)
 
 `CPACK_DEBIAN_PACKAGE_SHLIBDEPS TRUE` in the upstream config uses `dpkg-shlibdeps` to
 auto-detect shared library dependencies. The resulting `.deb` will declare depends on the

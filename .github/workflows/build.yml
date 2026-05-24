@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
+      - name: Run dependency consistency check
+        run: python3 scripts/check-dependencies.py
       - name: Run shellcheck
         run: shellcheck build.sh test.sh
       - name: Run hadolint

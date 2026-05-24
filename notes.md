@@ -5,6 +5,7 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 
 ## 2026-05-24
 
+- Dependency consistency enforcement added: created `deps/ubuntu-build-deps.txt` for manual host prerequisites, `deps/ubuntu-ci-extra-deps.txt` for CI/container-only extras, and `scripts/check-dependencies.py` wired into `build.yml`. README now includes the previously-missing `git` prerequisite and points to the manifest files as source of truth.
 - Authorship enforcement tightened: `check-author.yml` now uses strict canonical identity enforcement (`CodeSigils <toolsoftrade.web@gmail.com>`) for both author and committer, while still rejecting known agent trailers/patterns. This intentionally rejects GitHub web-flow/bot committer identities on `main`.
 - Release-channel evaluation: keep version-tag Releases as the canonical stable download surface. Scheduled/main/manual builds remain workflow-artifact only. No CI/workflow plan rewrite needed now; revisit only if we intentionally add a moving `latest-stable` release channel later.
 - Staleness docs/CI alignment: documented warning-vs-error semantics in AGENTS.md, added `check-author.yml` to the pre-action gate, and clarified freshness checks in `staleness.yml` comments.

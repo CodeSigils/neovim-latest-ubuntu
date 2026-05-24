@@ -47,8 +47,10 @@ For custom builds, reproducible builds, or building newer/older versions of Neov
 
 ### Prerequisites
 
+Manual build-host prerequisites (source of truth: [`deps/ubuntu-build-deps.txt`](./deps/ubuntu-build-deps.txt)):
+
 ```bash
-sudo apt install ninja-build gettext cmake curl build-essential
+sudo apt install ninja-build gettext cmake curl git build-essential
 ```
 
 | Tool          | Minimum version |
@@ -63,6 +65,8 @@ sudo apt install ninja-build gettext cmake curl build-essential
 [ninja-build]: https://ninja-build.org/
 [gettext]: https://www.gnu.org/software/gettext/
 [cmake]: https://cmake.org/
+
+> The CI/container image installs the same manual build list plus extra automation packages from [`deps/ubuntu-ci-extra-deps.txt`](./deps/ubuntu-ci-extra-deps.txt) (`ca-certificates`, `file`, `lua5.1`, `sudo`) for HTTPS fetches, packaging inspection, and `test.sh` execution. `scripts/check-dependencies.py` enforces that README, dependency manifests, Containerfile, and the build workflow stay aligned.
 
 ### Manual Build
 
