@@ -52,7 +52,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Removed stretch targets, scoped to x86_64 + aarch64; CI end-to-end verified)
+**Last updated:** 2026-05-24 (Added agent attribution guard CI-enforced; §9.1 hardened)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -517,8 +517,26 @@ manual trigger instructions and artifact download steps.
 
 ### 9. Guardrails (Must Not Do)
 
-- **Do not add `Co-authored-by` or other agent/attribution trailers to commit messages.** Git authorship must stay as `CodeSigils <toolsoftrade.web@gmail.com>`. Use `.mailmap` for any existing agent email attribution.
-- **Configure `user.name` and `user.email` before any commit** — always `CodeSigils` / `toolsoftrade.web@gmail.com` (or the canonical project author).
+#### 9.1 Agent Attribution (CI-Enforced — HARD BLOCK)
+
+**Agents are tools, not contributors.** Authorship stays exclusively with the human maintainer (`CodeSigils <toolsoftrade.web@gmail.com>`). The [`check-author.yml`](.github/workflows/check-author.yml) workflow runs on every push/PR to `main` and **fails the build** if any of these are detected:
+
+- **Author name** matches an agent pattern (`Sisyphus`, `Claude`, `ChatGPT`, `Copilot`)
+- **Author email** matches an agent/CI-bot pattern (`clio-agent@`, `sisyphus-dev-ai@`, `users.noreply.github.com`)
+- **Committer** differs from author with agent patterns (same checks as above)
+- **`Co-authored-by:` trailer** references an agent name or email
+- **`Ultraworked with [Sisyphus]`** footer in the commit body
+
+Before staging any commit, `git config user.name` and `git config user.email` MUST be set to the canonical maintainer identity. The `.githooks/prepare-commit-msg` hook (activate via `git config core.hooksPath .githooks`) auto-strips known agent trailers as a safety net, but **do not rely on it** — the CI guard is the hard enforcement layer.
+
+Example of correct authorship:
+```
+Author: CodeSigils <toolsoftrade.web@gmail.com>
+Committer: CodeSigils <toolsoftrade.web@gmail.com>
+```
+
+#### 9.2 General
+
 - **Do not commit generated artifacts** — `nvim-linux-*.deb` and `_CPack_Packages/` are in `.gitignore`.
 - **Do not commit `docs/research/`** — raw research artefacts (in `.gitignore`). `docs/resources.md` (the curated reference) IS committed.
 - **Do not put generated artifacts in the committed layout tree** — keep them under `[generated]` or `[future]`.
@@ -582,6 +600,7 @@ manual trigger instructions and artifact download steps.
 | 2026-05-24 | No ARMHF/32-bit support | Rejected — adds complexity with limited demand; x86_64 + aarch64 covers all target use cases. |
 | 2026-05-24 | CI end-to-end test verified | Manual workflow_dispatch of `build.yml` (v0.12.2) passed lint, x86_64 build, aarch64 build. Pipeline operational. |
 | 2026-05-24 | Removed "Debian" from README tagline | Project only tests on Ubuntu 24.04; claiming Debian support is inaccurate. RELEASING.md had no Debian references. Technical `.deb`/CPack references remain — they describe the packaging format, not a support commitment. |
+| 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
 
 ### 11. Staleness & Drift Guard
 
@@ -610,6 +629,7 @@ command that proves or disproves the claim.
 | C10 | §9 Guardrails | Each guardrail still valid | Read each guardrail and check: is the referenced path/rule still correct? |
 | C11 | §8.6, §8.7, RELEASING.md | Release & nightly documentation covers both workflows | `grep -q 'Nightly' RELEASING.md && grep -q 'nightly.yml' AGENTS.md` — both must exist |
 | C12 | §8.7, nightly.yml | Nightly workflow exists and is functional | `test -f .github/workflows/nightly.yml` — file exists |
+| C13 | §9.1, check-author.yml | Author attribution guard CI-enforced | `test -f .github/workflows/check-author.yml` — file exists |
 
 #### 11.2 Drift-Prone Sections (highest risk)
 
@@ -623,6 +643,7 @@ significant action:
 5. **Header Status** line — one-line summary goes stale silently
 6. **§8 Release Phase and RELEASING.md** — nightly docs drift if workflow changes
 7. **README badges** — nightly + CodeQL badges break if workflow names change
+8. **§9 Guardrails (Agent Attribution)** — CI enforcement patterns drift if workflow name/path changes
 
 #### 11.3 Pre-Action Gate (MANDATORY — run before any work)
 
