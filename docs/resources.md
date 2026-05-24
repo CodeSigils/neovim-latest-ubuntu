@@ -1,7 +1,7 @@
 # Ubuntu Packaging Resources
 
 **Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu.
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-24 (URLs refreshed: replaced dead Baeldung + LinuxVox links)
 
 All resources below have been evaluated against five criteria:
 - **Authoritative** — official docs > blog posts > forum answers
@@ -69,7 +69,7 @@ All resources below have been evaluated against five criteria:
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
 | [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | ✅ Debian | ✅ Latest | ✅ | ✅ | ⚠️ Wiki format |
-| [Making a .deb package for CMake C/C++ project (2025)](https://www.baeldung.com/linux/package-deb-change-repack) | ⚠️ Tutorial | ✅ 2025 | ✅ | ✅ | ✅ |
+| [Making a .deb package for CMake C/C++ project (2025)](https://seriyps.com/blog/2025/10/03/making-a-deb-package-for-cmake-c-project/) | ⚠️ Tutorial | ✅ 2025 | ✅ | ✅ | ✅ |
 | [Creating and Hosting Your Own Deb Packages (Earthly)](https://earthly.dev/blog/creating-and-hosting-your-own-deb-packages-and-apt-repo/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ✅ |
 | [Ultimate Guide to Debian Packaging](https://dario.griffo.io/posts/ultimate-guide-debian-packaging/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ✅ |
 
@@ -78,7 +78,7 @@ All resources below have been evaluated against five criteria:
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
 | [How to Create a Debian Package (UbuntuMint)](https://www.ubuntumint.com/create-debian-package/) | ⚠️ Blog | ✅ 2024 | ✅ | ⚠️ Partial | ⚠️ |
-| [How to Install .deb in Ubuntu (LinuxVox)](https://linuxvox.com/blog/how-to-install-deb-in-ubuntu/) | ⚠️ Blog | ⚠️ 2023 | ✅ | ✅ | ⚠️ Install only |
+| [How to Install Built Packages (Ubuntu official docs)](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/) | ✅✅ Ubuntu official | ✅ Latest | ✅ | ✅ | ⚠️ Install only |
 | [Add Debian Repositories to Sources List](https://computingforgeeks.com/add-debian-official-repositories-to-sources-list/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ❌ Narrow scope |
 
 ### Key Best Practices (from Debian Developer's Reference §6)

@@ -52,7 +52,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Nightly builds, CodeQL, auto-update PR, docs staleness fixes, checklist/claim inventory fixes)
+**Last updated:** 2026-05-24 (Repo layout tree fix + dead URL replacement)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -64,6 +64,7 @@
 ├── AGENTS.md           ← This file — agent instructions and project knowledge
 ├── CHANGELOG.md        ← User-facing release history (Keep a Changelog format)
 ├── notes.md            ← Agent scratchpad / task-level record (not user-facing)
+├── .gitattributes      ← Git attribute configuration
 ├── .gitignore          ← Generated artifacts excluded from version control
 ├── .mailmap            ← Author canonicalization for GitHub contributor graph
 ├── README.md           ← Project documentation (how-to install / build)
@@ -80,7 +81,10 @@
 ├── .github/            ← CI workflow configuration
 │   ├── dependabot.yml  ← Dependabot: auto-update GitHub Actions deps (weekly)
 │   └── workflows/
-│       └── build.yml   ← GitHub Actions: build + release on tag/main/schedule/manual
+│       ├── build.yml             ← Build + release on tag/main/schedule/manual
+│       ├── check-upstream.yml    ← Auto-create PR on new upstream release
+│       ├── codeql.yml            ← CodeQL security analysis
+│       └── nightly.yml           ← Daily nightly build from Neovim master
 │
 ├── [generated — appear only after build]
 │   ├── nvim-linux-*.deb    ← Built package artifact (gitignored)
@@ -546,7 +550,9 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-24 | CodeQL scanning + badge (Option D) | Created `.github/workflows/codeql.yml` analyzing GitHub Actions workflows for security issues. Added CodeQL badge to README. Runs weekly and on every PR/push to `main`. |
 | 2026-05-24 | Nightly builds (recommended next step) | Added `VERSION=nightly` support to `build.sh` (clones master branch). Created `.github/workflows/nightly.yml` — daily cron at 06:00 UTC, builds x86_64 + aarch64 in parallel, tests, uploads artifacts. No release creation. |
 | 2026-05-24 | Checklist/claim inventory fixes after audit | 4 fixes: §6.2 checklist expanded from 5→7 items (added smoke test, runtime health, update-alternatives); C2/C5 claims updated from "5 checks" to "7 checks"; §11.5 drift scan fixed `grep -oP`→`sed` for systems without Perl regex; docs/build-plan.md §4.2 checklist synced to 7 items. |
- 
+| 2026-05-24 | Repo layout tree fix: add missing files | Added `.gitattributes` and all 4 workflow files (`check-upstream.yml`, `codeql.yml`, `nightly.yml`) to the repository layout tree in AGENTS.md. Tree was stale — only listed `build.yml`. |
+| 2026-05-24 | Dead URL replacement in docs/resources.md | Replaced baeldung.com (403) with seriyps.com tutorial on CMake .deb packaging. Replaced linuxvox.com (520) with Ubuntu official install-built-packages docs. |
+
 ### 11. Staleness & Drift Guard
 
 This file drifts when the repo changes but agents follow stale instructions — that's how you get
