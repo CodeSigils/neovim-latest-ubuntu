@@ -475,6 +475,8 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 
 ### 9. Guardrails (Must Not Do)
 
+- **Do not add `Co-authored-by` or other agent/attribution trailers to commit messages.** Git authorship must stay as `CodeSigils <toolsoftrade.web@gmail.com>`. Use `.mailmap` for any existing agent email attribution.
+- **Configure `user.name` and `user.email` before any commit** — always `CodeSigils` / `toolsoftrade.web@gmail.com` (or the canonical project author).
 - **Do not commit generated artifacts** — `nvim-linux-*.deb` and `_CPack_Packages/` are in `.gitignore`.
 - **Do not commit `docs/research/`** — raw research artefacts (in `.gitignore`). `docs/resources.md` (the curated reference) IS committed.
 - **Do not put generated artifacts in the committed layout tree** — keep them under `[generated]` or `[future]`.
