@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Fixed workflow tree/link drift; hardened unchecked-box detection; corrected aarch64 artifact naming)
+**Last updated:** 2026-05-24 (Clarified release-vs-artifact docs across README/RELEASING/AGENTS; aligned staleness docs with CI warning/error semantics)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -407,8 +407,8 @@ release lifecycle:
 |---|---|---|---|
 | Tag push `v*` (e.g. `v0.13.0`) | Build (x86_64 + aarch64) + create GitHub Release | Both `.deb` files uploaded as release assets |
 | Push to `main` | Build only (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
-| Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
-| Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
+| Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
+| Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
 | Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 | Manual dispatch via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 
@@ -431,6 +431,8 @@ release lifecycle:
    curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-aarch64.deb
    sudo dpkg -i nvim-linux-aarch64.deb
    ```
+
+   For scheduled, branch, or manual builds, direct users to the Actions run page instead of the Releases page — those runs do not create or refresh a GitHub Release.
 
 #### 8.3 Version Parameterization
 
@@ -568,11 +570,13 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | Removed "Debian" from README tagline | Project only tests on Ubuntu 24.04; claiming Debian support is inaccurate. RELEASING.md had no Debian references. Technical `.deb`/CPack references remain — they describe the packaging format, not a support commitment. |
 | 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
 | 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples from `arm64` to `aarch64` to match actual output naming. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
+| 2026-05-24 | Staleness CI/docs semantics aligned | Documented that `staleness.yml` hard-fails on structural drift but keeps freshness checks as warnings. Added C13 (`check-author.yml`) to §11.3 and synced §11.5 with CI's warning/error behavior and AGENTS age warning. |
+| 2026-05-24 | Release-surface docs clarified | Kept tag-only GitHub Releases as the canonical versioned channel. Clarified in README/RELEASING/AGENTS that scheduled, branch, and manual builds publish workflow artifacts only; no plan rewrite needed unless a moving `latest-stable` release channel is intentionally added later. |
 
 ### 11. Staleness & Drift Guard
 
 > **CI-enforced**: The [`staleness.yml`](.github/workflows/staleness.yml) workflow runs §11.3 and §11.5
-> on every push/PR to `main`. If drift is detected, CI fails — merge blocked until fixed.
+> on every push/PR to `main`. Structural drift fails CI; freshness checks emit warnings so routine maintenance reminders do not block merges.
 
 This file drifts when the repo changes but agents follow stale instructions — that's how you get
 "no build has been run yet" in a file that describes a successful build. This guard prevents that.
@@ -661,6 +665,11 @@ if [ ! -f .github/workflows/nightly.yml ]; then
   echo "DRIFT C12: nightly.yml missing"; errors=$((errors+1))
 fi
 
+# C13: Author attribution guard exists
+if [ ! -f .github/workflows/check-author.yml ]; then
+  echo "DRIFT C13: check-author.yml missing"; errors=$((errors+1))
+fi
+
 if [ $errors -gt 0 ]; then
   echo "FAIL: $errors drift(s) detected. Fix AGENTS.md before proceeding."
   exit 1
@@ -679,7 +688,7 @@ When verification reveals a stale claim, follow this sequence exactly:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ 1. IDENTIFY which claim(s) are stale (use inventory #C1..#C10) │
+│ 1. IDENTIFY which claim(s) are stale (use inventory #C1..#C13) │
 │ 2. VERIFY the correct state via `ls`, `test`, file contents    │
 │ 3. UPDATE the claim in AGENTS.md                               │
 │ 4. BUMP `Last updated` date at top                             │
@@ -705,6 +714,7 @@ Run this independently (not through an agent) during maintenance:
 # Full drift scan — run from repo root
 echo "=== Offline Drift Scan ==="
 errors=0
+warnings=0
 
 # Check all claimed files exist
 for claim_file in build.sh Containerfile test.sh docs/resources.md; do
@@ -741,27 +751,43 @@ if [ ! -f .github/workflows/nightly.yml ]; then
   errors=$((errors+1))
 fi
 
-# Check Last updated is not more than 90 days old
-last_date=$(sed -n 's/^.*Last updated:\*\* *\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md)
-if [ -n "$last_date" ]; then
-  days_old=$(( ( $(date +%s) - $(date -d "$last_date" +%s) ) / 86400 ))
-  if [ "$days_old" -gt 90 ]; then
-    echo "STALE: Last updated $days_old days ago ($last_date)"
-    errors=$((errors+1))
-  fi
-fi
-
-# Check Last updated matches most recent Decision Log entry
-last_decision=$(sed -n 's/^| \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md | tail -1)
-if [ -n "$last_decision" ] && [ "$last_decision" != "$last_date" ]; then
-  echo "DRIFT: Last updated ($last_date) ≠ most recent decision ($last_decision)"
+# Check check-author.yml exists
+if [ ! -f .github/workflows/check-author.yml ]; then
+  echo "FILE MISSING: .github/workflows/check-author.yml"
   errors=$((errors+1))
 fi
 
+# Check Last updated / AGENTS freshness (warn-only; maintenance reminder)
+last_date=$(sed -n 's/^.*Last updated:\*\* *\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md)
+if [ -n "$last_date" ]; then
+  commit_ts=$(date -d "$(git log -1 --format=%cI AGENTS.md)" +%s)
+  days_since_commit=$(( ( $(date +%s) - commit_ts ) / 86400 ))
+  days_since_claim=$(( ( $(date +%s) - $(date -d "$last_date" +%s) ) / 86400 ))
+  if [ "$days_since_claim" -gt 90 ]; then
+    echo "STALE: Last updated $days_since_claim days ago ($last_date) — renew if claims are still current"
+    warnings=$((warnings+1))
+  fi
+  if [ "$days_since_commit" -gt 90 ]; then
+    echo "STALE: AGENTS.md last committed $days_since_commit days ago — review needed"
+    warnings=$((warnings+1))
+  fi
+fi
+
+# Check Last updated matches most recent Decision Log entry (warn-only; hygiene drift)
+last_decision=$(sed -n 's/^| \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md | tail -1)
+if [ -n "$last_decision" ] && [ "$last_decision" != "$last_date" ]; then
+  echo "DRIFT: Last updated ($last_date) ≠ most recent decision ($last_decision)"
+  warnings=$((warnings+1))
+fi
+
 if [ $errors -eq 0 ]; then
-  echo "PASS: All drift checks clean."
+  if [ $warnings -eq 0 ]; then
+    echo "PASS: All drift checks clean."
+  else
+    echo "PASS with warnings: $warnings freshness reminder(s)."
+  fi
 else
-  echo "FAIL: $errors drift(s) found. Fix before trusting any claim."
+  echo "FAIL: $errors drift(s) found, $warnings warning(s). Fix before trusting any claim."
 fi
 ```
 

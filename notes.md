@@ -5,6 +5,8 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 
 ## 2026-05-24
 
+- Release-channel evaluation: keep version-tag Releases as the canonical stable download surface. Scheduled/main/manual builds remain workflow-artifact only. No CI/workflow plan rewrite needed now; revisit only if we intentionally add a moving `latest-stable` release channel later.
+- Staleness docs/CI alignment: documented warning-vs-error semantics in AGENTS.md, added `check-author.yml` to the pre-action gate, and clarified freshness checks in `staleness.yml` comments.
 - Repo audit cleanup: fixed AGENTS.md workflow tree/link drift, narrowed unchecked-box warning regex, and synced ARM artifact naming to `aarch64` in AGENTS.md/RELEASING.md.
 
 ## 2026-05-23

@@ -15,6 +15,11 @@ When Neovim releases a new stable version (e.g., v0.13.0), you need to:
 That's the happy path. The sections below cover that flow and what to do when you need
 something different (a custom version, a test build, or a local build).
 
+Important distinction:
+
+- The [GitHub Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases) is updated only by tag pushes.
+- Scheduled builds, branch pushes, and manual dispatch builds upload workflow artifacts to the Actions run page instead.
+
 ## Prerequisites
 
 - Write access to this GitHub repository
@@ -129,7 +134,7 @@ without creating a tag:
 4. Click **Run workflow**
 
 CI will build that version and upload the `.deb` as a workflow artifact. It will NOT
-create a GitHub Release (only tag pushes do that).
+create or refresh a GitHub Release (only tag pushes do that).
 
 ## Build the latest stable version (local)
 
@@ -216,8 +221,9 @@ Ensure the tag matches the `v*` pattern: `git tag v0.13.0` not `git tag 0.13.0` 
 
 ### Build succeeded but no release created
 
-Releases are only created on tag pushes, not on branch pushes or manual dispatch. If you
-need a release from a manual build, push a tag for that version.
+Releases are only created on tag pushes, not on branch pushes, scheduled builds, or manual
+dispatch. If you need a GitHub Release entry rather than a workflow artifact, push a tag for
+that version.
 
 ### The version built is wrong
 

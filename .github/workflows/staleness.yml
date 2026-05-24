@@ -95,7 +95,7 @@ jobs:
             fi
           done
 
-          # No generated artifacts leaked beyond build output
+          # Check for generated package artifacts in known non-source locations
           for gen_artifact in _CPack_Packages; do
             if [ -e "$gen_artifact" ]; then
               echo "::error title=GENERATED ARTIFACT::$gen_artifact present (should not be committed)"
@@ -128,13 +128,13 @@ jobs:
             errors=$((errors+1))
           fi
 
-          # Last updated not stale (> 90 days)
+          # Last updated / AGENTS freshness (warn-only; maintenance reminder)
           last_date=$(sed -n 's/^.*Last updated:\*\* *\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md)
           if [ -n "$last_date" ]; then
             commit_ts=$(date -d "$(git log -1 --format=%cI AGENTS.md)" +%s)
             days_since_commit=$(( ( $(date +%s) - commit_ts ) / 86400 ))
             days_since_claim=$(( ( $(date +%s) - $(date -d "$last_date" +%s) ) / 86400 ))
-            # Stale if last_updated field is >90 days old OR AGENTS.md not touched in >90 days
+            # Warn if last_updated field is >90 days old OR AGENTS.md not touched in >90 days
             if [ "$days_since_claim" -gt 90 ]; then
               echo "::warning title=STALE::Last updated $days_since_claim days ago ($last_date) - renew if claims are still current"
               warnings=$((warnings+1))
@@ -145,7 +145,7 @@ jobs:
             fi
           fi
 
-          # Last updated matches most recent Decision Log entry
+          # Last updated matches most recent Decision Log entry (warn-only; hygiene drift)
           last_decision=$(sed -n 's/^| \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md | tail -1)
           if [ -n "$last_decision" ] && [ "$last_decision" != "$last_date" ]; then
             echo "::warning title=DRIFT::Last updated ($last_date) ≠ most recent decision ($last_decision)"
