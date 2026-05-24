@@ -154,6 +154,48 @@ mkdir -p output
 podman run --rm -e VERSION=0.14.0 -v "$PWD/output:/output" neovim-builder
 ```
 
+## Nightly Builds
+
+Nightly builds from Neovim's `master` branch run daily (Monday—Sunday) at 06:00 UTC
+via [`nightly.yml`](.github/workflows/nightly.yml). They produce `.deb` packages for
+both x86_64 and ARM64.
+
+> **Nightly builds do NOT create Releases.** Artifacts are available from the workflow
+> run page and expire after 90 days (GitHub's default retention).
+
+### Trigger a manual nightly build
+
+1. Go to https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml
+2. Click **Run workflow**
+3. Click **Run workflow** again (no input needed)
+
+The workflow builds both architectures, runs the full test suite, and uploads the `.deb`
+files as workflow artifacts.
+
+### Download nightly artifacts
+
+From the workflow run page:
+
+1. Open the desired workflow run (https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml)
+2. Scroll to the **Artifacts** section
+3. Download `nvim-nightly-deb-x86_64` or `nvim-nightly-deb-aarch64`
+4. Extract the `.deb` and install:
+
+   ```bash
+   # Extract and install (x86_64 example)
+   unzip nvim-nightly-deb-x86_64.zip
+   sudo dpkg -i output/nvim-linux-x86_64.deb
+   nvim --version
+   ```
+
+### What gets built
+
+- **Branch**: Neovim `master` (latest development code)
+- **Build type**: `RelWithDebInfo` (optimised with debug info — same as upstream nightly)
+- **Verification**: Same 7-check test suite as stable releases (install, version, smoke,
+  health, dependencies, alternatives, uninstall)
+- **Architectures**: x86_64 and ARM64 (both must pass)
+
 ## Troubleshooting
 
 ### CI says "No .deb package found"
@@ -250,4 +292,5 @@ The build script (`build.sh`), container definition (`Containerfile`), and test 
 - [`Containerfile`](./Containerfile) — Build environment definition
 - [`test.sh`](./test.sh) — 7-check verification script
 - [`docs/build-plan.md`](./docs/build-plan.md) — Technical build pipeline details
+- [`nightly.yml`](.github/workflows/nightly.yml) — Daily nightly build workflow
 - [`AGENTS.md`](./AGENTS.md) — Project knowledge base and decision history

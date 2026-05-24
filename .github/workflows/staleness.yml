@@ -52,6 +52,21 @@ jobs:
             errors=$((errors+1))
           fi
 
+          # C11: Release docs cover nightly
+          if [ ! -f RELEASING.md ]; then
+            echo "::error title=DRIFT C11::RELEASING.md missing"
+            errors=$((errors+1))
+          elif ! grep -q 'Nightly' RELEASING.md; then
+            echo "::error title=DRIFT C11::RELEASING.md missing Nightly section"
+            errors=$((errors+1))
+          fi
+
+          # C12: Nightly workflow exists
+          if [ ! -f .github/workflows/nightly.yml ]; then
+            echo "::error title=DRIFT C12::nightly.yml missing"
+            errors=$((errors+1))
+          fi
+
           echo "Pre-Action Gate: $errors error(s)"
           echo "gate_errors=$errors" >> "$GITHUB_OUTPUT"
 
@@ -81,6 +96,21 @@ jobs:
           done
           if ls nvim-linux-*.deb >/dev/null 2>&1; then
             echo "::error title=GENERATED ARTIFACT::nvim-linux-*.deb present in root (should be gitignored)"
+            errors=$((errors+1))
+          fi
+
+          # C11: RELEASING.md covers nightly
+          if [ ! -f RELEASING.md ]; then
+            echo "::error title=FILE MISSING::RELEASING.md"
+            errors=$((errors+1))
+          elif ! grep -q 'Nightly' RELEASING.md; then
+            echo "::error title=DOC DRIFT::RELEASING.md missing Nightly section"
+            errors=$((errors+1))
+          fi
+
+          # C12: nightly.yml exists
+          if [ ! -f .github/workflows/nightly.yml ]; then
+            echo "::error title=FILE MISSING::.github/workflows/nightly.yml"
             errors=$((errors+1))
           fi
 

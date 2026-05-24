@@ -52,7 +52,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (CI enforcement of staleness guard)
+**Last updated:** 2026-05-24 (Nightly docs + CI enforcement of staleness guard)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -444,6 +444,8 @@ release lifecycle:
 | Push to `main` | Build only (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
 | Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
 | Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
+| Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
+| Manual dispatch via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 
 #### 8.2 Release Workflow (tag push)
 
@@ -490,7 +492,27 @@ After a successful release:
 ### 8.6 Release Documentation
 
 See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide,
-covering tag pushes, manual dispatch, local builds, and troubleshooting.
+covering tag pushes, manual dispatch, nightly builds, local builds, and troubleshooting.
+
+### 8.7 Nightly Builds
+
+Nightly builds are handled by a **separate workflow** (`.github/workflows/nightly.yml`)
+with its own schedule and triggers:
+
+| Trigger | Action | Outcome |
+|---|---|---|
+| Schedule (daily, 06:00 UTC) | Build x86_64 + aarch64 from Neovim `master` | `.deb` artifacts uploaded (no Release) |
+| Manual dispatch | Build x86_64 + aarch64 from Neovim `master` | `.deb` artifacts uploaded (no Release) |
+
+**Key differences from stable builds:**
+- **Version**: Always `nightly` (Neovim `master` branch, not a tagged release)
+- **Build type**: `RelWithDebInfo` (upstream nightly convention — retains asserts for debugging)
+- **Outcome**: Artifacts only — no GitHub Release, no tag, no release notes
+- **Verification**: Same 7-check test suite runs on every nightly build
+- **CI environment**: Same `Containerfile`, same arch matrix, same `test.sh` — identical pipeline
+
+See the [Nightly Builds section of RELEASING.md](../RELEASING.md#nightly-builds) for
+manual trigger instructions and artifact download steps.
 
 ### 9. Guardrails (Must Not Do)
 
@@ -553,6 +575,7 @@ covering tag pushes, manual dispatch, local builds, and troubleshooting.
 | 2026-05-24 | Repo layout tree fix: add missing files | Added `.gitattributes` and all 4 workflow files (`check-upstream.yml`, `codeql.yml`, `nightly.yml`) to the repository layout tree in AGENTS.md. Tree was stale — only listed `build.yml`. |
 | 2026-05-24 | Dead URL replacement in docs/resources.md | Replaced baeldung.com (403) with seriyps.com tutorial on CMake .deb packaging. Replaced linuxvox.com (520) with Ubuntu official install-built-packages docs. |
 | 2026-05-24 | CI enforcement of staleness guard | Created `.github/workflows/staleness.yml` running §11.3 and §11.5 scans on every push/PR to `main`. Drift detected = CI fails. Merge blocked until fixed. |
+| 2026-05-24 | Nightly build documentation + anti-drift hardening | Added Nightly Builds section to RELEASING.md. Added §8.7 to AGENTS.md for nightly workflow docs. Added C11 (RELEASING.md covers nightly) and C12 (nightly.yml exists) to claim inventory. Updated pre-action gate, drift scan, and staleness.yml CI to enforce new claims. Added README badges and nightly to drift-prone sections list. |
 
 ### 11. Staleness & Drift Guard
 
@@ -579,6 +602,8 @@ command that proves or disproves the claim.
 | C8 | Header (§ Last updated) | Date matches today or last known edit date | `grep 'Last updated:' AGENTS.md` |
 | C9 | Body §44: Repository Layout note | `Structure is stable` | Verify via `ls` that repo layout matches the tree in §Repository Layout |
 | C10 | §9 Guardrails | Each guardrail still valid | Read each guardrail and check: is the referenced path/rule still correct? |
+| C11 | §8.6, §8.7, RELEASING.md | Release & nightly documentation covers both workflows | `grep -q 'Nightly' RELEASING.md && grep -q 'nightly.yml' AGENTS.md` — both must exist |
+| C12 | §8.7, nightly.yml | Nightly workflow exists and is functional | `test -f .github/workflows/nightly.yml` — file exists |
 
 #### 11.2 Drift-Prone Sections (highest risk)
 
@@ -590,6 +615,8 @@ significant action:
 3. **§6.2 Verification Checklist** — checkbox state drifts when checks fail/pass
 4. **Decision Log** — last entry should be current; if a build happened, there must be a row
 5. **Header Status** line — one-line summary goes stale silently
+6. **§8 Release Phase and RELEASING.md** — nightly docs drift if workflow changes
+7. **README badges** — nightly + CodeQL badges break if workflow names change
 
 #### 11.3 Pre-Action Gate (MANDATORY — run before any work)
 
@@ -626,6 +653,18 @@ fi
 # C7: Generated artifacts not accidentally committed
 if ls nvim-linux-*.deb >/dev/null 2>&1; then
   echo "DRIFT C7: nvim-linux-*.deb present in root (should be gitignored)"
+fi
+
+# C11: Release docs cover nightly
+if [ ! -f RELEASING.md ]; then
+  echo "DRIFT C11: RELEASING.md missing"; errors=$((errors+1))
+elif ! grep -q 'Nightly' RELEASING.md; then
+  echo "DRIFT C11: RELEASING.md missing Nightly section"; errors=$((errors+1))
+fi
+
+# C12: Nightly workflow exists
+if [ ! -f .github/workflows/nightly.yml ]; then
+  echo "DRIFT C12: nightly.yml missing"; errors=$((errors+1))
 fi
 
 if [ $errors -gt 0 ]; then
@@ -690,6 +729,21 @@ for gen_artifact in _CPack_Packages; do
 done
 if ls nvim-linux-*.deb >/dev/null 2>&1; then
   echo "GENERATED ARTIFACT PRESENT: nvim-linux-*.deb"
+  errors=$((errors+1))
+fi
+
+# Check RELEASING.md exists and covers nightly
+if [ ! -f RELEASING.md ]; then
+  echo "FILE MISSING: RELEASING.md"
+  errors=$((errors+1))
+elif ! grep -q 'Nightly' RELEASING.md; then
+  echo "DOC DRIFT: RELEASING.md missing Nightly section"
+  errors=$((errors+1))
+fi
+
+# Check nightly.yml exists
+if [ ! -f .github/workflows/nightly.yml ]; then
+  echo "FILE MISSING: .github/workflows/nightly.yml"
   errors=$((errors+1))
 fi
 
