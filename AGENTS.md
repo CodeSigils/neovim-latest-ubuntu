@@ -52,7 +52,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Nightly docs + CI enforcement of staleness guard)
+**Last updated:** 2026-05-24 (Removed stretch targets, scoped to x86_64 + aarch64; CI end-to-end verified)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -121,7 +121,6 @@ Build and package the latest stable Neovim release as a `.deb` package for Ubunt
 
 - Ubuntu (latest)
 - Linux Mint
-- Debian Testing (stretch goal)
 
 ### Success Criteria
 
@@ -447,6 +446,8 @@ release lifecycle:
 | Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 | Manual dispatch via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 
+**Ancillary Monday schedule**: The Monday 06:00 UTC `build.yml` trigger kicks off a ~1hr CI maintenance window. [`check-upstream.yml`](../.github/workflows/check-upstream.yml) runs at 06:30 UTC (checks for new Neovim releases), [`codeql.yml`](../.github/workflows/codeql.yml) at 06:45 UTC (security analysis), and [`staleness.yml`](../.github/workflows/staleness.yml) at 07:00 UTC (AGENTS.md drift guard). These are internal maintenance workflows — they don't produce user-facing artifacts.
+
 #### 8.2 Release Workflow (tag push)
 
 1. Push a tag matching `v*` (e.g. `git tag v0.13.0 && git push origin v0.13.0`)
@@ -576,6 +577,11 @@ manual trigger instructions and artifact download steps.
 | 2026-05-24 | Dead URL replacement in docs/resources.md | Replaced baeldung.com (403) with seriyps.com tutorial on CMake .deb packaging. Replaced linuxvox.com (520) with Ubuntu official install-built-packages docs. |
 | 2026-05-24 | CI enforcement of staleness guard | Created `.github/workflows/staleness.yml` running §11.3 and §11.5 scans on every push/PR to `main`. Drift detected = CI fails. Merge blocked until fixed. |
 | 2026-05-24 | Nightly build documentation + anti-drift hardening | Added Nightly Builds section to RELEASING.md. Added §8.7 to AGENTS.md for nightly workflow docs. Added C11 (RELEASING.md covers nightly) and C12 (nightly.yml exists) to claim inventory. Updated pre-action gate, drift scan, and staleness.yml CI to enforce new claims. Added README badges and nightly to drift-prone sections list. |
+| 2026-05-24 | Ancillary cron documentation added to AGENTS.md | Added Monday stagger note to §8.1 covering check-upstream.yml (06:30), codeql.yml (06:45), and staleness.yml (07:00) schedules. These are internal maintenance workflows — no user-facing artifact production. |
+| 2026-05-24 | No APT repository | Rejected — adds complexity and maintenance burden beyond project scope. |
+| 2026-05-24 | No ARMHF/32-bit support | Rejected — adds complexity with limited demand; x86_64 + aarch64 covers all target use cases. |
+| 2026-05-24 | CI end-to-end test verified | Manual workflow_dispatch of `build.yml` (v0.12.2) passed lint, x86_64 build, aarch64 build. Pipeline operational. |
+| 2026-05-24 | Removed "Debian" from README tagline | Project only tests on Ubuntu 24.04; claiming Debian support is inaccurate. RELEASING.md had no Debian references. Technical `.deb`/CPack references remain — they describe the packaging format, not a support commitment. |
 
 ### 11. Staleness & Drift Guard
 
