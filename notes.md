@@ -3,6 +3,10 @@
 **Purpose:** Internal agent scratchpad — lightweight, task-level change log. Not user-facing.
 User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agent instructions in [`AGENTS.md`](./AGENTS.md).
 
+## 2026-05-24
+
+- Repo audit cleanup: fixed AGENTS.md workflow tree/link drift, narrowed unchecked-box warning regex, and synced ARM artifact naming to `aarch64` in AGENTS.md/RELEASING.md.
+
 ## 2026-05-23
 
 - Drafted and withdrew Neovim Discussion post — not ready yet.

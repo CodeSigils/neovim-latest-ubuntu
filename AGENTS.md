@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Added agent attribution guard CI-enforced; §9.1 hardened)
+**Last updated:** 2026-05-24 (Fixed workflow tree/link drift; hardened unchecked-box detection; corrected aarch64 artifact naming)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -46,9 +46,11 @@
 │   ├── dependabot.yml  ← Dependabot: auto-update GitHub Actions deps (weekly)
 │   └── workflows/
 │       ├── build.yml             ← Build + release on tag/main/schedule/manual
+│       ├── check-author.yml      ← Blocks agent authorship/commit trailers in new commits
 │       ├── check-upstream.yml    ← Auto-create PR on new upstream release
 │       ├── codeql.yml            ← CodeQL security analysis
-│       └── nightly.yml           ← Daily nightly build from Neovim master
+│       ├── nightly.yml           ← Daily nightly build from Neovim master
+│       └── staleness.yml         ← CI enforcement of AGENTS.md drift guard
 │
 ├── [generated — appear only after build]
 │   ├── nvim-linux-*.deb    ← Built package artifact (gitignored)
@@ -250,7 +252,7 @@ Ninja is the industry-recommended CMake generator — faster builds, automatic p
 | `CPACK_PACKAGE_FILE_NAME` | `nvim-linux-${CMAKE_SYSTEM_PROCESSOR}` |
 | `CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA` | `postinst` + `prerm` scripts |
 
-**Output**: `build/nvim-linux-x86_64.deb` (or `...-arm64.deb` on ARM)
+**Output**: `build/nvim-linux-x86_64.deb` (or `...-aarch64.deb` on ARM)
 
 **Maintainer scripts**:
 - `postinst` — registers Neovim via `update-alternatives` for `vi`, `vim`, `view`, `editor`
@@ -382,7 +384,7 @@ The README must be a Diataxis how-to guide covering:
 
 #### 7.2 CHANGELOG
 
-Maintain [`CHANGELOG.md`](../CHANGELOG.md) following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
+Maintain [`CHANGELOG.md`](./CHANGELOG.md) following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
 
 - Each Neovim version release gets a new section
 - Categorise changes: **Added**, **Changed**, **Deprecated**, **Removed**, **Fixed**, **Security**
@@ -410,7 +412,7 @@ release lifecycle:
 | Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 | Manual dispatch via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 
-**Ancillary Monday schedule**: The Monday 06:00 UTC `build.yml` trigger kicks off a ~1hr CI maintenance window. [`check-upstream.yml`](../.github/workflows/check-upstream.yml) runs at 06:30 UTC (checks for new Neovim releases), [`codeql.yml`](../.github/workflows/codeql.yml) at 06:45 UTC (security analysis), and [`staleness.yml`](../.github/workflows/staleness.yml) at 07:00 UTC (AGENTS.md drift guard). These are internal maintenance workflows — they don't produce user-facing artifacts.
+**Ancillary Monday schedule**: The Monday 06:00 UTC `build.yml` trigger kicks off a ~1hr CI maintenance window. [`check-upstream.yml`](./.github/workflows/check-upstream.yml) runs at 06:30 UTC (checks for new Neovim releases), [`codeql.yml`](./.github/workflows/codeql.yml) at 06:45 UTC (security analysis), and [`staleness.yml`](./.github/workflows/staleness.yml) at 07:00 UTC (AGENTS.md drift guard). These are internal maintenance workflows — they don't produce user-facing artifacts.
 
 #### 8.2 Release Workflow (tag push)
 
@@ -426,8 +428,8 @@ release lifecycle:
    sudo dpkg -i nvim-linux-x86_64.deb
 
    # Or for ARM64 systems:
-   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-arm64.deb
-   sudo dpkg -i nvim-linux-arm64.deb
+   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-aarch64.deb
+   sudo dpkg -i nvim-linux-aarch64.deb
    ```
 
 #### 8.3 Version Parameterization
@@ -456,7 +458,7 @@ After a successful release:
 
 ### 8.6 Release Documentation
 
-See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide,
+See [`RELEASING.md`](./RELEASING.md) for the full human-readable release process guide,
 covering tag pushes, manual dispatch, nightly builds, local builds, and troubleshooting.
 
 ### 8.7 Nightly Builds
@@ -476,7 +478,7 @@ with its own schedule and triggers:
 - **Verification**: Same 7-check test suite runs on every nightly build
 - **CI environment**: Same `Containerfile`, same arch matrix, same `test.sh` — identical pipeline
 
-See the [Nightly Builds section of RELEASING.md](../RELEASING.md#nightly-builds) for
+See the [Nightly Builds section of RELEASING.md](./RELEASING.md#nightly-builds) for
 manual trigger instructions and artifact download steps.
 
 ### 9. Guardrails (Must Not Do)
@@ -565,6 +567,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | CI end-to-end test verified | Manual workflow_dispatch of `build.yml` (v0.12.2) passed lint, x86_64 build, aarch64 build. Pipeline operational. |
 | 2026-05-24 | Removed "Debian" from README tagline | Project only tests on Ubuntu 24.04; claiming Debian support is inaccurate. RELEASING.md had no Debian references. Technical `.deb`/CPack references remain — they describe the packaging format, not a support commitment. |
 | 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
+| 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples from `arm64` to `aarch64` to match actual output naming. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
 
 ### 11. Staleness & Drift Guard
 
@@ -636,7 +639,7 @@ for f in build.sh Containerfile test.sh AGENTS.md README.md LICENSE; do
 done
 
 # C5: Checklist boxes — if any [ ] remains, warn (not hard-fail)
-unchecked=$(grep -c '\[ \]' AGENTS.md || true)
+unchecked=$(grep -Ec '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[ \]' AGENTS.md || true)
 if [ "$unchecked" -gt 0 ]; then
   echo "WARN: $unchecked unchecked checklist items remain in AGENTS.md"
 fi

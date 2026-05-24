@@ -43,7 +43,7 @@ jobs:
           done
 
           # C5: Warning for unchecked checklist items
-          unchecked=$(grep -c '\[ \]' AGENTS.md || true)
+          unchecked=$(grep -Ec '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[ \]' AGENTS.md || true)
           if [ "$unchecked" -gt 0 ]; then
             echo "::warning title=Unchecked checklist items::$unchecked unchecked items remain in AGENTS.md"
           fi
