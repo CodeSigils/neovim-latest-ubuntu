@@ -77,7 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   release notes page and HTML `:help news` page.
 - Documentation audit: corrected stale release-template, runner-label, AGENTS.md authorship, and reproducibility snippets.
 - PR trigger efficiency: doc-only pull requests now skip the expensive build workflow using the same path filters as
-  doc-only pushes.
+  doc-only pushes. Verified with temporary PR #10; non-build checks still ran and passed.
 - docs/reproducibility.md: corrected verification checklist count from "six" to "seven" checks.
 - docs/build-plan.md: synced stale documentation — build command now reflects Neovim's upstream Makefile wrapper, Ubuntu
   reference from 22.04 to 24.04, build.sh parameters from one variable to two (VERSION + OUTPUT_DIR).

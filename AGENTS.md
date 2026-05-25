@@ -616,6 +616,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Ubuntu 26.04 packaging research + arm runner investigation note | Updated `docs/resources.md` with Ubuntu 26.04 toolchain data, added GitHub Actions runner-images resource. Added future investigation note in `docs/reproducibility.md` and AGENTS.md Current Status for tracking ubuntu-26.04-arm runner availability. |
 | 2026-05-25 | Documentation stale-claim audit | Fixed release resource links, release-template wording, runner-label claims, AGENTS.md authorship guard semantics, reproducibility command snippets, and build-plan section numbering after comparing docs against workflows and live GitHub state. |
 | 2026-05-25 | Doc-only PR build skip | Added the same `paths-ignore` rules to `build.yml` pull_request trigger so doc-only PRs skip the expensive build workflow; code/workflow PRs still build. |
+| 2026-05-25 | Doc-only PR build skip verified | Temporary PR #10 changed only `notes.md`; Author Attribution Guard, Staleness Guard, and CodeQL ran/passed while `Build Neovim deb Package` did not run. PR closed without merge and branch deleted. |
 
 ### 11. Staleness & Drift Guard
 
