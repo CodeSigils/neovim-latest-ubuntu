@@ -413,6 +413,7 @@ release lifecycle:
 |---|---|---|
 | Tag push `v*` (e.g. `v0.13.0`) | Build (x86_64 + aarch64) + create GitHub Release | Both `.deb` files uploaded as release assets; path filters not evaluated for tags (always builds) |
 | Push to `main` | Build only (x86_64 + aarch64), respects `paths-ignore` | `.deb` files uploaded as workflow artifacts; doc-only changes (`*.md`, `LICENSE`, `docs/**`) skip pipeline |
+| Pull request to `main` | Build only (x86_64 + aarch64), respects same `paths-ignore` | Code/workflow changes run lint + build before merge; doc-only PRs skip the expensive build workflow |
 | Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
 | Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
 | Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
@@ -507,7 +508,7 @@ The lint job in `build.yml` enforces these quality gates on every PR and branch 
 3. Path filters (`paths-ignore` / `paths`) are evaluated for branch pushes only — tag pushes always build regardless.
 4. Add the YAML validation command to any new workflow's lint job if it runs on push/PR triggers.
 
-**CI cycle efficiency**: The `paths-ignore` filter on `build.yml` skips doc-only pushes to `main` (`*.md`, `LICENSE`, `docs/**`), saving ~72% of main-branch CI runs (~130 min saved per 48h of active development). All other workflows (staleness, author check, CodeQL) still run on doc-only pushes to maintain CI integrity. PRs and tag pushes always build fully.
+**CI cycle efficiency**: The `paths-ignore` filter on `build.yml` skips doc-only pushes and doc-only PRs targeting `main` (`*.md`, `LICENSE`, `docs/**`), saving expensive build minutes. All other workflows (staleness, author check, CodeQL) still run on doc-only pushes to maintain CI integrity. Tag pushes always build fully because GitHub does not evaluate path filters for tag pushes.
 
 ### 9. Guardrails (Must Not Do)
 
@@ -614,6 +615,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Container-based test fix (test runs in build container) | `.deb` test verification moved into build container (`docker run neovim-builder`) to eliminate runner-OS dep mismatch. CI run `26400960379` passed both x86_64 + aarch64. |
 | 2026-05-25 | Ubuntu 26.04 packaging research + arm runner investigation note | Updated `docs/resources.md` with Ubuntu 26.04 toolchain data, added GitHub Actions runner-images resource. Added future investigation note in `docs/reproducibility.md` and AGENTS.md Current Status for tracking ubuntu-26.04-arm runner availability. |
 | 2026-05-25 | Documentation stale-claim audit | Fixed release resource links, release-template wording, runner-label claims, AGENTS.md authorship guard semantics, reproducibility command snippets, and build-plan section numbering after comparing docs against workflows and live GitHub state. |
+| 2026-05-25 | Doc-only PR build skip | Added the same `paths-ignore` rules to `build.yml` pull_request trigger so doc-only PRs skip the expensive build workflow; code/workflow PRs still build. |
 
 ### 11. Staleness & Drift Guard
 

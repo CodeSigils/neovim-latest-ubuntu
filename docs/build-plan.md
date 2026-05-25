@@ -153,7 +153,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Release aggregation**   | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
 | **Trigger (branch push)** | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**]` — doc-only commits skip the pipeline                                     |
 | **Trigger (tag push)**    | `tags: ['v*']` — path filters NOT evaluated for tags (GitHub Actions behavior); tag pushes always build                                     |
-| **Trigger (PR)**          | `pull_request: [main]` — no paths filter, always runs lint + build                                                                          |
+| **Trigger (PR)**          | `pull_request: [main]` with same doc-only `paths-ignore` as branch pushes; code/workflow changes still run lint + build                     |
 | **Trigger (schedule)**    | Weekly Monday 06:00 UTC — builds `latest` stable                                                                                            |
 
 **Key principle**: Keep artifact paths explicit at every boundary — container, host workspace, artifact upload, and release aggregation.
