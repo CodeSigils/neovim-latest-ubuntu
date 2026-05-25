@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AGENTS.md: various stale claim fixes and added agent attribution guard (CI-enforced `check-author.yml`).
 - README.md manual build example: added missing `git` prerequisite to match the documented `git clone` flow.
 - docs/build-plan.md: corrected remaining ARM artifact reference from `nvim-linux-arm64.deb` to `nvim-linux-aarch64.deb`.
+- docs/build-plan.md and docs/reproducibility.md: aligned stale build-command and ARM filename notes with the current `build.sh`/CPack behavior.
 
 ## [0.12.2] — 2026-05-22
 

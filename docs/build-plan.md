@@ -56,23 +56,24 @@ git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim
 cd neovim
 ```
 
-### 3.2 Configure
+### 3.2 Configure / build via upstream wrapper
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+make CMAKE_BUILD_TYPE=RelWithDebInfo
 ```
 
-`RelWithDebInfo` retains assertions (useful for manual testing). Switch to `Release` for
-final packaging.
+The upstream Makefile wraps the CMake configure/build flow and auto-detects Ninja when
+available. `RelWithDebInfo` matches the project's current build script and retains debug
+information useful for testing.
 
-### 3.3 Build
+### 3.3 Build output
 
 ```bash
-cmake --build build --target package
+ls build/CPackConfig.cmake
 ```
 
 This compiles bundled dependencies (libuv, LuaJIT, tree-sitter, etc.) into `.deps/` and
-then builds the `nvim` binary.
+then builds the `nvim` binary and CPack configuration.
 
 ### 3.4 Package
 
@@ -92,7 +93,7 @@ See [`build.sh`](../build.sh) for the actual implementation. Key features:
 
 - **Version**: first positional arg, `VERSION` env var, or `latest` alias (auto-fetches from GitHub API)
 - **Output**: second positional arg or `OUTPUT_DIR` env var; defaults to current directory
-- **Build tool**: uses direct CMake+Ninja (`cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo` then `cmake --build build --target package`)
+- **Build tool**: uses Neovim's upstream Makefile wrapper (`make CMAKE_BUILD_TYPE=RelWithDebInfo`), which auto-detects Ninja when available
 - **Temp dir**: `mktemp -d` with `trap` cleanup
 - **Error handling**: checks for missing `.deb` in output, empty version
 
