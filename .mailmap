@@ -8,3 +8,13 @@ CodeSigils <toolsoftrade.web@gmail.com> <sisyphus@users.noreply.github.com>
 CodeSigils <toolsoftrade.web@gmail.com> <claude@users.noreply.github.com>
 CodeSigils <toolsoftrade.web@gmail.com> <chatgpt@users.noreply.github.com>
 CodeSigils <toolsoftrade.web@gmail.com> <copilot@users.noreply.github.com>
+CodeSigils <toolsoftrade.web@gmail.com> <dependabot[bot]@users.noreply.github.com>
+
+# Also map display names that GitHub's repository sidebar has cached from
+# earlier rewritten history. These name-only entries are defensive: current
+# reachable commits are already canonical, but the sidebar fragment can lag
+# behind the contributors API and Insights graph.
+CodeSigils <toolsoftrade.web@gmail.com> sisyphus-dev-ai
+CodeSigils <toolsoftrade.web@gmail.com> Dori
+CodeSigils <toolsoftrade.web@gmail.com> Copilot
+CodeSigils <toolsoftrade.web@gmail.com> dependabot[bot]
