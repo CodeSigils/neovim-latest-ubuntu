@@ -153,7 +153,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Artifact upload** | `actions/upload-artifact@v7` with arch-specific name (`nvim-linux-deb-${{ matrix.arch }}`) |
 | **Release aggregation** | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
 | **Trigger (branch push)** | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**]` — doc-only commits skip the pipeline |
-| **Trigger (tag push)** | `tags: ['v*']` — no paths filter, always builds and releases |
+| **Trigger (tag push)** | `tags: ['v*']` — same paths-ignore; doc-only tag pushes skip build, releases unaffected (tag-only commits with docs only are rare) |
 | **Trigger (PR)** | `pull_request: [main]` — no paths filter, always runs lint + build |
 | **Trigger (schedule)** | Weekly Monday 06:00 UTC — builds `latest` stable |
 
@@ -177,7 +177,7 @@ Neovim minor versions unless CMake/CPack config changes upstream.
 | `build.sh` | Parameterised build script (§3.5) | Done |
 | `Containerfile` | Podman image for reproducible builds | Done — updated for explicit arg passing & cpack output dir |
 | `test.sh` | Verification script (§4.3) | Done |
-| `.github/workflows/build.yml` | CI automation (tag/main/dispatch triggers, doc-only main pushes skip build) | Done — explicit paths, fail-fast checks, split triggers with paths-ignore |
+| `.github/workflows/build.yml` | CI automation (tag/main/dispatch triggers, doc-only pushes skip build) | Done — explicit paths, fail-fast checks, paths-ignore for doc files |
 
 > **Build run**: All files tested successfully inside Podman on 2026-05-22.
 > **CI verification**: Workflow tested — container builds, build.sh executes, artifacts generated and uploaded, Release creation succeeds.
