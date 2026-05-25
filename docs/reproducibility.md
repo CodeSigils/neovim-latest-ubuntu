@@ -20,21 +20,21 @@ they don't affect correctness or functionality.
 
 ### 1. Pinned Base Image
 
-The `Containerfile` pins the base image to a specific SHA256 digest of `ubuntu:24.04`:
+The `Containerfile` pins the base image to a specific SHA256 digest of `ubuntu:26.04`:
 
 ```dockerfile
-FROM ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 ```
 
 This means every build — whether on a developer's workstation, a CI runner, or a different day — starts from the exact
 same operating system image with the exact same toolchain versions. The pinning digest is the multi-arch manifest list,
 so the same `Containerfile` selects the correct platform-specific image on both x86_64 and ARM64.
 
-**How to update**: When `ubuntu:24.04` needs a security refresh, run:
+**How to update**: When `ubuntu:26.04` needs a security refresh, run:
 
 ```bash
-docker pull ubuntu:24.04
-docker inspect --format='{{index .RepoDigests 0}}' ubuntu:24.04
+docker pull ubuntu:26.04
+docker inspect --format='{{index .RepoDigests 0}}' ubuntu:26.04
 ```
 
 Then update the `FROM` line and verify the build still passes.
@@ -91,7 +91,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned `ubuntu:24.04`
+- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned `ubuntu:26.04`
   image will produce packages that pass identical verification checks and behave identically at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
@@ -135,6 +135,9 @@ sha256sum output/*.deb
 If `test.sh` passes all checks, the build is reproducible.
 
 ## Cross-Architecture Considerations
+
+The CI runs on `ubuntu-24.04` GitHub Actions runners (no `ubuntu-26.04` runner available yet).
+The container provides the actual build environment (`ubuntu:26.04`).
 
 The CI matrix builds on two architectures:
 

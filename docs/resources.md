@@ -2,6 +2,7 @@
 
 **Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:**
 2026-05-25 (filtered toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation)
+**Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
 
 This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
 project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
@@ -71,6 +72,7 @@ All resources below have been evaluated against five criteria:
 | [Guide for Debian Maintainers / debmake-doc](https://www.debian.org/doc/manuals/debmake-doc/)                                                    | Debian official          | Current | Yes      | Yes          | Modern tooling-focused guide        |
 | [Ubuntu Packaging Guide](https://packaging.ubuntu.com/)                                                                                          | Ubuntu official redirect | Latest  | Yes      | Yes          | Ubuntu contributor docs entry point |
 | [Install built packages](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/)                                  | Ubuntu official          | Latest  | Yes      | Yes          | Install/test scope only             |
+| [Ubuntu 26.04 LTS Release Notes](https://discourse.ubuntu.com/t/resolute-raccoon-release-notes/)                                                | Ubuntu official          | 26.04   | Yes      | Yes          | Release notes / changes             |
 
 ### Useful Debian wiki supplement
 

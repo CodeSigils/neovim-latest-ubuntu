@@ -87,6 +87,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - docs/reproducibility.md: corrected stale ARM filename explanation; the build matrix uses `aarch64`, while actual
   `.deb` filenames and Debian metadata use `arm64`.
 
+### Changed
+
+- **Base image**: Containerfile now uses `ubuntu:26.04@sha256:f3d28607...` (Ubuntu 26.04 LTS Resolute Raccoon). The build environment now runs on the current Ubuntu LTS.
+- **CI runners** remain `ubuntu-24.04` / `ubuntu-24.04-arm` (GitHub has not yet released `ubuntu-26.04` runners). The container provides the actual build environment.
+- All documentation references updated from Ubuntu 24.04 to 26.04.
+
 ## [0.12.2] — 2026-05-22
 
 ### Added
