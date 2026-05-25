@@ -73,7 +73,7 @@ sudo apt install ninja-build gettext cmake curl git build-essential
 Build and install Neovim in three commands:
 
 ```bash
-sudo apt install ninja-build gettext cmake curl build-essential
+sudo apt install ninja-build gettext cmake curl git build-essential
 git clone --depth 1 --branch v<VERSION> https://github.com/neovim/neovim && cd neovim
 make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-$(uname -m).deb
 ```

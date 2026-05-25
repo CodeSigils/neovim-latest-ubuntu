@@ -51,7 +51,7 @@
 │   ├── dependabot.yml  ← Dependabot: auto-update GitHub Actions deps (weekly)
 │   └── workflows/
 │       ├── build.yml             ← Build + release on tag/main/schedule/manual
-│       ├── check-author.yml      ← Blocks agent authorship/commit trailers in new commits
+│       ├── check-author.yml      ← Enforces canonical human authorship and rejects agent trailers in new commits
 │       ├── check-upstream.yml    ← Auto-create PR on new upstream release
 │       ├── codeql.yml            ← CodeQL security analysis
 │       ├── nightly.yml           ← Daily nightly build from Neovim master
@@ -77,7 +77,7 @@
 - **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned to SHA256 digest for reproducible builds.
-- **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in CI to fail on drift between docs, manifests, Containerfile, and script expectations.
+- **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in the build workflow and staleness guard to fail on drift between docs, manifests, Containerfile, and script expectations.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.

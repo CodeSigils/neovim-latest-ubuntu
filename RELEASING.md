@@ -24,7 +24,8 @@ Important distinction:
 
 - Write access to this GitHub repository
 - `git` installed locally
-- For local builds: Podman (or Docker), `ninja-build`, `cmake`, `curl`
+- For local host builds: the packages from [`deps/ubuntu-build-deps.txt`](./deps/ubuntu-build-deps.txt)
+- For containerized local builds: Podman (or Docker)
 
 ## Release a new Neovim version via tag
 
