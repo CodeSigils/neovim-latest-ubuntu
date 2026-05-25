@@ -23,6 +23,36 @@ local container builds for testing.
 
 The standard release flow. Push a tag and let CI do the rest.
 
+### Release version policy
+
+This project currently tracks upstream Neovim stable versions exactly. Use the
+same tag as upstream, for example `v0.13.0`, and create a GitHub Release only
+when that upstream release exists and this repository has not already released
+the same tag.
+
+Before tagging, check both upstream and this repository:
+
+```bash
+# Latest upstream Neovim release
+curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
+  | grep '"tag_name":' | head -1
+
+# Existing local/remote tags and GitHub Releases
+git tag --list 'v*' --sort=-version:refname | head
+git ls-remote --tags origin 'v*'
+gh release list --limit 20
+```
+
+Do not reuse an existing tag. Published tags and Releases are treated as
+immutable. If upstream latest is already released here, wait for the next
+upstream Neovim release.
+
+Do not use packaging suffix tags such as `v0.12.2-1` unless the workflow has
+explicit package-revision support. Today, the release workflow strips only the
+leading `v` and passes the rest to `build.sh` as the upstream Neovim version, so
+a suffix tag would make CI look for an upstream version that likely does not
+exist.
+
 ### 1. Confirm the version exists
 
 ```bash

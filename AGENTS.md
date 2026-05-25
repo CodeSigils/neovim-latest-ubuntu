@@ -444,6 +444,10 @@ release lifecycle:
 #### 8.3 Version Parameterization
 
 - The CI workflow reads the git tag for the version (`v0.13.0` → `VERSION=0.13.0`)
+- Release tags currently track upstream Neovim stable tags exactly. Do not reuse an existing tag.
+  If upstream latest is already released here, wait for the next upstream release.
+- Do not use packaging suffix tags such as `v0.12.2-1` unless package-revision support is added first;
+  today the workflow passes the stripped tag directly to `build.sh` as the upstream Neovim version.
 - For manual dispatch, the `version` input overrides this
 - `build.sh` supports `VERSION=latest` to auto-fetch the latest stable tag via GitHub API
 - Both matrix jobs (x86_64, aarch64) receive the same version parameter from the same priority chain
@@ -617,6 +621,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Documentation stale-claim audit | Fixed release resource links, release-template wording, runner-label claims, AGENTS.md authorship guard semantics, reproducibility command snippets, and build-plan section numbering after comparing docs against workflows and live GitHub state. |
 | 2026-05-25 | Doc-only PR build skip | Added the same `paths-ignore` rules to `build.yml` pull_request trigger so doc-only PRs skip the expensive build workflow; code/workflow PRs still build. |
 | 2026-05-25 | Doc-only PR build skip verified | Temporary PR #10 changed only `notes.md`; Author Attribution Guard, Staleness Guard, and CodeQL ran/passed while `Build Neovim deb Package` did not run. PR closed without merge and branch deleted. |
+| 2026-05-25 | Release version policy documented | Releases track upstream Neovim tags exactly; existing tags are immutable; packaging suffix tags require explicit package-revision support before use. |
 
 ### 11. Staleness & Drift Guard
 

@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- RELEASING.md now documents release-version policy: stable GitHub Releases track upstream Neovim tags exactly,
+  existing tags are immutable, and packaging suffix tags require explicit workflow support before use.
 - Containerfile base image pin updated from amd64-specific digest to multi-arch manifest list digest — same
   `Containerfile` now works on both architectures.
 - ARM builds now enforce pass requirement: `continue-on-error: true` removed. Both architectures must succeed for a
