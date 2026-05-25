@@ -130,7 +130,7 @@ jobs:
       id-token: write         # for actions/attest (OIDC → Sigstore)
       attestations: write     # for actions/attest (store attestations)
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: nvim-linux-deb-*
           merge-multiple: true
