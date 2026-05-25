@@ -1,8 +1,9 @@
 # Default Ubuntu version (override via --build-arg in CI).
-# To update: docker pull ubuntu:${UBUNTU_VERSION}, then get the manifest list
-# digest with `docker inspect --format='{{index .RepoDigests 0}}' ubuntu:${UBUNTU_VERSION}`.
+# To update: fetch and pin the multi-arch manifest-list digest, not an
+# arch-specific image digest. Verify the pinned digest supports both amd64
+# and arm64 before pushing.
 ARG UBUNTU_VERSION=26.04
-FROM ubuntu:${UBUNTU_VERSION}@sha256:d31acef2a964b6df1f2b7e20a1525c4f2378024e087a4f8a8a9a4247e6a79573
+FROM ubuntu:${UBUNTU_VERSION}@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 
 ARG UBUNTU_VERSION
 ARG UBUNTU_CODENAME="Resolute Raccoon"
