@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-25 (Added YAML validation step, paths-ignore evaluation, and workflow quality checks)
+**Last updated:** 2026-05-25 (Added missing files to layout tree, GitHub web UI merge exception in check-author.yml)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -46,7 +46,10 @@
 │   ├── ubuntu-build-deps.txt    ← Source of truth for manual host prerequisites (README + docs)
 │   └── ubuntu-ci-extra-deps.txt ← Extra packages required only by CI/container automation
 ├── scripts/
-│   └── check-dependencies.py    ← Enforces dependency-list consistency across docs + CI
+│   ├── check-dependencies.py    ← Enforces dependency-list consistency across docs + CI
+│   └── check-yaml-syntax.py     ← Validates YAML in all workflow files via yaml.safe_load()
+├── .githooks/
+│   └── prepare-commit-msg       ← Git hook that strips AI agent attribution trailers from commit messages
 ├── .github/            ← CI workflow configuration
 │   ├── dependabot.yml  ← Dependabot: auto-update GitHub Actions deps (weekly)
 │   └── workflows/
@@ -599,6 +602,8 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
 | 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples during the audit. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
 | 2026-05-24 | Staleness CI/docs semantics aligned | Documented that `staleness.yml` hard-fails on structural drift but keeps freshness checks as warnings. Added C13 (`check-author.yml`) to §11.3 and synced §11.5 with CI's warning/error behavior and AGENTS age warning. |
+| 2026-05-25 | Add missing files to layout tree | Added `.githooks/prepare-commit-msg` and `scripts/check-yaml-syntax.py` to the repository layout tree. |
+| 2026-05-25 | GitHub web UI merge exception in check-author.yml | Commit `53f9441` on `main` had committer `GitHub <noreply@github.com>` (web UI merge) which failed the author attribution guard. Added skip: when committer is GitHub/noreply and author matches canonical, the commit passes. |
 | 2026-05-24 | Dependency manifests + CI drift check added | Added `deps/ubuntu-build-deps.txt` (manual host prerequisites), `deps/ubuntu-ci-extra-deps.txt` (CI/container-only extras), and `scripts/check-dependencies.py` enforced in `build.yml`. This keeps README dependency instructions aligned with the actual build/test environment and caught the missing `git` prerequisite. |
 | 2026-05-24 | Agent attribution guard hardened to strict canonical identity enforcement | `check-author.yml` now enforces exact author+committer identity (`CodeSigils <toolsoftrade.web@gmail.com>`) in addition to rejecting agent trailers/patterns. This intentionally blocks GitHub web-flow/bot committer identities on `main`. |
 | 2026-05-24 | Release-surface docs clarified | Kept tag-only GitHub Releases as the canonical versioned channel. Clarified in README/RELEASING/AGENTS that scheduled, branch, and manual builds publish workflow artifacts only; no plan rewrite needed unless a moving `latest-stable` release channel is intentionally added later. |

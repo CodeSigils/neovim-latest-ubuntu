@@ -5,6 +5,10 @@ history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agent instructions in [`
 
 ## 2026-05-25
 
+- Added `.githooks/prepare-commit-msg` and `scripts/check-yaml-syntax.py` to AGENTS.md layout tree.
+- Fixed `check-author.yml`: added skip for `GitHub <noreply@github.com>` committer when author is canonical (web UI merges fix).
+- Cleaned up: removed stale Security Audit Strategy section (provenance attestation and other mitigations already implemented).
+
 - Implemented official-resource audit recommendations: added non-blocking `lintian` audit to `build.yml`, updated CodeQL
   workflow from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and rechecked
   RELEASING for stale build/release details.
@@ -55,37 +59,4 @@ history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agent instructions in [`
 - Remaining gaps at the time: ARM64 CI, multi-release track record, provenance attestation. Superseded later by ARM64 CI
   and provenance attestation work; keep this as historical scratchpad context only.
 
----
 
-## Security Audit Strategy (Future Work)
-
-### Threat Model
-
-| Vector                                          | Risk              | Impact                      |
-| ----------------------------------------------- | ----------------- | --------------------------- |
-| Compromised Neovim source (upstream tag hijack) | Low (signed tags) | Malicious binary shipped    |
-| Compromised base image (pinned to digest)       | Very Low          | Backdoor in build env       |
-| Compromised CI dependency (actions/\*)          | Low-Medium        | RCE in CI runner            |
-| Compromised apt packages (ninja, cmake, etc.)   | Very Low          | Backdoor in build deps      |
-| Compromised GitHub runner                       | Low (ephemeral)   | Token/artifact theft        |
-| Artifact tampering (MITM on download)           | Low (SHA256SUMS)  | User installs modified .deb |
-
-### Already Mitigated
-
-- Base image pinned to SHA256 digest
-- Dependabot for CI action updates
-- SHA256SUMS for artifact integrity
-- Containerized build (host isolation)
-- test.sh verifies `ldd` (dependency integrity)
-
-### Planned Improvements
-
-| Priority | Action                           | Effort | Impact                               |
-| -------- | -------------------------------- | ------ | ------------------------------------ |
-| 1        | `attest-build-provenance` action | Low    | SLSA L1 provenance, no key mgmt      |
-| 2        | GPG-sign SHA256SUMS in CI        | Low    | Additional verification layer        |
-| 3        | SBOM generation                  | Medium | Transparency, vulnerability scanning |
-
-**Recommendation**: Start with `attest-build-provenance` (Option B — keyless, zero ops burden). Adds SLSA L1 provenance
-with a single CI step and `gh attestation verify` for users. GPG signing would be nice-to-have on top but requires key
-management that isn't justified for this project's scale. See discussion in session transcript for full rationale.

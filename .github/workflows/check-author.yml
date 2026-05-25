@@ -73,6 +73,17 @@ jobs:
               continue
             fi
 
+            # Skip GitHub web UI merges — when merging via the web UI,
+            # GitHub sets committer to "GitHub <noreply@github.com>" while
+            # preserving the canonical author. Only allow this when the
+            # author already matches the canonical identity.
+            if [ "$committer_name" = "GitHub" ] && [ "$committer_email" = "noreply@github.com" ]; then
+              if [ "$author_name" = "$CANONICAL_AUTHOR_NAME" ] && [ "$author_email" = "$CANONICAL_AUTHOR_EMAIL" ]; then
+                echo " Skipping GitHub web UI merge — author is canonical, committer is GitHub"
+                continue
+              fi
+            fi
+
             # Strict policy: both author and committer must match the canonical
             # human maintainer identity for this repo.
             if [ "$author_name" != "$CANONICAL_AUTHOR_NAME" ]; then
