@@ -18,10 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Auto-update PR on new upstream release: the `check-upstream` workflow now opens a PR with version bumps, CHANGELOG
   entry, and documentation updates when a newer Neovim release is detected (instead of just filing an issue).
 - CodeQL scanning for GitHub Actions workflows: runs weekly and on every PR/push to `main`.
-- Multi-arch CI matrix: builds now run on both `x86_64` (`ubuntu-24.04`) and `aarch64` (`ubuntu-24.04-arm`) in parallel.
-  Releases attach both `.deb` files with a combined `SHA256SUMS`.
-- Release note automation: Release step now uses `generate_release_notes: true` — GitHub auto-generates release body
-  from commit history.
+- Multi-arch CI matrix: stable builds now run on both `x86_64` (`ubuntu-latest`) and `aarch64`
+  (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
+- Release body template: Release notes now use a curated static body with install, integrity-check, upstream release notes,
+  and `:help news` links.
 - Staleness guard CI enforcement: new `.github/workflows/staleness.yml` runs the AGENTS.md §11.3 pre-action gate and
   §11.5 offline drift scan on every push/PR to `main`. Drift (missing files, leaked artifacts, stale dates, missing
   docs) fails CI.
@@ -47,12 +47,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - ARM builds now enforce pass requirement: `continue-on-error: true` removed. Both architectures must succeed for a
   release to proceed.
 - Containerfile optimization: `COPY --chmod=755` eliminates separate `RUN chmod` layer; combined `ENV` lines.
-- AGENTS.md repository layout tree expanded: added `.gitattributes` and all 4 workflow files (`build.yml`,
-  `check-upstream.yml`, `codeql.yml`, `nightly.yml`).
+- AGENTS.md repository layout tree expanded: added `.gitattributes` and all workflow files (`build.yml`,
+  `check-author.yml`, `check-upstream.yml`, `codeql.yml`, `nightly.yml`, `staleness.yml`).
 - docs/resources.md: replaced dead Baeldung (403) and LinuxVox (520) URLs with working alternatives.
 - RELEASING.md: added Nightly Builds section with manual trigger and artifact download instructions.
 - README.md: corrected ARM DEB artifact naming guidance; updated build environment from "Debian clang" to "Ubuntu gcc"
-  (matches 24.04 container); removed `unzip` from prerequisites table (not used in build pipeline).
+  for the then-current container; removed `unzip` from prerequisites table (not used in build pipeline).
 - RELEASING.md: clarified nightly artifact retention as "30 days (workflow-configured)" instead of "GitHub's default 90
   days".
 - Containerfile now installs build and CI/container dependencies from the committed `deps/*.txt` manifests instead of
@@ -73,6 +73,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Release page upstream resource links: replaced a broken Neovim changelog URL and XML news URL with the upstream
+  release notes page and HTML `:help news` page.
+- Documentation audit: corrected stale release-template, runner-label, AGENTS.md authorship, and reproducibility snippets.
 - docs/reproducibility.md: corrected verification checklist count from "six" to "seven" checks.
 - docs/build-plan.md: synced stale documentation — build command now reflects Neovim's upstream Makefile wrapper, Ubuntu
   reference from 22.04 to 24.04, build.sh parameters from one variable to two (VERSION + OUTPUT_DIR).

@@ -1,6 +1,6 @@
 # Reproducibility — Neovim Latest deb Package
 
-**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-05-23
+**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-05-25
 
 ## What "Reproducible" Means Here
 
@@ -61,8 +61,8 @@ Before any build runs, the CI workflow validates:
 - **shellcheck** on `build.sh` and `test.sh` — catches scripting errors
 - **hadolint** on `Containerfile` — catches container anti-patterns
 
-These lints ensure the build scripts are deterministic and well-formed. A shellcheck clean-build.sh will behave
-identically every time.
+These lints ensure the build scripts are deterministic and well-formed. A ShellCheck-clean script is much less likely
+to depend on accidental shell behavior.
 
 ### 4. Verification Checklist (test.sh)
 
@@ -167,8 +167,12 @@ The CI workflow achieves this with:
 ```yaml
 - name: Test .deb package
   run: |
-    docker run neovim-builder \
-      bash /tmp/test.sh /output/$(ls output/*.deb | xargs -n1 basename)
+    DEB_NAME=$(basename "$(ls output/*.deb | head -1)")
+    docker run --rm \
+      -v "$PWD/test.sh:/tmp/test.sh:ro" \
+      -v "$PWD/output:/output:ro" \
+      neovim-builder \
+      bash /tmp/test.sh "/output/$DEB_NAME"
 ```
 
 ### Future: ubuntu-26.04 runner adoption

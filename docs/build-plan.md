@@ -156,7 +156,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Trigger (PR)**          | `pull_request: [main]` — no paths filter, always runs lint + build                                                                          |
 | **Trigger (schedule)**    | Weekly Monday 06:00 UTC — builds `latest` stable                                                                                            |
 
-**Key principle**
+**Key principle**: Keep artifact paths explicit at every boundary — container, host workspace, artifact upload, and release aggregation.
 
 ## 6. Versioning Strategy
 
@@ -169,7 +169,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 For new releases: change `VERSION` and re-run. No structural changes expected between Neovim minor versions unless
 CMake/CPack config changes upstream.
 
-## 6. Files to Create
+## 7. Files Created
 
 | File                          | Purpose                                                                | Status                                                              |
 | ----------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -184,9 +184,9 @@ CMake/CPack config changes upstream.
 > OUTPUT_DIR args. **CI workflow updates**: Explicit `-v "$PWD/output:/output"` mount; artifact verification step added;
 > unified version input handling.
 
-## 7. Release Process
+## 8. Release Process
 
-### 7.1 CI Release
+### 8.1 CI Release
 
 The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that automates building and releasing the
 `.deb`:
@@ -200,7 +200,7 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 
 > See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide.
 
-### 7.2 Manual Build
+### 8.2 Manual Build
 
 For testing or offline distribution:
 
