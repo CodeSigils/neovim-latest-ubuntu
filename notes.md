@@ -7,3 +7,5 @@ Full agent instructions in [`AGENTS.md`](./AGENTS.md).
 ## Active
 
 - None.
+
+- 2026-05-25: Temporary doc-only PR trigger test. Close without merging.
