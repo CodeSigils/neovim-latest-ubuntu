@@ -32,6 +32,8 @@ jobs:
         run: python3 scripts/check-dependencies.py
       - name: Run shellcheck
         run: shellcheck build.sh test.sh
+      - name: Validate YAML workflow syntax
+        run: python3 scripts/check-yaml-syntax.py
       - name: Run hadolint
         uses: hadolint/hadolint-action@v3.3.0
         with:
