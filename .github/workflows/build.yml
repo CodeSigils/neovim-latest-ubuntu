@@ -185,9 +185,8 @@ jobs:
             ```
 
             **Upstream resources:**
-
-            - [Changelog](https://neovim.io/doc/changelog) (fixes + features)
-            - [News](https://neovim.io/doc/news) (`:help news` in Nvim)
+            - [Release notes](https://github.com/neovim/neovim/releases/tag/${{ github.ref_name }}) (upstream changes for this version)
+            - [News](https://neovim.io/doc/user/news.html) (`:help news` in Nvim)
 
             **Assets:** nvim-linux-x86_64.deb, nvim-linux-arm64.deb, SHA256SUMS
           files: |
