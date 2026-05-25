@@ -91,6 +91,15 @@ jobs:
           echo "Testing: $DEB"
           ./test.sh "$DEB"
 
+      - name: Run lintian package-policy audit
+        continue-on-error: true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lintian
+          DEB=$(ls output/*.deb | head -1)
+          echo "Running non-blocking lintian audit: $DEB"
+          lintian "$DEB"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:

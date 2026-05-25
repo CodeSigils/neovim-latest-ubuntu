@@ -65,13 +65,15 @@ The pipeline does the following in parallel for both architectures (x86_64 and A
    `Containerfile`. If lint fails, the build is blocked — no point building a broken package.
 2. **Builds the container image** — installs build tools into `ubuntu:24.04` (pinned to a
    multi-arch manifest digest so the same Containerfile works on both architectures)
-3. **Runs build.sh** — clones the tagged Neovim version, compiles with CMake+Ninja,
+3. **Runs build.sh** — clones the tagged Neovim version, builds through Neovim's
+   upstream Makefile wrapper (which uses CMake and auto-detects Ninja when available),
    packages with CPack into a `.deb` (`nvim-linux-x86_64.deb` or `nvim-linux-aarch64.deb`)
 4. **Verifies the artifact** — checks the `.deb` exists in the output directory
 5. **Generates checksums** — produces `SHA256SUMS` alongside the `.deb`
-6. **Uploads artifacts** — both the `.deb` and per-arch `SHA256SUMS` are stored as
+6. **Audits package metadata** — runs `lintian` as a non-blocking Debian/Ubuntu package-policy audit
+7. **Uploads artifacts** — both the `.deb` and per-arch `SHA256SUMS` are stored as
    arch-specific workflow artifacts
-7. **Aggregates and releases** — a separate `release` job downloads all arch artifacts,
+8. **Aggregates and releases** — a separate `release` job downloads all arch artifacts,
    regenerates a combined `SHA256SUMS`, and creates the GitHub Release with both `.deb`
    files attached as downloadable assets (tag pushes only)
 
@@ -86,7 +88,7 @@ Once CI completes:
 - Verify the checksum to confirm integrity:
 
   ```bash
-  # Download both .deb files and the combined SHA256SUMS
+  # Download the .deb for your architecture and the combined SHA256SUMS
   curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-x86_64.deb
   curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/SHA256SUMS
   sha256sum -c SHA256SUMS
@@ -226,6 +228,24 @@ Releases are only created on tag pushes, not on branch pushes, scheduled builds,
 dispatch. If you need a GitHub Release entry rather than a workflow artifact, push a tag for
 that version.
 
+### apt wants to replace or downgrade Neovim after install
+
+This project intentionally builds the Debian package name `neovim`, so Ubuntu's archive
+package manager treats it as the system Neovim package. If `apt` later proposes replacing it,
+check the candidate versions:
+
+```bash
+apt policy neovim
+```
+
+If you intentionally want to keep this package installed, hold it:
+
+```bash
+sudo apt-mark hold neovim
+# Later, to resume normal apt upgrades:
+sudo apt-mark unhold neovim
+```
+
 ### The version built is wrong
 
 The CI determines the version with this priority:
@@ -276,6 +296,7 @@ GitHub Actions triggers build.yml
 ║  │    3. cpack -G DEB → .deb          ║
 ║  ├─ Host verifies .deb exists         ║
 ║  ├─ sha256sum *.deb > SHA256SUMS      ║
+║  ├─ lintian audit (non-blocking)      ║
 ║  └─ Upload artifacts (arch-specific) ║
 ╚═══════════════════════════════════════╝
     ↓

@@ -149,6 +149,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Lint** | `shellcheck build.sh test.sh` + `hadolint Containerfile` via `hadolint/hadolint-action@v3.3.0` |
 | **Verification** | `ls output/*.deb` before upload (fail-fast) per arch |
 | **Checksums** | `sha256sum *.deb > SHA256SUMS` after verification (per arch) |
+| **Package-policy audit** | Non-blocking `lintian` run per built `.deb` so Debian/Ubuntu policy findings are visible without blocking CPack convenience packages |
 | **Artifact upload** | `actions/upload-artifact@v7` with arch-specific name (`nvim-linux-deb-${{ matrix.arch }}`) |
 | **Release aggregation** | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
 

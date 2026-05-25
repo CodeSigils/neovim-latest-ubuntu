@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-24 (Clarified release-vs-artifact docs across README/RELEASING/AGENTS; aligned staleness docs with CI warning/error semantics; tightened authorship guard to strict canonical identity enforcement; added dependency manifest enforcement for README/CI consistency)
+**Last updated:** 2026-05-25 (Implemented official-resource audit recommendations: non-blocking lintian package-policy audit, CodeQL v4, apt replacement/hold docs, and RELEASING accuracy cleanup)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -70,7 +70,7 @@
 
 ## Current Status
 
-> Audit snapshot: 2026-05-24 (CI verified, build & release pipeline operational end-to-end)
+> Audit snapshot: 2026-05-25 (CI verified, build & release pipeline operational end-to-end; local checks passed after lintian/CodeQL/release-doc updates)
 
 - **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
@@ -78,6 +78,7 @@
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned to SHA256 digest for reproducible builds.
 - **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in the build workflow and staleness guard to fail on drift between docs, manifests, Containerfile, and script expectations.
+- **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Warnings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
@@ -409,7 +410,7 @@ release lifecycle:
 #### 8.1 Release Triggers
 
 | Trigger | Action | Outcome |
-|---|---|---|---|
+|---|---|---|
 | Tag push `v*` (e.g. `v0.13.0`) | Build (x86_64 + aarch64) + create GitHub Release | Both `.deb` files uploaded as release assets |
 | Push to `main` | Build only (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
 | Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
@@ -581,6 +582,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | Dependency manifests + CI drift check added | Added `deps/ubuntu-build-deps.txt` (manual host prerequisites), `deps/ubuntu-ci-extra-deps.txt` (CI/container-only extras), and `scripts/check-dependencies.py` enforced in `build.yml`. This keeps README dependency instructions aligned with the actual build/test environment and caught the missing `git` prerequisite. |
 | 2026-05-24 | Agent attribution guard hardened to strict canonical identity enforcement | `check-author.yml` now enforces exact author+committer identity (`CodeSigils <toolsoftrade.web@gmail.com>`) in addition to rejecting agent trailers/patterns. This intentionally blocks GitHub web-flow/bot committer identities on `main`. |
 | 2026-05-24 | Release-surface docs clarified | Kept tag-only GitHub Releases as the canonical versioned channel. Clarified in README/RELEASING/AGENTS that scheduled, branch, and manual builds publish workflow artifacts only; no plan rewrite needed unless a moving `latest-stable` release channel is intentionally added later. |
+| 2026-05-25 | Official-resource audit recommendations implemented | Added non-blocking `lintian` package-policy audit to `build.yml`, upgraded CodeQL workflow actions from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and corrected RELEASING build-flow/checksum wording. |
 
 ### 11. Staleness & Drift Guard
 

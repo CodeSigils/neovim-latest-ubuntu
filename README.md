@@ -28,6 +28,28 @@ That's it! Neovim is now installed system-wide with `update-alternatives` regist
 
 > For custom versions or reproducible builds, see [Compilation Instructions](#compilation-instructions).
 
+### Package replacement and apt behavior
+
+This `.deb` installs the Debian package name `neovim`, the same package name used by
+Ubuntu's archive package. That is intentional: package managers can track it as the system
+Neovim package and remove it cleanly.
+
+After installation, `apt` may still compare this package with versions available from your
+configured repositories. If `apt` later proposes replacing or downgrading Neovim, inspect the
+candidate versions before upgrading:
+
+```bash
+apt policy neovim
+```
+
+If you intentionally want to keep this package installed, you can hold it:
+
+```bash
+sudo apt-mark hold neovim
+# Later, to resume normal apt upgrades:
+sudo apt-mark unhold neovim
+```
+
 ## Why This Project?
 
 Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:

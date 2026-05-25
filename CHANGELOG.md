@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Anti-drift hardening: added C11 (RELEASING.md covers nightly) and C12 (nightly.yml exists) to AGENTS.md claim inventory. Pre-action gate, offline drift scan, and CI all enforce these new claims.
 - Dependency source-of-truth manifests: added `deps/ubuntu-build-deps.txt` for manual host prerequisites and `deps/ubuntu-ci-extra-deps.txt` for CI/container-only extras.
 - Dependency consistency check: added `scripts/check-dependencies.py` and wired it into build and staleness CI so README prerequisites, dependency manifests, Containerfile wiring, and build/test script expectations stay aligned.
+- Non-blocking `lintian` package-policy audit in the build workflow so Debian/Ubuntu packaging findings are visible without blocking CPack convenience-package builds.
 
 ### Changed
 
@@ -36,11 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Authorship guard tightened from blacklist-style agent attribution blocking to strict canonical maintainer author/committer enforcement.
 - README.md and RELEASING.md now point to dependency manifests as source-of-truth files while keeping user-facing install commands readable.
 - docs/resources.md now prioritizes official Neovim, Debian, Ubuntu, CMake, and Podman documentation and removes general third-party packaging tutorials from the curated list.
+- CodeQL workflow now uses `github/codeql-action` v4.
+- README.md and RELEASING.md now document that the package intentionally installs as `neovim`, how `apt` may compare it with Ubuntu archive candidates, and how to inspect/hold/unhold it.
 
 ### Fixed
 
 - docs/reproducibility.md: corrected verification checklist count from "six" to "seven" checks.
-- docs/build-plan.md: synced stale documentation — build command from `make` to direct `cmake -B build -G Ninja`, Ubuntu reference from 22.04 to 24.04, build.sh parameters from one variable to two (VERSION + OUTPUT_DIR).
+- docs/build-plan.md: synced stale documentation — build command now reflects Neovim's upstream Makefile wrapper, Ubuntu reference from 22.04 to 24.04, build.sh parameters from one variable to two (VERSION + OUTPUT_DIR).
 - docs/resources.md: corrected attribution from `code-of-hephaestus/neovim-builds` to `reaper8055/neovim-builds`.
 - .mailmap: added agent identity mappings for Claude, ChatGPT, and Copilot — all canonicalised to maintainer identity.
 - AGENTS.md: various stale claim fixes and added agent attribution guard (CI-enforced `check-author.yml`).

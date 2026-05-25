@@ -3,6 +3,10 @@
 **Purpose:** Internal agent scratchpad — lightweight, task-level change log. Not user-facing.
 User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agent instructions in [`AGENTS.md`](./AGENTS.md).
 
+## 2026-05-25
+
+- Implemented official-resource audit recommendations: added non-blocking `lintian` audit to `build.yml`, updated CodeQL workflow from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and rechecked RELEASING for stale build/release details.
+
 ## 2026-05-24
 
 - Resources curation: filtered `docs/resources.md` toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation. Removed general third-party packaging tutorials and GitHub example projects from the curated list; retained only the Debian wiki as a clearly marked supplement. Verified all remaining external URLs returned HTTP 200.
