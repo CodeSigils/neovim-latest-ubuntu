@@ -2,7 +2,7 @@
 
 **Document type:** Plan (design document — implemented and verified)
 **Status:** Implemented — verified 2026-05-22
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-25
 
 ## 1. Approach
 
@@ -152,8 +152,12 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Package-policy audit** | Non-blocking `lintian` run per built `.deb` so Debian/Ubuntu policy findings are visible without blocking CPack convenience packages |
 | **Artifact upload** | `actions/upload-artifact@v7` with arch-specific name (`nvim-linux-deb-${{ matrix.arch }}`) |
 | **Release aggregation** | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
+| **Trigger (branch push)** | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**]` — doc-only commits skip the pipeline |
+| **Trigger (tag push)** | `tags: ['v*']` — no paths filter, always builds and releases |
+| **Trigger (PR)** | `pull_request: [main]` — no paths filter, always runs lint + build |
+| **Trigger (schedule)** | Weekly Monday 06:00 UTC — builds `latest` stable |
 
-**Key principle**: Explicit paths eliminate ambiguity. Every tool knows exactly where to write and read artifacts.
+**Key principle**
 
 ## 6. Versioning Strategy
 
@@ -173,7 +177,7 @@ Neovim minor versions unless CMake/CPack config changes upstream.
 | `build.sh` | Parameterised build script (§3.5) | Done |
 | `Containerfile` | Podman image for reproducible builds | Done — updated for explicit arg passing & cpack output dir |
 | `test.sh` | Verification script (§4.3) | Done |
-| `.github/workflows/build.yml` | CI automation (tag/main/dispatch triggers) | Done — refactored for explicit paths & fail-fast checks |
+| `.github/workflows/build.yml` | CI automation (tag/main/dispatch triggers, doc-only main pushes skip build) | Done — explicit paths, fail-fast checks, split triggers with paths-ignore |
 
 > **Build run**: All files tested successfully inside Podman on 2026-05-22.
 > **CI verification**: Workflow tested — container builds, build.sh executes, artifacts generated and uploaded, Release creation succeeds.
@@ -188,8 +192,9 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 building and releasing the `.deb`:
 
 1. **Tag push** (`git tag v0.13.0 && git push origin v0.13.0`) → CI builds matrix (x86_64 + aarch64) → release job aggregates artifacts
-2. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-arm64.deb`) uploaded as release assets with combined SHA256SUMS
-3. **Users** → download the correct `.deb` for their architecture from Releases page and install via `dpkg -i`
+2. **Main push** (non-doc changes) → CI builds matrix; doc-only pushes (`*.md`, `LICENSE`, `docs/**`) skip the pipeline
+3. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-arm64.deb`) uploaded as release assets with combined SHA256SUMS
+4. **Users** → download the correct `.deb` for their architecture from Releases page and install via `dpkg -i`
 
 > See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide.
 

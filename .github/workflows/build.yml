@@ -2,8 +2,12 @@ name: Build Neovim deb Package
 
 on:
   push:
-    tags: ['v*']
     branches: [main]
+    tags: ['v*']
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+      - 'docs/**'
   pull_request:
     branches: [main]
   schedule:
