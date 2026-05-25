@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Containerfile now installs build and CI/container dependencies from the committed `deps/*.txt` manifests instead of duplicating package names inline.
 - Authorship guard tightened from blacklist-style agent attribution blocking to strict canonical maintainer author/committer enforcement.
 - README.md and RELEASING.md now point to dependency manifests as source-of-truth files while keeping user-facing install commands readable.
+- docs/resources.md now prioritizes official Neovim, Debian, Ubuntu, CMake, and Podman documentation and removes general third-party packaging tutorials from the curated list.
 
 ### Fixed
 

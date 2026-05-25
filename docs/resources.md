@@ -1,10 +1,14 @@
 # Ubuntu Packaging Resources
 
 **Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu.
-**Last updated:** 2026-05-24 (URLs refreshed: replaced dead Baeldung + LinuxVox links)
+**Last updated:** 2026-05-25 (filtered toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation)
+
+This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
+project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
 
 All resources below have been evaluated against five criteria:
-- **Authoritative** — official docs > blog posts > forum answers
+
+- **Authoritative** — official docs > project-maintained docs > wiki pages > blogs
 - **Current** — targets Neovim >= 0.10 / modern Ubuntu
 - **Specific** — concrete commands, configs, versions
 - **Reproducible** — approach reusable for future versions
@@ -12,108 +16,84 @@ All resources below have been evaluated against five criteria:
 
 ---
 
-## Category 1: Neovim Build System
+## Category 1: Neovim build system
 
-### Primary
+### Primary official sources
 
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
-| [Neovim Install Docs](https://neovim.io/doc/install/) | ✅ Official | ✅ v0.10+ | ✅ | ✅ | ⚠️ Summary only |
-| [Neovim BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md) | ✅ Official | ✅ Latest | ✅ | ✅ | ✅ |
-| [Neovim v0.12.2 Release](https://github.com/neovim/neovim/releases/tag/v0.12.2/) | ✅ Official | ✅ Current | ✅ | ✅ | ✅ |
-| [Neovim cmake.packaging/CMakeLists.txt](https://github.com/neovim/neovim/blob/master/cmake.packaging/CMakeLists.txt) | ✅ Official | ✅ Latest | ✅ | ✅ | ⚠️ Fragment (CPack only) |
-| [Neovim release.yml (release workflow)](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml) | ✅ Official | ✅ Latest | ✅✅ Full CI config | ✅ | ✅ |
-| [PR #22773 — ci!: remove the .deb release](https://github.com/neovim/neovim/pull/22773) | ✅ Official (merged) | ✅ 2023 (v0.9) | ✅ | N/A | ⚠️ PR context |
-| [neovim/neovim-releases](https://github.com/neovim/neovim-releases) | ✅ Official | ✅ Latest | ✅ | ✅ | ✅ |
-| [reaper8055/neovim-builds](https://github.com/reaper8055/neovim-builds) | ⚠️ Third-party | ✅ 2026 | ✅✅ | ✅ | ✅ |
+| [Neovim Install Docs](https://neovim.io/doc/install/) | Official | v0.10+ | Yes | Yes | Summary only |
+| [Neovim BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md) | Official | Latest | Yes | Yes | Yes |
+| [Neovim v0.12.2 Release](https://github.com/neovim/neovim/releases/tag/v0.12.2/) | Official | Current project default | Yes | Yes | Yes |
+| [Neovim cmake.packaging/CMakeLists.txt](https://github.com/neovim/neovim/blob/master/cmake.packaging/CMakeLists.txt) | Official | Latest | Yes | Yes | CPack fragment |
+| [Neovim release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml) | Official | Latest | Full CI config | Yes | Yes |
+| [PR #22773 — ci!: remove the .deb release](https://github.com/neovim/neovim/pull/22773) | Official merged PR | 2023 / v0.9 context | Yes | N/A | PR context |
+| [neovim/neovim-releases](https://github.com/neovim/neovim-releases) | Official Neovim org | Latest | Yes | Yes | Yes |
 
 ### Notes
 
 - Neovim upstream ships its own CPack `.deb` generator config in `cmake.packaging/CMakeLists.txt`.
-- **Neovim removed .deb from official releases** (PR #22773, merged Apr 2023, v0.9). Rationale: maintenance burden; users directed to AppImage or manual builds. The CPack DEB config remains in source but is no longer invoked by CI.
-- **neovim/neovim-releases** is a separate repo with its own release.yml that still produces .deb artifacts.
-- **code-of-hephaestus/neovim-builds** (now at @reaper8055) is a third-party GA workflow that builds Neovim .deb: clones stable branch, `make CMAKE_BUILD_TYPE=Release`, `cpack -G DEB`, tests install, names versioned files. Latest release: nvim-v0.12.0-stable-linux-amd64 (2026-03-30). Good reference for our pipeline.
-- No separate `debian/` directory exists — Neovim generates DEB directly via `cpack -G DEB`.
-- The upstream `postinst` registers Neovim via `update-alternatives` and `prerm` unregisters.
-- Build prerequisites (Ubuntu 24.04): `ninja-build gettext cmake curl build-essential`.
-- Bundled deps (libuv, LuaJIT, tree-sitter, etc.) compile to `.deps/` — no system conflicts.
-- **Ninja** is the recommended CMake generator (used in CI, auto-detected by Neovim's Makefile, faster than Unix Makefiles).
+- Neovim removed `.deb` files from the main official release workflow in PR #22773 (merged Apr 2023, v0.9). The CPack DEB config remains in source but is no longer published from the main release workflow.
+- `neovim/neovim-releases` is a separate official Neovim-org repository with release automation that can still provide useful packaging context.
+- No separate `debian/` directory exists in upstream Neovim; this project wraps upstream CPack output rather than maintaining Debian archive packaging.
+- Upstream maintainer scripts register Neovim via `update-alternatives` in `postinst` and unregister it in `prerm`.
+- Build prerequisites for this repository are declared in `deps/ubuntu-build-deps.txt` and enforced by `scripts/check-dependencies.py`.
+- Bundled dependencies such as libuv, LuaJIT, tree-sitter, and utf8proc compile under `.deps/`, avoiding conflicts with system copies.
+- Ninja is the recommended CMake generator: upstream CI uses it, Neovim's Makefile auto-detects it, and it gives faster/more reliable parallel builds than Unix Makefiles.
 
-### Neovim Release CI (from release.yml)
+### Neovim release CI facts
 
-- **Build on**: `ubuntu-22.04` (oldest supported for broader glibc compatibility) and `ubuntu-22.04-arm`
-- **Build type**: Nightly → `RelWithDebInfo` (retains asserts), Stable → `Release` (disables asserts)
-- **Build command**: `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release` then `cmake --build build --target package`
-- **CPack**: `cpack --config build/CPackConfig.cmake` (produces both .tar.gz and .deb)
-- **Release trigger**: push tag `v*`, scheduled nightly, or manual dispatch
-- **Artifacts** (current): `.tar.gz`, AppImage (Linux); `.zip`, `.msi`, `.exe` (Windows); `.tar.gz` (macOS)
-- **History**: `.deb` was part of releases until PR #22773 (v0.9, Apr 2023). Removed to reduce maintenance burden.
+- **Build on:** `ubuntu-22.04` and `ubuntu-22.04-arm` in upstream release automation
+- **Build type:** nightly uses `RelWithDebInfo`; stable uses `Release`
+- **Build command:** `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`, then `cmake --build build --target package`
+- **CPack:** `cpack --config build/CPackConfig.cmake`
+- **Release trigger:** tag push, scheduled nightly, or manual dispatch in upstream automation
+- **History:** `.deb` files were removed from main upstream releases in PR #22773 to reduce maintenance burden
 
 ---
 
-## Category 2: Debian/Ubuntu Packaging Guides
+## Category 2: Debian and Ubuntu packaging guides
 
-### Official / Highly Authoritative
-
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|
-| [Debian Policy Manual](https://www.debian.org/doc/debian-policy/) | ✅✅ Debian official | ✅ Latest | ✅ | ✅ | ✅✅ |
-| [Debian Developer's Reference §6 — Best Practices](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) | ✅✅ Debian official | ✅ Latest | ✅ | ✅ | ✅ |
-| [Debian New Maintainers' Guide (maint-guide)](https://www.debian.org/doc/manuals/maint-guide/) | ✅✅ Debian official | ✅ 2025 | ✅ | ✅ | ✅ |
-| [Debian Packaging Tutorial](https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial) | ✅✅ Debian official | ✅ Current | ✅ | ✅ | ✅ |
-| [Guide for Debian Maintainers (debmake-doc)](https://www.debian.org/doc/manuals/debmake-doc/) | ✅✅ Debian official | ✅ Current | ✅ | ✅ | ✅ |
-| [Ubuntu Packaging Guide](https://packaging.ubuntu.com/) | ✅✅ Ubuntu official | ✅ Latest | ✅ | ✅ | ✅ |
-
-### High-Quality Tutorials
+### Official / highly authoritative
 
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
-| [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | ✅ Debian | ✅ Latest | ✅ | ✅ | ⚠️ Wiki format |
-| [Making a .deb package for CMake C/C++ project (2025)](https://seriyps.com/blog/2025/10/03/making-a-deb-package-for-cmake-c-project/) | ⚠️ Tutorial | ✅ 2025 | ✅ | ✅ | ✅ |
-| [Creating and Hosting Your Own Deb Packages (Earthly)](https://earthly.dev/blog/creating-and-hosting-your-own-deb-packages-and-apt-repo/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ✅ |
-| [Ultimate Guide to Debian Packaging](https://dario.griffo.io/posts/ultimate-guide-debian-packaging/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ✅ |
+| [Debian Policy Manual](https://www.debian.org/doc/debian-policy/) | Debian official | Latest | Yes | Yes | Complete policy reference |
+| [Debian Developer's Reference §6 — Best Packaging Practices](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) | Debian official | Latest | Yes | Yes | Maintainer best practices |
+| [Debian New Maintainers' Guide](https://www.debian.org/doc/manuals/maint-guide/) | Debian official | Current | Yes | Yes | Introductory packaging guide |
+| [Debian Packaging Tutorial](https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial) | Debian official | Current | Yes | Yes | Tutorial format |
+| [Guide for Debian Maintainers / debmake-doc](https://www.debian.org/doc/manuals/debmake-doc/) | Debian official | Current | Yes | Yes | Modern tooling-focused guide |
+| [Ubuntu Packaging Guide](https://packaging.ubuntu.com/) | Ubuntu official redirect | Latest | Yes | Yes | Ubuntu contributor docs entry point |
+| [Install built packages](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/) | Ubuntu official | Latest | Yes | Yes | Install/test scope only |
 
-### Supplementary
+### Useful Debian wiki supplement
 
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
-| [How to Create a Debian Package (UbuntuMint)](https://www.ubuntumint.com/create-debian-package/) | ⚠️ Blog | ✅ 2024 | ✅ | ⚠️ Partial | ⚠️ |
-| [How to Install Built Packages (Ubuntu official docs)](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/) | ✅✅ Ubuntu official | ✅ Latest | ✅ | ✅ | ⚠️ Install only |
-| [Add Debian Repositories to Sources List](https://computingforgeeks.com/add-debian-official-repositories-to-sources-list/) | ⚠️ Blog | ✅ 2024 | ✅ | ✅ | ❌ Narrow scope |
+| [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | Debian project wiki | Latest | Yes | Yes | Wiki supplement |
 
-### Key Best Practices (from Debian Developer's Reference §6)
+### Key best practices from Debian/Ubuntu sources
 
-1. **Maintainer scripts must be idempotent** — `postinst`, `prerm`, `postrm`, `preinst` should handle repeated runs gracefully.
-2. **Avoid prompting during install** — use `debconf` preseed or accept defaults. Neovim's upstream scripts already follow this.
-3. **Register alternatives with `update-alternatives`** — Neovim's `postinst` already does this for `vi`, `vim`, `view`, `editor`.
-4. **Declare all dependencies** — `CPACK_DEBIAN_PACKAGE_SHLIBDEPS` handles shared libs automatically.
-5. **Package naming** — use `neovim-{version}-{arch}.deb` for local builds; don't conflict with `neovim` in Ubuntu repos.
+1. **Maintainer scripts must be idempotent** — `postinst`, `prerm`, `postrm`, and `preinst` must tolerate repeated or partial runs.
+2. **Avoid prompting during install** — package installation should be non-interactive unless debconf/preseeding is explicitly designed.
+3. **Register alternatives consistently** — `update-alternatives` is appropriate for editor command integration (`vi`, `vim`, `view`, `editor`).
+4. **Declare all runtime shared-library dependencies** — this project relies on `CPACK_DEBIAN_PACKAGE_SHLIBDEPS` / `dpkg-shlibdeps` for auto-detection.
+5. **Do not conflict with Ubuntu archive packages accidentally** — this project is a local/distribution convenience package, not a Debian archive replacement.
+6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health, dependency, alternatives, and uninstall checks.
 
 ---
 
-## Category 3: CPack DEB Generator
+## Category 3: CPack DEB generator
 
-### Official Documentation
+### Official documentation
 
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
-| [CMake CPack Documentation — DEB Generator](https://cmake.org/cmake/help/latest/module/CPackDeb.html) | ✅✅ Kitware | ✅ Latest | ✅✅ | ✅ | ✅✅ |
-| [CMake CPack Component Install Guide](https://cmake.org/cmake/help/latest/guide/importing-exporting/index.html) | ✅✅ Kitware | ✅ Latest | ✅ | ✅ | ⚠️ Component focus |
+| [CMake CPack Documentation — DEB Generator](https://cmake.org/cmake/help/latest/cpack_gen/deb.html) | Kitware official | Latest | Yes | Yes | Complete DEB generator reference |
+| [CPack module documentation](https://cmake.org/cmake/help/latest/module/CPack.html) | Kitware official | Latest | Yes | Yes | Core CPack behavior |
+| [CMake install command](https://cmake.org/cmake/help/latest/command/install.html) | Kitware official | Latest | Yes | Yes | Install rule reference |
 
-### Real-World CPack DEB Examples (from GitHub)
-
-| Project | Stars | CPack Config Highlights |
-|---|---|---|
-| [Kitware/CMake — CPackDeb.cmake](https://github.com/Kitware/CMake) | Core CMake module | Reference implementation for all CPack DEB variables |
-| [Xilinx/XRT](https://github.com/Xilinx/XRT) | Xilinx Runtime | Uses `CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA` for postinst/prerm |
-| [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) | 8k+ | Complex CPack with postinst/postrm for system services |
-| [apache/singa](https://github.com/apache/singa) | 3k+ | Python-specific CPack setup for .deb generation |
-| [LizardByte/Sunshine](https://github.com/LizardByte/Sunshine) | 20k+ | Cross-platform CPack with DEB/TGZ/NSIS generators |
-| [roboception/cvkit](https://github.com/roboception/cvkit) | 500+ | Advanced: shlibs, triggers, conffiles, control extra |
-| [mozilla-services/heka](https://github.com/mozilla-services/heka) | Archived | Uses `CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA` for postinst |
-| [ttroy50/cmake-examples](https://github.com/ttroy50/cmake-examples) | 14k+ | Simple CPack DEB example in `03-package-deb` |
-
-### Key CPack Variables for DEB
+### Key CPack variables for DEB
 
 ```cmake
 # Required
@@ -138,7 +118,7 @@ set(CPACK_DEBIAN_PACKAGE_TRIGGERS "${CMAKE_SOURCE_DIR}/debian/triggers")
 set(CPACK_DEBIAN_PACKAGE_SHLIBS "${CMAKE_SOURCE_DIR}/debian/shlibs")
 set(CPACK_DEBIAN_PACKAGE_CONFFILES "${CMAKE_SOURCE_DIR}/debian/conffiles")
 
-# Package description (single line section, longer description)
+# Package description (single line summary + longer body)
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Short description")
 set(CPACK_PACKAGE_DESCRIPTION "Longer\ndescription\nwith\nnewlines")
 
@@ -151,32 +131,34 @@ include(CPack)
 
 ---
 
-## Category 4: Podman / Container Testing
+## Category 4: Podman / container testing
+
+### Official documentation
 
 | Resource | Authoritative | Current | Specific | Reproducible | Complete |
 |---|---|---|---|---|---|
-| [Podman Getting Started](https://podman.io/docs/installation) | ✅✅ Official | ✅ Latest | ✅ | ✅ | ✅ |
-| [Podman Build (Containerfile)](https://docs.podman.io/en/latest/markdown/podman-build.1.html) | ✅✅ Official | ✅ Latest | ✅ | ✅ | ✅ |
-| [Ubuntu Docker Image Tags (for Podman)](https://hub.docker.com/_/ubuntu) | ✅✅ Official | ✅ Latest | ✅ | ✅ | ⚠️ Image only |
+| [Podman installation docs](https://podman.io/docs/installation) | Podman official | Latest | Yes | Yes | Yes |
+| [podman-build manual](https://docs.podman.io/en/latest/markdown/podman-build.1.html) | Podman official | Latest | Yes | Yes | Yes |
+| [Ubuntu Docker image tags](https://hub.docker.com/_/ubuntu) | Ubuntu image official | Latest | Yes | Yes | Image reference only |
 
 ---
 
-## Evaluation Summary
+## Evaluation summary
 
-### Must-Read First
+### Must-read first
 
-1. **Neovim BUILD.md** — Primary build workflow reference
-2. **Neovim cmake.packaging/CMakeLists.txt** — The CPack config we're wrapping
-3. **Neovim release.yml** — Official CI workflow (exact build commands, runner setup)
-4. **PR #22773** — Context on why .deb was dropped from official releases
-5. **CPack DEB Documentation** — Official reference for DEB generator variables
-6. **Debian New Maintainers' Guide** — Best overall tutorial for Debian packaging
-7. **Debian Developer's Reference §6** — Best practices for maintainer scripts
-8. **Ubuntu Packaging Guide** — Target-distribution specific guidance
+1. **Neovim BUILD.md** — primary build workflow reference
+2. **Neovim cmake.packaging/CMakeLists.txt** — upstream CPack config this project wraps
+3. **Neovim release.yml** — official upstream CI workflow and build command reference
+4. **PR #22773** — why `.deb` files were removed from the main Neovim release workflow
+5. **CMake CPack DEB Generator documentation** — official reference for DEB generator variables
+6. **Debian Policy Manual** — ultimate authority on Debian package structure and behavior
+7. **Debian Developer's Reference §6** — best practices for maintainer scripts and package maintenance
+8. **Ubuntu Packaging Guide** — target-distribution entry point for Ubuntu packaging conventions
 
-### Reference (Bookmark for Specific Questions)
+### Reference for specific questions
 
-1. **Debian Policy Manual** — Ultimate authority on package structure
-2. **debmake-doc** — Modern tooling-focused guide
-3. **ttroy50/cmake-examples** — Minimal CPack DEB example to learn the pattern
-4. **PX4/PX4-Autopilot CPack config** — Complex real-world CPack pattern
+1. **Guide for Debian Maintainers / debmake-doc** — modern Debian packaging workflow and tooling
+2. **Debian New Maintainers' Guide** — beginner-friendly Debian packaging flow
+3. **Ubuntu Install Built Packages** — target-side install/testing guidance
+4. **Podman build manual** — reproducible container build behavior
