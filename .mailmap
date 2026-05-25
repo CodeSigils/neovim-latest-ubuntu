@@ -1,0 +1,10 @@
+# Map AI agent identities to the canonical project author.
+# GitHub reads this for the contributor graph (Insights → Contributors).
+# https://git-scm.com/docs/gitmailmap
+
+CodeSigils <toolsoftrade.web@gmail.com> <sisyphus-dev-ai@users.noreply.github.com>
+CodeSigils <toolsoftrade.web@gmail.com> <clio-agent@sisyphuslabs.ai>
+CodeSigils <toolsoftrade.web@gmail.com> <sisyphus@users.noreply.github.com>
+CodeSigils <toolsoftrade.web@gmail.com> <claude@users.noreply.github.com>
+CodeSigils <toolsoftrade.web@gmail.com> <chatgpt@users.noreply.github.com>
+CodeSigils <toolsoftrade.web@gmail.com> <copilot@users.noreply.github.com>

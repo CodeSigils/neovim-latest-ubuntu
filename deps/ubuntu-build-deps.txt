@@ -1,0 +1,8 @@
+# Manual build-host prerequisites for README and local source builds.
+# Keep this list in sync with README.md and scripts/check-dependencies.py.
+ninja-build
+gettext
+cmake
+curl
+git
+build-essential

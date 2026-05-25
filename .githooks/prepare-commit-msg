@@ -1,0 +1,24 @@
+#!/bin/bash
+# prepare-commit-msg — Strip AI agent attribution from commit messages.
+#
+# Agents are tools, not contributors. Authorship stays with the human
+# maintainer. This hook removes known agent trailers before the commit
+# is finalized.
+#
+# Install: git config core.hooksPath .githooks
+
+COMMIT_MSG_FILE="$1"
+
+# Strip Co-authored-by lines referencing known AI agent patterns
+sed -i '/^Co-authored-by:.*[Ss]isyphus/d' "$COMMIT_MSG_FILE"
+sed -i '/^Co-authored-by:.*clio-agent/d' "$COMMIT_MSG_FILE"
+sed -i '/^Co-authored-by:.*[Cc]laude/d' "$COMMIT_MSG_FILE"
+sed -i '/^Co-authored-by:.*[Cc]hatGPT/d' "$COMMIT_MSG_FILE"
+sed -i '/^Co-authored-by:.*[Cc]opilot/d' "$COMMIT_MSG_FILE"
+sed -i '/^Co-authored-by:.*[Oo]pen[Aa][Ii]/d' "$COMMIT_MSG_FILE"
+
+# Strip "Ultraworked with [Sisyphus]" footer
+sed -i '/^Ultraworked with/d' "$COMMIT_MSG_FILE"
+
+# Strip trailing blank lines left by removals (in-place, portable)
+sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$COMMIT_MSG_FILE" 2>/dev/null || true

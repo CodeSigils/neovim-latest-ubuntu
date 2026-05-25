@@ -1,0 +1,189 @@
+name: "Staleness Guard"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 7 * * 1'   # Weekly: Monday 07:00 UTC (after build/check-upstream windows)
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  drift-scan:
+    name: AGENTS.md Drift Scan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run §11.3 Pre-Action Gate
+        id: preaction
+        run: |
+          set -euo pipefail
+          errors=0
+
+          echo "=== §11.3 Pre-Action Staleness Gate ==="
+
+          # C1: Pipeline files exist
+          for f in build.sh Containerfile test.sh scripts/check-dependencies.py; do
+            if [ ! -f "$f" ]; then
+              echo "::error title=DRIFT C1::$f missing"
+              errors=$((errors+1))
+            fi
+          done
+
+          # C4: Layout sanity — core committed files
+          for f in build.sh Containerfile test.sh AGENTS.md README.md LICENSE deps/ubuntu-build-deps.txt deps/ubuntu-ci-extra-deps.txt scripts/check-dependencies.py; do
+            if [ ! -f "$f" ]; then
+              echo "::error title=DRIFT C4::$f missing from expected layout"
+              errors=$((errors+1))
+            fi
+          done
+
+          # C5: Warning for unchecked checklist items
+          unchecked=$(grep -Ec '^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[ \]' AGENTS.md || true)
+          if [ "$unchecked" -gt 0 ]; then
+            echo "::warning title=Unchecked checklist items::$unchecked unchecked items remain in AGENTS.md"
+          fi
+
+          # C7: Generated artifacts not accidentally committed
+          if ls nvim-linux-*.deb >/dev/null 2>&1; then
+            echo "::error title=DRIFT C7::nvim-linux-*.deb present in root (should be gitignored)"
+            errors=$((errors+1))
+          fi
+
+          # C11: Release docs cover nightly
+          if [ ! -f RELEASING.md ]; then
+            echo "::error title=DRIFT C11::RELEASING.md missing"
+            errors=$((errors+1))
+          elif ! grep -q 'Nightly' RELEASING.md; then
+            echo "::error title=DRIFT C11::RELEASING.md missing Nightly section"
+            errors=$((errors+1))
+          fi
+
+          # C12: Nightly workflow exists
+          if [ ! -f .github/workflows/nightly.yml ]; then
+            echo "::error title=DRIFT C12::nightly.yml missing"
+            errors=$((errors+1))
+          fi
+
+          # C13: Author attribution guard exists
+          if [ ! -f .github/workflows/check-author.yml ]; then
+            echo "::error title=DRIFT C13::check-author.yml missing"
+            errors=$((errors+1))
+          fi
+
+          echo "Pre-Action Gate: $errors error(s)"
+          echo "gate_errors=$errors" >> "$GITHUB_OUTPUT"
+
+      - name: Run §11.5 Offline Drift Scan
+        id: deepscan
+        run: |
+          set -euo pipefail
+          errors=0
+          warnings=0
+
+          echo "=== §11.5 Offline Drift Scan ==="
+
+          # Claimed files exist
+          for claim_file in build.sh Containerfile test.sh docs/resources.md deps/ubuntu-build-deps.txt deps/ubuntu-ci-extra-deps.txt scripts/check-dependencies.py; do
+            if [ ! -f "$claim_file" ]; then
+              echo "::error title=FILE MISSING::$claim_file"
+              errors=$((errors+1))
+            fi
+          done
+
+          # Check for generated package artifacts in known non-source locations
+          for gen_artifact in _CPack_Packages; do
+            if [ -e "$gen_artifact" ]; then
+              echo "::error title=GENERATED ARTIFACT::$gen_artifact present (should not be committed)"
+              errors=$((errors+1))
+            fi
+          done
+          if ls nvim-linux-*.deb >/dev/null 2>&1; then
+            echo "::error title=GENERATED ARTIFACT::nvim-linux-*.deb present in root (should be gitignored)"
+            errors=$((errors+1))
+          fi
+
+          # C11: RELEASING.md covers nightly
+          if [ ! -f RELEASING.md ]; then
+            echo "::error title=FILE MISSING::RELEASING.md"
+            errors=$((errors+1))
+          elif ! grep -q 'Nightly' RELEASING.md; then
+            echo "::error title=DOC DRIFT::RELEASING.md missing Nightly section"
+            errors=$((errors+1))
+          fi
+
+          # C12: nightly.yml exists
+          if [ ! -f .github/workflows/nightly.yml ]; then
+            echo "::error title=FILE MISSING::.github/workflows/nightly.yml"
+            errors=$((errors+1))
+          fi
+
+          # C13: check-author.yml exists
+          if [ ! -f .github/workflows/check-author.yml ]; then
+            echo "::error title=FILE MISSING::.github/workflows/check-author.yml"
+            errors=$((errors+1))
+          fi
+
+          # Dependency consistency guard stays wired in and passing
+          if ! python3 scripts/check-dependencies.py; then
+            echo "::error title=DOC DRIFT::dependency manifests / README / Containerfile are out of sync"
+            errors=$((errors+1))
+          fi
+
+          # Last updated / AGENTS freshness (warn-only; maintenance reminder)
+          last_date=$(sed -n 's/^.*Last updated:\*\* *\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md)
+          if [ -n "$last_date" ]; then
+            commit_ts=$(date -d "$(git log -1 --format=%cI AGENTS.md)" +%s)
+            days_since_commit=$(( ( $(date +%s) - commit_ts ) / 86400 ))
+            days_since_claim=$(( ( $(date +%s) - $(date -d "$last_date" +%s) ) / 86400 ))
+            # Warn if last_updated field is >90 days old OR AGENTS.md not touched in >90 days
+            if [ "$days_since_claim" -gt 90 ]; then
+              echo "::warning title=STALE::Last updated $days_since_claim days ago ($last_date) - renew if claims are still current"
+              warnings=$((warnings+1))
+            fi
+            if [ "$days_since_commit" -gt 90 ]; then
+              echo "::warning title=STALE::AGENTS.md last committed $days_since_commit days ago - review needed"
+              warnings=$((warnings+1))
+            fi
+          fi
+
+          # Last updated matches most recent Decision Log entry (warn-only; hygiene drift)
+          last_decision=$(sed -n 's/^| \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\).*$/\1/p' AGENTS.md | tail -1)
+          if [ -n "$last_decision" ] && [ "$last_decision" != "$last_date" ]; then
+            echo "::warning title=DRIFT::Last updated ($last_date) ≠ most recent decision ($last_decision)"
+            warnings=$((warnings+1))
+          fi
+
+          echo "Drift Scan: $errors error(s), $warnings warning(s)"
+          echo "scan_errors=$errors" >> "$GITHUB_OUTPUT"
+          echo "scan_warnings=$warnings" >> "$GITHUB_OUTPUT"
+
+      - name: Report Results
+        run: |
+          gate=${{ steps.preaction.outputs.gate_errors }}
+          scan=${{ steps.deepscan.outputs.scan_errors }}
+          warns=${{ steps.deepscan.outputs.scan_warnings }}
+          total=$(( gate + scan ))
+
+          echo "## Staleness Guard Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| §11.3 Pre-Action Gate | $gate error(s) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| §11.5 Offline Drift Scan | $scan error(s), $warns warning(s) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Total** | **$total error(s)** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$total" -gt 0 ]; then
+            echo "❌ **FAILED**: $total drift error(s) detected. Fix AGENTS.md before merging." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          if [ "$warns" -gt 0 ]; then
+            echo "⚠️ **PASS with warnings**: Resolve warnings to keep claims current." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "✅ **PASS**: All drift checks clean." >> "$GITHUB_STEP_SUMMARY"
+          fi

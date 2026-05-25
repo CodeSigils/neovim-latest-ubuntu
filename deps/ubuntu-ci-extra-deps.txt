@@ -1,0 +1,6 @@
+# Extra packages required by the CI/container image beyond the manual host build list.
+# These support HTTPS fetches, packaging verification, and test.sh execution.
+ca-certificates
+file
+lua5.1
+sudo
