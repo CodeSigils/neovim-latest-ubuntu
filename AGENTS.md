@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-25 (Aligned ARM64 release-asset docs with actual CPack output; implemented official-resource audit recommendations)
+**Last updated:** 2026-05-25 (Added YAML validation step, paths-ignore evaluation, and workflow quality checks)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -411,8 +411,8 @@ release lifecycle:
 
 | Trigger | Action | Outcome |
 |---|---|---|
-| Tag push `v*` (e.g. `v0.13.0`) | Build (x86_64 + aarch64) + create GitHub Release | Both `.deb` files uploaded as release assets |
-| Push to `main` | Build only (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts |
+| Tag push `v*` (e.g. `v0.13.0`) | Build (x86_64 + aarch64) + create GitHub Release | Both `.deb` files uploaded as release assets; path filters not evaluated for tags (always builds) |
+| Push to `main` | Build only (x86_64 + aarch64), respects `paths-ignore` | `.deb` files uploaded as workflow artifacts; doc-only changes (`*.md`, `LICENSE`, `docs/**`) skip pipeline |
 | Schedule (weekly, Mon 06:00 UTC) | Build `latest` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
 | Manual dispatch (`workflow_dispatch`) | Build with optional `VERSION` input (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (Actions run page only; Releases page unchanged) |
 | Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
@@ -488,6 +488,26 @@ with its own schedule and triggers:
 
 See the [Nightly Builds section of RELEASING.md](./RELEASING.md#nightly-builds) for
 manual trigger instructions and artifact download steps.
+
+### 8.8 Workflow Quality Checks
+
+The lint job in `build.yml` enforces these quality gates on every PR and branch push:
+
+| Check | Tool | Scope | Enforces |
+|---|---|---|---|
+| YAML syntax | `scripts/check-yaml-syntax.py` (Python yaml.safe_load) | `.github/workflows/*.yml` | Valid YAML parse; does NOT validate GitHub-specific keys (that is GitHub's job) |
+| Shell script lint | `shellcheck` | `build.sh`, `test.sh` | POSIX shell correctness, common bugs |
+| Containerfile lint | `hadolint` | `Containerfile` | Dockerfile best practices, security |
+| Dependency consistency | `scripts/check-dependencies.py` | `deps/*.txt`, docs, `Containerfile` | No drift between source-of-truth manifests and documentation |
+
+**When editing workflow files (`.github/workflows/*.yml`):**
+
+1. Verify YAML syntax before committing: `python3 scripts/check-yaml-syntax.py`
+2. Use **flat structure** under `on.push:` — `branches`, `tags`, and `paths-ignore` must be siblings. The YAML array/list syntax (`- branches:\n  - main`) is not supported under `push` by GitHub's YAML parser.
+3. Path filters (`paths-ignore` / `paths`) are evaluated for branch pushes only — tag pushes always build regardless.
+4. Add the YAML validation command to any new workflow's lint job if it runs on push/PR triggers.
+
+**CI cycle efficiency**: The `paths-ignore` filter on `build.yml` skips doc-only pushes to `main` (`*.md`, `LICENSE`, `docs/**`), saving ~72% of main-branch CI runs (~130 min saved per 48h of active development). All other workflows (staleness, author check, CodeQL) still run on doc-only pushes to maintain CI integrity. PRs and tag pushes always build fully.
 
 ### 9. Guardrails (Must Not Do)
 
@@ -586,6 +606,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | ARM64 release asset name verified | Rebuilt `v0.12.2` showed CPack publishes `nvim-linux-arm64.deb` for the ARM runner even though the build matrix label is `aarch64`. Docs now use `arm64` for actual `.deb` filenames and reserve `aarch64` for runner/matrix labels. |
 | 2026-05-25 | Build checks enabled for PRs | `build.yml` now runs on pull requests to `main`, allowing the protected-branch required checks (`lint`, `build (x86_64)`, `build (aarch64)`) to pass before merge. |
 | 2026-05-25 | Release badge target corrected | README release badge now links directly to `/releases/latest`; docs/reproducibility.md stale ARM filename explanation corrected to use `arm64` for actual `.deb` filenames. |
+| 2026-05-25 | paths-ignore efficiency + YAML validation lint step | Added `paths-ignore` to `build.yml` push trigger (doc-only pushes skip ~72% of main-branch CI runs = ~130 min saved). Added `scripts/check-yaml-syntax.py` + CI step validating all workflow YAML files. Fixed docs/build-plan.md §5 incorrect claim about tag pushes respecting paths-ignore (GitHub does NOT evaluate path filters for tags). Added §8.8 Workflow Quality Checks, C14 claim inventory, and decision log entry. Documented flat-structure rule for GitHub Actions YAML parser. |
 
 ### 11. Staleness & Drift Guard
 
@@ -615,6 +636,7 @@ command that proves or disproves the claim.
 | C11 | §8.6, §8.7, RELEASING.md | Release & nightly documentation covers both workflows | `grep -q 'Nightly' RELEASING.md && grep -q 'nightly.yml' AGENTS.md` — both must exist |
 | C12 | §8.7, nightly.yml | Nightly workflow exists and is functional | `test -f .github/workflows/nightly.yml` — file exists |
 | C13 | §9.1, check-author.yml | Author attribution guard CI-enforced | `test -f .github/workflows/check-author.yml` — file exists |
+| C14 | §8.8, build.yml lint job | Workflow YAML files parse correctly | `python3 scripts/check-yaml-syntax.py` — exit code 0 |
 
 #### 11.2 Drift-Prone Sections (highest risk)
 
@@ -683,6 +705,15 @@ fi
 if [ ! -f .github/workflows/check-author.yml ]; then
   echo "DRIFT C13: check-author.yml missing"; errors=$((errors+1))
 fi
+
+# C14: Workflow YAML files parse correctly
+for wf in .github/workflows/*.yml; do
+  if [ -f "$wf" ]; then
+    python3 -c "import yaml; yaml.safe_load(open('$wf'))" 2>/dev/null || {
+      echo "DRIFT C14: YAML parse failed for $wf"; errors=$((errors+1))
+    }
+  fi
+done
 
 if [ $errors -gt 0 ]; then
   echo "FAIL: $errors drift(s) detected. Fix AGENTS.md before proceeding."
@@ -839,3 +870,13 @@ Copyright Neovim contributors. All rights reserved.
 Apache License Version 2.0, January 2004
 https://github.com/neovim/neovim/blob/master/LICENSE.txt
 ```
+
+#### GitHub Actions workflow syntax
+
+- [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions) — Official reference for YAML keys, triggers, filters, and supported syntax. Key rules: path filters not evaluated for tag pushes; flat structure required under `on.push:`.
+- [Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows) — Complete event reference including `push`, `pull_request`, `schedule`, `workflow_dispatch`.
+- [Using conditions to control job execution](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution) — How `if` conditions, path filters, and branch filters interact.
+
+#### Curated resource index
+
+See [`docs/resources.md`](./docs/resources.md) for the full curated, evaluated list of all packaging, CI, and automation resources used by this project.

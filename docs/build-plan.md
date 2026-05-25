@@ -153,7 +153,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Artifact upload** | `actions/upload-artifact@v7` with arch-specific name (`nvim-linux-deb-${{ matrix.arch }}`) |
 | **Release aggregation** | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
 | **Trigger (branch push)** | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**]` — doc-only commits skip the pipeline |
-| **Trigger (tag push)** | `tags: ['v*']` — same paths-ignore; doc-only tag pushes skip build, releases unaffected (tag-only commits with docs only are rare) |
+| **Trigger (tag push)** | `tags: ['v*']` — path filters NOT evaluated for tags (GitHub Actions behavior); tag pushes always build |
 | **Trigger (PR)** | `pull_request: [main]` — no paths filter, always runs lint + build |
 | **Trigger (schedule)** | Weekly Monday 06:00 UTC — builds `latest` stable |
 

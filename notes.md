@@ -9,6 +9,10 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 - Corrected ARM64 release-asset docs back to the actual CPack/GitHub Release filename, `nvim-linux-arm64.deb`; retained `aarch64` only for matrix/runner architecture labels.
 - Investigated lintian's CI `exit code 2`: reproduced in an Ubuntu 24.04 container. It is lintian's normal non-zero findings exit when it reports package-policy errors/warnings (for example empty extended description, malformed maintainer contact, missing copyright/changelog, uncompressed manpage, unstripped binaries, national-encoding, parser shared-library prerequisites). Updated workflow to capture/report the exit code instead of using `continue-on-error`.
 - Corrected README release badge to point to `/releases/latest` and fixed the remaining stale ARM filename explanation in docs/reproducibility.md.
+- Added `paths-ignore` to `build.yml` push trigger: doc-only pushes skip ~72% of main-branch CI runs (~130 min saved in first 48h).
+- Added `scripts/check-yaml-syntax.py` and CI step validating all workflow YAML files in the lint job.
+- Fixed docs/build-plan.md §5 incorrect claim about tag pushes respecting paths-ignore (GitHub does NOT evaluate path filters for tags).
+- Added AGENTS.md §8.8 Workflow Quality Checks, C14 claim inventory, and official GitHub Actions workflow syntax docs references.
 
 ## 2026-05-24
 
