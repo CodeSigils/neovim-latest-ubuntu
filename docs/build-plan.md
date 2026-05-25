@@ -85,7 +85,7 @@ The `-B /output` flag (binary output directory) is **critical** — it ensures C
 `.deb` to an explicit, deterministic location. Without it, CPack writes to the current working
 directory, causing CI artifact-path ambiguity and pipeline failures.
 
-Output: `nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM) in the output directory.
+Output: `nvim-linux-x86_64.deb` (or `nvim-linux-arm64.deb` on ARM) in the output directory.
 
 ### 3.5 Full Script (parameterised)
 
@@ -115,7 +115,7 @@ Container image: `ubuntu:24.04`.
 
 ### 4.2 Verification Checklist
 
-- [x] Package installs cleanly: `dpkg -i nvim-linux-$(uname -m).deb`
+- [x] Package installs cleanly: `dpkg -i nvim-linux-x86_64.deb` or `dpkg -i nvim-linux-arm64.deb`
 - [x] `nvim --version` reports the expected version
 - [x] Smoke test: `nvim --headless +q` starts and exits cleanly
 - [x] Runtime health: `nvim --headless +checkhealth +q` runs without crash
@@ -188,7 +188,7 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 building and releasing the `.deb`:
 
 1. **Tag push** (`git tag v0.13.0 && git push origin v0.13.0`) → CI builds matrix (x86_64 + aarch64) → release job aggregates artifacts
-2. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-aarch64.deb`) uploaded as release assets with combined SHA256SUMS
+2. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-arm64.deb`) uploaded as release assets with combined SHA256SUMS
 3. **Users** → download the correct `.deb` for their architecture from Releases page and install via `dpkg -i`
 
 > See [`RELEASING.md`](../RELEASING.md) for the full human-readable release process guide.

@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependency source-of-truth manifests: added `deps/ubuntu-build-deps.txt` for manual host prerequisites and `deps/ubuntu-ci-extra-deps.txt` for CI/container-only extras.
 - Dependency consistency check: added `scripts/check-dependencies.py` and wired it into build and staleness CI so README prerequisites, dependency manifests, Containerfile wiring, and build/test script expectations stay aligned.
 - Non-blocking `lintian` package-policy audit in the build workflow so Debian/Ubuntu packaging findings are visible without blocking CPack convenience-package builds.
+- Lintian audit now captures and reports lintian's non-zero findings exit code explicitly instead of relying on `continue-on-error`, avoiding a misleading red step annotation while preserving advisory output.
+- Build workflow now also runs on pull requests to `main`, so the protected-branch required build checks can be satisfied before merge.
 
 ### Changed
 
@@ -31,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AGENTS.md repository layout tree expanded: added `.gitattributes` and all 4 workflow files (`build.yml`, `check-upstream.yml`, `codeql.yml`, `nightly.yml`).
 - docs/resources.md: replaced dead Baeldung (403) and LinuxVox (520) URLs with working alternatives.
 - RELEASING.md: added Nightly Builds section with manual trigger and artifact download instructions.
-- README.md: corrected ARM DEB artifact name from `nvim-linux-arm64.deb` to `nvim-linux-aarch64.deb` (matches `$(uname -m)` output); updated build environment from "Debian clang" to "Ubuntu gcc" (matches 24.04 container); removed `unzip` from prerequisites table (not used in build pipeline).
+- README.md: corrected ARM DEB artifact naming guidance; updated build environment from "Debian clang" to "Ubuntu gcc" (matches 24.04 container); removed `unzip` from prerequisites table (not used in build pipeline).
 - RELEASING.md: clarified nightly artifact retention as "30 days (workflow-configured)" instead of "GitHub's default 90 days".
 - Containerfile now installs build and CI/container dependencies from the committed `deps/*.txt` manifests instead of duplicating package names inline.
 - Authorship guard tightened from blacklist-style agent attribution blocking to strict canonical maintainer author/committer enforcement.
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - docs/resources.md now prioritizes official Neovim, Debian, Ubuntu, CMake, and Podman documentation and removes general third-party packaging tutorials from the curated list.
 - CodeQL workflow now uses `github/codeql-action` v4.
 - README.md and RELEASING.md now document that the package intentionally installs as `neovim`, how `apt` may compare it with Ubuntu archive candidates, and how to inspect/hold/unhold it.
+- ARM64 release-asset documentation now uses the actual CPack/GitHub Release filename, `nvim-linux-arm64.deb`; `aarch64` remains only for the build-matrix/runner architecture label.
 
 ### Fixed
 
@@ -48,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - .mailmap: added agent identity mappings for Claude, ChatGPT, and Copilot — all canonicalised to maintainer identity.
 - AGENTS.md: various stale claim fixes and added agent attribution guard (CI-enforced `check-author.yml`).
 - README.md manual build example: added missing `git` prerequisite to match the documented `git clone` flow.
-- docs/build-plan.md: corrected remaining ARM artifact reference from `nvim-linux-arm64.deb` to `nvim-linux-aarch64.deb`.
+- docs/build-plan.md: corrected remaining ARM artifact reference to match the actual release asset name, `nvim-linux-arm64.deb`.
 - docs/build-plan.md and docs/reproducibility.md: aligned stale build-command and ARM filename notes with the current `build.sh`/CPack behavior.
 
 ## [0.12.2] — 2026-05-22

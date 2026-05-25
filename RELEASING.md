@@ -67,7 +67,7 @@ The pipeline does the following in parallel for both architectures (x86_64 and A
    multi-arch manifest digest so the same Containerfile works on both architectures)
 3. **Runs build.sh** — clones the tagged Neovim version, builds through Neovim's
    upstream Makefile wrapper (which uses CMake and auto-detects Ninja when available),
-   packages with CPack into a `.deb` (`nvim-linux-x86_64.deb` or `nvim-linux-aarch64.deb`)
+   packages with CPack into a `.deb` (`nvim-linux-x86_64.deb` or `nvim-linux-arm64.deb`)
 4. **Verifies the artifact** — checks the `.deb` exists in the output directory
 5. **Generates checksums** — produces `SHA256SUMS` alongside the `.deb`
 6. **Audits package metadata** — runs `lintian` as a non-blocking Debian/Ubuntu package-policy audit
@@ -99,9 +99,9 @@ Once CI completes:
   # x86_64 systems
   sudo dpkg -i nvim-linux-x86_64.deb
 
-  # ARM64 systems — use the aarch64 build instead
-  curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-aarch64.deb
-  sudo dpkg -i nvim-linux-aarch64.deb
+  # ARM64 systems
+  curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/nvim-linux-arm64.deb
+  sudo dpkg -i nvim-linux-arm64.deb
 
   nvim --version
   ```
@@ -284,7 +284,7 @@ GitHub Actions triggers build.yml
 ║  ├─ ubuntu-24.04 → nvim-linux-        ║
 ║  │  x86_64.deb                        ║
 ║  └─ ubuntu-24.04-arm → nvim-linux-    ║
-║     aarch64.deb                       ║
+║     arm64.deb                         ║
 ║  Each matrix entry:                   ║
 ║  ├─ Docker builds Containerfile       ║
 ║  │  → neovim-builder image            ║

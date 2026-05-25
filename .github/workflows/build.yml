@@ -4,6 +4,8 @@ on:
   push:
     tags: ['v*']
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
     - cron: '0 6 * * 1'   # Weekly: Monday 06:00 UTC — builds latest stable
   workflow_dispatch:
@@ -92,13 +94,18 @@ jobs:
           ./test.sh "$DEB"
 
       - name: Run lintian package-policy audit
-        continue-on-error: true
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends lintian
           DEB=$(ls output/*.deb | head -1)
           echo "Running non-blocking lintian audit: $DEB"
+          set +e
           lintian "$DEB"
+          lintian_status=$?
+          set -e
+          if [ "$lintian_status" -ne 0 ]; then
+            echo "lintian reported package-policy findings (exit $lintian_status); continuing because this is an advisory audit for a CPack convenience package."
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7

@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-25 (Implemented official-resource audit recommendations: non-blocking lintian package-policy audit, CodeQL v4, apt replacement/hold docs, and RELEASING accuracy cleanup)
+**Last updated:** 2026-05-25 (Aligned ARM64 release-asset docs with actual CPack output; implemented official-resource audit recommendations)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -70,7 +70,7 @@
 
 ## Current Status
 
-> Audit snapshot: 2026-05-25 (CI verified, build & release pipeline operational end-to-end; local checks passed after lintian/CodeQL/release-doc updates)
+> Audit snapshot: 2026-05-25 (CI verified, build & release pipeline operational end-to-end; local checks passed after ARM64 asset-name, lintian/CodeQL, and release-doc updates)
 
 - **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:24.04` container. All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
@@ -78,7 +78,7 @@
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned to SHA256 digest for reproducible builds.
 - **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in the build workflow and staleness guard to fail on drift between docs, manifests, Containerfile, and script expectations.
-- **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Warnings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
+- **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Findings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
@@ -258,7 +258,7 @@ Ninja is the industry-recommended CMake generator — faster builds, automatic p
 | `CPACK_PACKAGE_FILE_NAME` | `nvim-linux-${CMAKE_SYSTEM_PROCESSOR}` |
 | `CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA` | `postinst` + `prerm` scripts |
 
-**Output**: `build/nvim-linux-x86_64.deb` (or `...-aarch64.deb` on ARM)
+**Output**: `build/nvim-linux-x86_64.deb` (or `...-arm64.deb` on ARM)
 
 **Maintainer scripts**:
 - `postinst` — registers Neovim via `update-alternatives` for `vi`, `vim`, `view`, `editor`
@@ -434,8 +434,8 @@ release lifecycle:
    sudo dpkg -i nvim-linux-x86_64.deb
 
    # Or for ARM64 systems:
-   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-aarch64.deb
-   sudo dpkg -i nvim-linux-aarch64.deb
+   curl -LO https://github.com/{owner}/{repo}/releases/latest/download/nvim-linux-arm64.deb
+   sudo dpkg -i nvim-linux-arm64.deb
    ```
 
    For scheduled, branch, or manual builds, direct users to the Actions run page instead of the Releases page — those runs do not create or refresh a GitHub Release.
@@ -577,12 +577,14 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-24 | CI end-to-end test verified | Manual workflow_dispatch of `build.yml` (v0.12.2) passed lint, x86_64 build, aarch64 build. Pipeline operational. |
 | 2026-05-24 | Removed "Debian" from README tagline | Project only tests on Ubuntu 24.04; claiming Debian support is inaccurate. RELEASING.md had no Debian references. Technical `.deb`/CPack references remain — they describe the packaging format, not a support commitment. |
 | 2026-05-24 | Agent attribution guard (CI-enforced) | Created `check-author.yml` workflow (author/committer/trailer checks), `.githooks/prepare-commit-msg` hook, and hardened AGENTS.md §9.1. Forward-only — 12 existing commits with agent Co-authored-by trailers left intact. |
-| 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples from `arm64` to `aarch64` to match actual output naming. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
+| 2026-05-24 | AGENTS.md drift cleanup after repo audit | Added missing `check-author.yml` and `staleness.yml` to the repository layout tree. Fixed root-relative links to CHANGELOG/RELEASING/workflow files. Corrected ARM artifact examples during the audit. Narrowed unchecked-box detection to real checklist items so the gate no longer warns on its own code sample. |
 | 2026-05-24 | Staleness CI/docs semantics aligned | Documented that `staleness.yml` hard-fails on structural drift but keeps freshness checks as warnings. Added C13 (`check-author.yml`) to §11.3 and synced §11.5 with CI's warning/error behavior and AGENTS age warning. |
 | 2026-05-24 | Dependency manifests + CI drift check added | Added `deps/ubuntu-build-deps.txt` (manual host prerequisites), `deps/ubuntu-ci-extra-deps.txt` (CI/container-only extras), and `scripts/check-dependencies.py` enforced in `build.yml`. This keeps README dependency instructions aligned with the actual build/test environment and caught the missing `git` prerequisite. |
 | 2026-05-24 | Agent attribution guard hardened to strict canonical identity enforcement | `check-author.yml` now enforces exact author+committer identity (`CodeSigils <toolsoftrade.web@gmail.com>`) in addition to rejecting agent trailers/patterns. This intentionally blocks GitHub web-flow/bot committer identities on `main`. |
 | 2026-05-24 | Release-surface docs clarified | Kept tag-only GitHub Releases as the canonical versioned channel. Clarified in README/RELEASING/AGENTS that scheduled, branch, and manual builds publish workflow artifacts only; no plan rewrite needed unless a moving `latest-stable` release channel is intentionally added later. |
-| 2026-05-25 | Official-resource audit recommendations implemented | Added non-blocking `lintian` package-policy audit to `build.yml`, upgraded CodeQL workflow actions from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and corrected RELEASING build-flow/checksum wording. |
+| 2026-05-25 | Official-resource audit recommendations implemented | Added non-blocking `lintian` package-policy audit to `build.yml`, upgraded CodeQL workflow actions from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and corrected RELEASING build-flow/checksum wording. Lintian's findings exit code is captured explicitly so the advisory audit does not create a misleading failed-step annotation. |
+| 2026-05-25 | ARM64 release asset name verified | Rebuilt `v0.12.2` showed CPack publishes `nvim-linux-arm64.deb` for the ARM runner even though the build matrix label is `aarch64`. Docs now use `arm64` for actual `.deb` filenames and reserve `aarch64` for runner/matrix labels. |
+| 2026-05-25 | Build checks enabled for PRs | `build.yml` now runs on pull requests to `main`, allowing the protected-branch required checks (`lint`, `build (x86_64)`, `build (aarch64)`) to pass before merge. |
 
 ### 11. Staleness & Drift Guard
 

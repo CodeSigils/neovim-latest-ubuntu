@@ -20,7 +20,7 @@ curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/down
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-On ARM64 systems, use `nvim-linux-aarch64.deb` instead. Releases are created automatically when a tag is pushed to the repository. A weekly scheduled build (Monday 06:00 UTC) also packages the latest stable Neovim as a workflow artifact, so you can always download a fresh stable build from the Actions run page even between tagged releases.
+On ARM64 systems, use `nvim-linux-arm64.deb` instead. Releases are created automatically when a tag is pushed to the repository. A weekly scheduled build (Monday 06:00 UTC) also packages the latest stable Neovim as a workflow artifact, so you can always download a fresh stable build from the Actions run page even between tagged releases.
 
 > Need the freshest stable build rather than the last tagged release? Open the latest successful [`build.yml`](./.github/workflows/build.yml) run and download the workflow artifact for your architecture.
 
@@ -97,7 +97,7 @@ Build and install Neovim in three commands:
 ```bash
 sudo apt install ninja-build gettext cmake curl git build-essential
 git clone --depth 1 --branch v<VERSION> https://github.com/neovim/neovim && cd neovim
-make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-$(uname -m).deb
+make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
 ### Containerized Build (Recommended for Reproducibility)
@@ -117,8 +117,8 @@ podman run --rm -v "$(pwd)/output:/output" neovim-builder
 podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
 # Verify the .deb
-# The .deb auto-names based on architecture (x86_64 or aarch64)
-./test.sh output/nvim-linux-$(uname -m).deb
+# x86_64 builds produce nvim-linux-x86_64.deb; ARM64 builds produce nvim-linux-arm64.deb.
+./test.sh output/nvim-linux-x86_64.deb
 ```
 
 The container image (`ubuntu:24.04`) includes all build prerequisites and runs
@@ -129,7 +129,7 @@ mount ensures the `.deb` appears in the `output/` directory on your host.
 
 ### Build Output
 
-The build produces `nvim-linux-x86_64.deb` (or `nvim-linux-aarch64.deb` on ARM) in the
+The build produces `nvim-linux-x86_64.deb` (or `nvim-linux-arm64.deb` on ARM64) in the
 specified output directory. When building in the container, this maps to `./output/`.
 
 Neovim's bundled dependencies (libuv, LuaJIT, tree-sitter, and others) are compiled and statically linked — no system library conflicts.
