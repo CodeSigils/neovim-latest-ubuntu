@@ -535,7 +535,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-22 | CPack approach confirmed (research correction cycle) | Three approaches documented (CPack, debian/, hybrid); upstream BUILD.md still recommends CPack for local .deb despite CI not producing .deb; Debian Vim Maintainers' salsa.debian.org packaging referenced as upgrade path |
 | 2026-05-22 | Build executed and verified end-to-end | Neovim v0.12.2 built in Podman `ubuntu:24.04` container; all 5 checks passed; `sudo` added to Containerfile |
 | 2026-05-22 | Staleness guard hardened to strict enforcement | Added claim inventory (C1-C10), pre-action gate with hard failure, update protocol, offline drift scan, renewal rule, and zero-tolerance anti-drift rule |
-| 2026-05-22 | `.gitignore` wildcard `nvim-linux64.deb` → `nvim-linux-*.deb` | Catch both x86_64 and aarch64 build artifacts |
+| 2026-05-22 | `.gitignore` wildcard `nvim-linux64.deb` → `nvim-linux-*.deb` | Catch generated `.deb` artifacts for both x86_64 and ARM64 builds |
 | 2026-05-22 | `build.sh` — VERSION env var + `latest` alias | Env var `${VERSION:-0.12.2}`; `VERSION=latest` fetches latest tag via GitHub API |
 | 2026-05-22 | `test.sh` — auto-detect version from .deb | Extracts version via `dpkg-deb -f`, removes hardcoded default |
 | 2026-05-22 | `Containerfile` — auto-build CMD | `COPY build.sh`, `ENV VERSION/OUTPUT_DIR`, `CMD` builds immediately |
@@ -585,6 +585,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Official-resource audit recommendations implemented | Added non-blocking `lintian` package-policy audit to `build.yml`, upgraded CodeQL workflow actions from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and corrected RELEASING build-flow/checksum wording. Lintian's findings exit code is captured explicitly so the advisory audit does not create a misleading failed-step annotation. |
 | 2026-05-25 | ARM64 release asset name verified | Rebuilt `v0.12.2` showed CPack publishes `nvim-linux-arm64.deb` for the ARM runner even though the build matrix label is `aarch64`. Docs now use `arm64` for actual `.deb` filenames and reserve `aarch64` for runner/matrix labels. |
 | 2026-05-25 | Build checks enabled for PRs | `build.yml` now runs on pull requests to `main`, allowing the protected-branch required checks (`lint`, `build (x86_64)`, `build (aarch64)`) to pass before merge. |
+| 2026-05-25 | Release badge target corrected | README release badge now links directly to `/releases/latest`; docs/reproducibility.md stale ARM filename explanation corrected to use `arm64` for actual `.deb` filenames. |
 
 ### 11. Staleness & Drift Guard
 

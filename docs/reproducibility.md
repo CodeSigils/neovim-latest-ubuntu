@@ -153,9 +153,9 @@ The CI matrix builds on two architectures:
 | x86_64 | `ubuntu-24.04` | `nvim-linux-x86_64.deb` |
 | aarch64 / ARM64 | `ubuntu-24.04-arm` | `nvim-linux-arm64.deb` |
 
-The ARM runner reports `CMAKE_SYSTEM_PROCESSOR` as `aarch64`, which CPack uses in the
-output filename. Debian package metadata uses `arm64` for the package architecture field,
-but the generated filename follows upstream CPack's processor naming.
+The ARM runner/build matrix uses the `aarch64` architecture label, while the generated
+CPack `.deb` filename and Debian package metadata both use the Debian/Ubuntu architecture
+name `arm64`.
 
 Both architectures use the same `Containerfile` (the multi-arch manifest digest resolves
 to the correct platform image), the same `build.sh` parameters, and the same `test.sh`

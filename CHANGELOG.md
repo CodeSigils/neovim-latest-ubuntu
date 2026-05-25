@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeQL workflow now uses `github/codeql-action` v4.
 - README.md and RELEASING.md now document that the package intentionally installs as `neovim`, how `apt` may compare it with Ubuntu archive candidates, and how to inspect/hold/unhold it.
 - ARM64 release-asset documentation now uses the actual CPack/GitHub Release filename, `nvim-linux-arm64.deb`; `aarch64` remains only for the build-matrix/runner architecture label.
+- README release badge and SECURITY supported-version link now point directly to the latest release page instead of generic release indexes.
 
 ### Fixed
 
@@ -53,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README.md manual build example: added missing `git` prerequisite to match the documented `git clone` flow.
 - docs/build-plan.md: corrected remaining ARM artifact reference to match the actual release asset name, `nvim-linux-arm64.deb`.
 - docs/build-plan.md and docs/reproducibility.md: aligned stale build-command and ARM filename notes with the current `build.sh`/CPack behavior.
+- docs/reproducibility.md: corrected stale ARM filename explanation; the build matrix uses `aarch64`, while actual `.deb` filenames and Debian metadata use `arm64`.
 
 ## [0.12.2] — 2026-05-22
 
@@ -76,7 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Containerfile missing `sudo` — required by `test.sh` for `dpkg` operations.
-- `.gitignore` wildcard `nvim-linux64.deb` expanded to `nvim-linux-*.deb` (covers both x86_64 and aarch64).
+- `.gitignore` wildcard `nvim-linux64.deb` expanded to `nvim-linux-*.deb` (covers generated `.deb` artifacts for both x86_64 and ARM64 builds).
 - AGENTS.md stale claims (build artifact name, layout status, inline script examples).
 - CI artifact verification used invalid `find -exit 0` predicate (not a valid GNU findutils option). Replaced with `ls` glob check in `build.sh` and CI workflow. Every CI run previously failed at the verify step regardless of build success.
 - CI never extracted Neovim version from git tags — tag pushes (`v0.13.0`) always built default `0.12.2`. Now uses a priority chain: `workflow_dispatch` input → git tag version → default `0.12.2`.

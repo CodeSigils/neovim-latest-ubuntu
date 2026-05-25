@@ -18,4 +18,4 @@ Reports are acknowledged within 72 hours. You should receive a timeline for revi
 
 ## Supported Versions
 
-The latest release on the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases) is the only supported version. Older releases are not backported — upgrade to the latest to receive fixes.
+The [latest release](https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest) is the only supported version. Older releases are not backported — upgrade to the latest to receive fixes.

@@ -8,6 +8,7 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 - Implemented official-resource audit recommendations: added non-blocking `lintian` audit to `build.yml`, updated CodeQL workflow from v3 to v4, documented package replacement/apt hold behavior in README and RELEASING, and rechecked RELEASING for stale build/release details.
 - Corrected ARM64 release-asset docs back to the actual CPack/GitHub Release filename, `nvim-linux-arm64.deb`; retained `aarch64` only for matrix/runner architecture labels.
 - Investigated lintian's CI `exit code 2`: reproduced in an Ubuntu 24.04 container. It is lintian's normal non-zero findings exit when it reports package-policy errors/warnings (for example empty extended description, malformed maintainer contact, missing copyright/changelog, uncompressed manpage, unstripped binaries, national-encoding, parser shared-library prerequisites). Updated workflow to capture/report the exit code instead of using `continue-on-error`.
+- Corrected README release badge to point to `/releases/latest` and fixed the remaining stale ARM filename explanation in docs/reproducibility.md.
 
 ## 2026-05-24
 
@@ -25,7 +26,7 @@ User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md). Full agen
 - .mailmap added to consolidate contributor attribution.
 - SECURITY.md added with vulnerability reporting policy.
 - Security audit completed — see strategy below.
-- Remaining gaps: ARM64 CI, multi-release track record, provenance attestation.
+- Remaining gaps at the time: ARM64 CI, multi-release track record, provenance attestation. Superseded later by ARM64 CI and provenance attestation work; keep this as historical scratchpad context only.
 
 ---
 
@@ -108,7 +109,7 @@ This fills the gap: latest Neovim, native `.deb`, zero config.
 - This is not a replacement for official Neovim release assets.
 - This is not a distro-quality Debian package (no `debian/` directory, no lintian
   override, no system library linking — it uses upstream's CPack with bundled deps).
-- ARM64 builds are planned but not yet in CI.
+- ARM64 builds are now in CI; this older discussion draft is historical and should be refreshed before posting.
 - Nightly builds are provided (workflow artifacts only — no Release page).
 
 ### Why I'm posting

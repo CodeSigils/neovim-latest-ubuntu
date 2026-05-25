@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![GitHub Releases](https://img.shields.io/github/v/release/CodeSigils/neovim-latest-ubuntu?display_name=tag&sort=semver)](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
+[![GitHub Releases](https://img.shields.io/github/v/release/CodeSigils/neovim-latest-ubuntu?display_name=tag&sort=semver)](https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg?logo=dependabot)](https://github.com/CodeSigils/neovim-latest-ubuntu/network/updates)
 [![CodeQL](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml)
 [![Nightly](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml)
