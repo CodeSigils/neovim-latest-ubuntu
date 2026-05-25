@@ -1,7 +1,7 @@
 # Ubuntu Packaging Resources
 
-**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu.
-**Last updated:** 2026-05-25 (filtered toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation)
+**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:**
+2026-05-25 (filtered toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation)
 
 This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
 project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
@@ -20,26 +20,32 @@ All resources below have been evaluated against five criteria:
 
 ### Primary official sources
 
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|
-| [Neovim Install Docs](https://neovim.io/doc/install/) | Official | v0.10+ | Yes | Yes | Summary only |
-| [Neovim BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md) | Official | Latest | Yes | Yes | Yes |
-| [Neovim v0.12.2 Release](https://github.com/neovim/neovim/releases/tag/v0.12.2/) | Official | Current project default | Yes | Yes | Yes |
-| [Neovim cmake.packaging/CMakeLists.txt](https://github.com/neovim/neovim/blob/master/cmake.packaging/CMakeLists.txt) | Official | Latest | Yes | Yes | CPack fragment |
-| [Neovim release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml) | Official | Latest | Full CI config | Yes | Yes |
-| [PR #22773 — ci!: remove the .deb release](https://github.com/neovim/neovim/pull/22773) | Official merged PR | 2023 / v0.9 context | Yes | N/A | PR context |
-| [neovim/neovim-releases](https://github.com/neovim/neovim-releases) | Official Neovim org | Latest | Yes | Yes | Yes |
+| Resource                                                                                                             | Authoritative       | Current                 | Specific       | Reproducible | Complete       |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------- | ----------------------- | -------------- | ------------ | -------------- |
+| [Neovim Install Docs](https://neovim.io/doc/install/)                                                                | Official            | v0.10+                  | Yes            | Yes          | Summary only   |
+| [Neovim BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md)                                             | Official            | Latest                  | Yes            | Yes          | Yes            |
+| [Neovim v0.12.2 Release](https://github.com/neovim/neovim/releases/tag/v0.12.2/)                                     | Official            | Current project default | Yes            | Yes          | Yes            |
+| [Neovim cmake.packaging/CMakeLists.txt](https://github.com/neovim/neovim/blob/master/cmake.packaging/CMakeLists.txt) | Official            | Latest                  | Yes            | Yes          | CPack fragment |
+| [Neovim release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml)                     | Official            | Latest                  | Full CI config | Yes          | Yes            |
+| [PR #22773 — ci!: remove the .deb release](https://github.com/neovim/neovim/pull/22773)                              | Official merged PR  | 2023 / v0.9 context     | Yes            | N/A          | PR context     |
+| [neovim/neovim-releases](https://github.com/neovim/neovim-releases)                                                  | Official Neovim org | Latest                  | Yes            | Yes          | Yes            |
 
 ### Notes
 
 - Neovim upstream ships its own CPack `.deb` generator config in `cmake.packaging/CMakeLists.txt`.
-- Neovim removed `.deb` files from the main official release workflow in PR #22773 (merged Apr 2023, v0.9). The CPack DEB config remains in source but is no longer published from the main release workflow.
-- `neovim/neovim-releases` is a separate official Neovim-org repository with release automation that can still provide useful packaging context.
-- No separate `debian/` directory exists in upstream Neovim; this project wraps upstream CPack output rather than maintaining Debian archive packaging.
+- Neovim removed `.deb` files from the main official release workflow in PR #22773 (merged Apr 2023, v0.9). The CPack
+  DEB config remains in source but is no longer published from the main release workflow.
+- `neovim/neovim-releases` is a separate official Neovim-org repository with release automation that can still provide
+  useful packaging context.
+- No separate `debian/` directory exists in upstream Neovim; this project wraps upstream CPack output rather than
+  maintaining Debian archive packaging.
 - Upstream maintainer scripts register Neovim via `update-alternatives` in `postinst` and unregister it in `prerm`.
-- Build prerequisites for this repository are declared in `deps/ubuntu-build-deps.txt` and enforced by `scripts/check-dependencies.py`.
-- Bundled dependencies such as libuv, LuaJIT, tree-sitter, and utf8proc compile under `.deps/`, avoiding conflicts with system copies.
-- Ninja is the recommended CMake generator: upstream CI uses it, Neovim's Makefile auto-detects it, and it gives faster/more reliable parallel builds than Unix Makefiles.
+- Build prerequisites for this repository are declared in `deps/ubuntu-build-deps.txt` and enforced by
+  `scripts/check-dependencies.py`.
+- Bundled dependencies such as libuv, LuaJIT, tree-sitter, and utf8proc compile under `.deps/`, avoiding conflicts with
+  system copies.
+- Ninja is the recommended CMake generator: upstream CI uses it, Neovim's Makefile auto-detects it, and it gives
+  faster/more reliable parallel builds than Unix Makefiles.
 
 ### Neovim release CI facts
 
@@ -56,30 +62,36 @@ All resources below have been evaluated against five criteria:
 
 ### Official / highly authoritative
 
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|
-| [Debian Policy Manual](https://www.debian.org/doc/debian-policy/) | Debian official | Latest | Yes | Yes | Complete policy reference |
-| [Debian Developer's Reference §6 — Best Packaging Practices](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) | Debian official | Latest | Yes | Yes | Maintainer best practices |
-| [Debian New Maintainers' Guide](https://www.debian.org/doc/manuals/maint-guide/) | Debian official | Current | Yes | Yes | Introductory packaging guide |
-| [Debian Packaging Tutorial](https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial) | Debian official | Current | Yes | Yes | Tutorial format |
-| [Guide for Debian Maintainers / debmake-doc](https://www.debian.org/doc/manuals/debmake-doc/) | Debian official | Current | Yes | Yes | Modern tooling-focused guide |
-| [Ubuntu Packaging Guide](https://packaging.ubuntu.com/) | Ubuntu official redirect | Latest | Yes | Yes | Ubuntu contributor docs entry point |
-| [Install built packages](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/) | Ubuntu official | Latest | Yes | Yes | Install/test scope only |
+| Resource                                                                                                                                         | Authoritative            | Current | Specific | Reproducible | Complete                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------- | -------- | ------------ | ----------------------------------- |
+| [Debian Policy Manual](https://www.debian.org/doc/debian-policy/)                                                                                | Debian official          | Latest  | Yes      | Yes          | Complete policy reference           |
+| [Debian Developer's Reference §6 — Best Packaging Practices](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) | Debian official          | Latest  | Yes      | Yes          | Maintainer best practices           |
+| [Debian New Maintainers' Guide](https://www.debian.org/doc/manuals/maint-guide/)                                                                 | Debian official          | Current | Yes      | Yes          | Introductory packaging guide        |
+| [Debian Packaging Tutorial](https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial)                                            | Debian official          | Current | Yes      | Yes          | Tutorial format                     |
+| [Guide for Debian Maintainers / debmake-doc](https://www.debian.org/doc/manuals/debmake-doc/)                                                    | Debian official          | Current | Yes      | Yes          | Modern tooling-focused guide        |
+| [Ubuntu Packaging Guide](https://packaging.ubuntu.com/)                                                                                          | Ubuntu official redirect | Latest  | Yes      | Yes          | Ubuntu contributor docs entry point |
+| [Install built packages](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/)                                  | Ubuntu official          | Latest  | Yes      | Yes          | Install/test scope only             |
 
 ### Useful Debian wiki supplement
 
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|
-| [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | Debian project wiki | Latest | Yes | Yes | Wiki supplement |
+| Resource                                                                            | Authoritative       | Current | Specific | Reproducible | Complete        |
+| ----------------------------------------------------------------------------------- | ------------------- | ------- | -------- | ------------ | --------------- |
+| [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | Debian project wiki | Latest  | Yes      | Yes          | Wiki supplement |
 
 ### Key best practices from Debian/Ubuntu sources
 
-1. **Maintainer scripts must be idempotent** — `postinst`, `prerm`, `postrm`, and `preinst` must tolerate repeated or partial runs.
-2. **Avoid prompting during install** — package installation should be non-interactive unless debconf/preseeding is explicitly designed.
-3. **Register alternatives consistently** — `update-alternatives` is appropriate for editor command integration (`vi`, `vim`, `view`, `editor`).
-4. **Declare all runtime shared-library dependencies** — this project relies on `CPACK_DEBIAN_PACKAGE_SHLIBDEPS` / `dpkg-shlibdeps` for auto-detection.
-5. **Do not conflict with Ubuntu archive packages accidentally** — this project is a local/distribution convenience package, not a Debian archive replacement.
-6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health, dependency, alternatives, and uninstall checks.
+1. **Maintainer scripts must be idempotent** — `postinst`, `prerm`, `postrm`, and `preinst` must tolerate repeated or
+   partial runs.
+2. **Avoid prompting during install** — package installation should be non-interactive unless debconf/preseeding is
+   explicitly designed.
+3. **Register alternatives consistently** — `update-alternatives` is appropriate for editor command integration (`vi`,
+   `vim`, `view`, `editor`).
+4. **Declare all runtime shared-library dependencies** — this project relies on `CPACK_DEBIAN_PACKAGE_SHLIBDEPS` /
+   `dpkg-shlibdeps` for auto-detection.
+5. **Do not conflict with Ubuntu archive packages accidentally** — this project is a local/distribution convenience
+   package, not a Debian archive replacement.
+6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health,
+   dependency, alternatives, and uninstall checks.
 
 ---
 
@@ -87,11 +99,11 @@ All resources below have been evaluated against five criteria:
 
 ### Official documentation
 
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|
-| [CMake CPack Documentation — DEB Generator](https://cmake.org/cmake/help/latest/cpack_gen/deb.html) | Kitware official | Latest | Yes | Yes | Complete DEB generator reference |
-| [CPack module documentation](https://cmake.org/cmake/help/latest/module/CPack.html) | Kitware official | Latest | Yes | Yes | Core CPack behavior |
-| [CMake install command](https://cmake.org/cmake/help/latest/command/install.html) | Kitware official | Latest | Yes | Yes | Install rule reference |
+| Resource                                                                                            | Authoritative    | Current | Specific | Reproducible | Complete                         |
+| --------------------------------------------------------------------------------------------------- | ---------------- | ------- | -------- | ------------ | -------------------------------- |
+| [CMake CPack Documentation — DEB Generator](https://cmake.org/cmake/help/latest/cpack_gen/deb.html) | Kitware official | Latest  | Yes      | Yes          | Complete DEB generator reference |
+| [CPack module documentation](https://cmake.org/cmake/help/latest/module/CPack.html)                 | Kitware official | Latest  | Yes      | Yes          | Core CPack behavior              |
+| [CMake install command](https://cmake.org/cmake/help/latest/command/install.html)                   | Kitware official | Latest  | Yes      | Yes          | Install rule reference           |
 
 ### Key CPack variables for DEB
 
@@ -135,11 +147,11 @@ include(CPack)
 
 ### Official documentation
 
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|
-| [Podman installation docs](https://podman.io/docs/installation) | Podman official | Latest | Yes | Yes | Yes |
-| [podman-build manual](https://docs.podman.io/en/latest/markdown/podman-build.1.html) | Podman official | Latest | Yes | Yes | Yes |
-| [Ubuntu Docker image tags](https://hub.docker.com/_/ubuntu) | Ubuntu image official | Latest | Yes | Yes | Image reference only |
+| Resource                                                                             | Authoritative         | Current | Specific | Reproducible | Complete             |
+| ------------------------------------------------------------------------------------ | --------------------- | ------- | -------- | ------------ | -------------------- |
+| [Podman installation docs](https://podman.io/docs/installation)                      | Podman official       | Latest  | Yes      | Yes          | Yes                  |
+| [podman-build manual](https://docs.podman.io/en/latest/markdown/podman-build.1.html) | Podman official       | Latest  | Yes      | Yes          | Yes                  |
+| [Ubuntu Docker image tags](https://hub.docker.com/_/ubuntu)                          | Ubuntu image official | Latest  | Yes      | Yes          | Image reference only |
 
 ---
 
@@ -147,32 +159,42 @@ include(CPack)
 
 ### Official documentation
 
-| Resource | Authoritative | Current | Specific | Reproducible | Complete |
-|---|---|---|---|---|---|---|
-| [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions) | GitHub official | Latest | Yes | Yes | Complete reference |
-| [Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows) | GitHub official | Latest | Yes | Yes | Complete reference |
-| [Using conditions to control job execution](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution) | GitHub official | Latest | Yes | Yes | How-to guide |
+| Resource                                                                                                                                                                     | Authoritative   | Current | Specific | Reproducible | Complete           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------- | -------- | ------------ | ------------------ |
+| [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions)                                                | GitHub official | Latest  | Yes      | Yes          | Complete reference |
+| [Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows)                         | GitHub official | Latest  | Yes      | Yes          | Complete reference |
+| [Using conditions to control job execution](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution) | GitHub official | Latest  | Yes      | Yes          | How-to guide       |
 
 ### Key rules for GitHub Actions YAML parser
 
-1. **Use flat structure under `on.push:`** — The `branches`, `tags`, and `paths-ignore` keywords must be siblings under a single `push:` key. The YAML array/list syntax (`- branches:\n  - main`) is not supported under `push` by GitHub's YAML parser.
-2. **Path filters are NOT evaluated for tag pushes** — Tag pushes always trigger the workflow regardless of `paths-ignore`. Only branch pushes evaluate path filters.
-3. **`paths` and `paths-ignore` are mutually exclusive** — You cannot use both for the same event in a workflow. Use `paths` with `!` prefix for exclusion if you need both include and exclude.
-4. **Branch and path filters compound** — If you define both `branches`/`branches-ignore` and `paths`/`paths-ignore`, the workflow runs only when BOTH filters are satisfied.
+1. **Use flat structure under `on.push:`** — The `branches`, `tags`, and `paths-ignore` keywords must be siblings under
+   a single `push:` key. The YAML array/list syntax (`- branches:\n  - main`) is not supported under `push` by GitHub's
+   YAML parser.
+2. **Path filters are NOT evaluated for tag pushes** — Tag pushes always trigger the workflow regardless of
+   `paths-ignore`. Only branch pushes evaluate path filters.
+3. **`paths` and `paths-ignore` are mutually exclusive** — You cannot use both for the same event in a workflow. Use
+   `paths` with `!` prefix for exclusion if you need both include and exclude.
+4. **Branch and path filters compound** — If you define both `branches`/`branches-ignore` and `paths`/`paths-ignore`,
+   the workflow runs only when BOTH filters are satisfied.
 
 ### CI cycle efficiency analysis
 
-**Before paths-ignore**: Every push to `main` triggered full lint + build matrix (x86_64 + aarch64), consuming ~10 minutes of runner time per run.
+**Before paths-ignore**: Every push to `main` triggered full lint + build matrix (x86_64 + aarch64), consuming ~10
+minutes of runner time per run.
 
-**After paths-ignore**: Doc-only pushes (`*.md`, `LICENSE`, `docs/**`) skip the build pipeline. In the project's first ~48 hours of active development:
+**After paths-ignore**: Doc-only pushes (`*.md`, `LICENSE`, `docs/**`) skip the build pipeline. In the project's first
+~48 hours of active development:
 
 - **13 of 18 main-branch pushes (72%) were doc-only** and would now be skipped
 - **~130 minutes of runner time saved** in this window alone
-- **All other workflows** (staleness guard, author check, CodeQL) still run on doc-only pushes — they have no paths-ignore — to maintain CI integrity
+- **All other workflows** (staleness guard, author check, CodeQL) still run on doc-only pushes — they have no
+  paths-ignore — to maintain CI integrity
 - **PRs always build** (PR trigger has no paths-ignore) — required for branch protection
 - **Tag pushes always build** (path filters not evaluated for tags) — releases never skip
 
-**Verdict**: paths-ignore is highly effective for this project. The high doc-to-code ratio (~3:1) means ~3 of every 4 main-branch pushes skip the 10-min build. The lightweight validation workflows (staleness, author, CodeQL) still validate doc-only changes in ~2 minutes total.
+**Verdict**: paths-ignore is highly effective for this project. The high doc-to-code ratio (~3:1) means ~3 of every 4
+main-branch pushes skip the 10-min build. The lightweight validation workflows (staleness, author, CodeQL) still
+validate doc-only changes in ~2 minutes total.
 
 ---
 

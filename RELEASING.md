@@ -1,7 +1,7 @@
 # Releasing a New Neovim Version
 
-This guide walks you through releasing a new Neovim version as a `.deb` package using this
-repository's CI pipeline. It assumes you have write access to the repository.
+This guide walks you through releasing a new Neovim version as a `.deb` package using this repository's CI pipeline. It
+assumes you have write access to the repository.
 
 ## Overview
 
@@ -12,8 +12,8 @@ When Neovim releases a new stable version (e.g., v0.13.0), you need to:
 3. Let CI build it automatically
 4. Confirm the release is published
 
-That's the happy path. The sections below cover that flow and what to do when you need
-something different (a custom version, a test build, or a local build).
+That's the happy path. The sections below cover that flow and what to do when you need something different (a custom
+version, a test build, or a local build).
 
 Important distinction:
 
@@ -29,8 +29,7 @@ Important distinction:
 
 ## Release a new Neovim version via tag
 
-The CI workflow is triggered by pushing a tag matching `v*`. This is the standard release
-process.
+The CI workflow is triggered by pushing a tag matching `v*`. This is the standard release process.
 
 ### 1. Check the latest Neovim release
 
@@ -42,8 +41,7 @@ curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
   | grep '"tag_name":' | head -1
 ```
 
-Or visit https://github.com/neovim/neovim/releases and look for the latest stable tag
-(e.g., `v0.13.0`).
+Or visit https://github.com/neovim/neovim/releases and look for the latest stable tag (e.g., `v0.13.0`).
 
 ### 2. Tag the new version
 
@@ -61,21 +59,19 @@ That's it. Pushing the tag triggers the CI pipeline (`.github/workflows/build.ym
 
 The pipeline does the following in parallel for both architectures (x86_64 and ARM64):
 
-1. **Lints the scripts** — runs `shellcheck` on `build.sh`/`test.sh` and `hadolint` on
-   `Containerfile`. If lint fails, the build is blocked — no point building a broken package.
-2. **Builds the container image** — installs build tools into `ubuntu:24.04` (pinned to a
-   multi-arch manifest digest so the same Containerfile works on both architectures)
-3. **Runs build.sh** — clones the tagged Neovim version, builds through Neovim's
-   upstream Makefile wrapper (which uses CMake and auto-detects Ninja when available),
-   packages with CPack into a `.deb` (`nvim-linux-x86_64.deb` or `nvim-linux-arm64.deb`)
+1. **Lints the scripts** — runs `shellcheck` on `build.sh`/`test.sh` and `hadolint` on `Containerfile`. If lint fails,
+   the build is blocked — no point building a broken package.
+2. **Builds the container image** — installs build tools into `ubuntu:24.04` (pinned to a multi-arch manifest digest so
+   the same Containerfile works on both architectures)
+3. **Runs build.sh** — clones the tagged Neovim version, builds through Neovim's upstream Makefile wrapper (which uses
+   CMake and auto-detects Ninja when available), packages with CPack into a `.deb` (`nvim-linux-x86_64.deb` or
+   `nvim-linux-arm64.deb`)
 4. **Verifies the artifact** — checks the `.deb` exists in the output directory
 5. **Generates checksums** — produces `SHA256SUMS` alongside the `.deb`
 6. **Audits package metadata** — runs `lintian` as a non-blocking Debian/Ubuntu package-policy audit
-7. **Uploads artifacts** — both the `.deb` and per-arch `SHA256SUMS` are stored as
-   arch-specific workflow artifacts
-8. **Aggregates and releases** — a separate `release` job downloads all arch artifacts,
-   regenerates a combined `SHA256SUMS`, and creates the GitHub Release with both `.deb`
-   files attached as downloadable assets (tag pushes only)
+7. **Uploads artifacts** — both the `.deb` and per-arch `SHA256SUMS` are stored as arch-specific workflow artifacts
+8. **Aggregates and releases** — a separate `release` job downloads all arch artifacts, regenerates a combined
+   `SHA256SUMS`, and creates the GitHub Release with both `.deb` files attached as downloadable assets (tag pushes only)
 
 Monitor the run at: https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 
@@ -83,8 +79,8 @@ Monitor the run at: https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 
 Once CI completes:
 
-- Check the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
-  for the new release with both `.deb` files attached (one per architecture).
+- Check the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases) for the new release with both
+  `.deb` files attached (one per architecture).
 - Verify the checksum to confirm integrity:
 
   ```bash
@@ -93,6 +89,7 @@ Once CI completes:
   curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/download/SHA256SUMS
   sha256sum -c SHA256SUMS
   ```
+
 - Install and verify the package on your architecture:
 
   ```bash
@@ -128,16 +125,15 @@ git push origin main
 
 ## Build a different version (manual dispatch)
 
-If you want to build a specific version (including release candidates like `v0.14.0-rc1`)
-without creating a tag:
+If you want to build a specific version (including release candidates like `v0.14.0-rc1`) without creating a tag:
 
 1. Go to https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml
 2. Click **Run workflow**
 3. Enter the version (e.g., `0.14.0-rc1`)
 4. Click **Run workflow**
 
-CI will build that version and upload the `.deb` as a workflow artifact. It will NOT
-create or refresh a GitHub Release (only tag pushes do that).
+CI will build that version and upload the `.deb` as a workflow artifact. It will NOT create or refresh a GitHub Release
+(only tag pushes do that).
 
 ## Build the latest stable version (local)
 
@@ -164,12 +160,11 @@ podman run --rm -e VERSION=0.14.0 -v "$PWD/output:/output" neovim-builder
 
 ## Nightly Builds
 
-Nightly builds from Neovim's `master` branch run daily (Monday—Sunday) at 06:00 UTC
-via [`nightly.yml`](.github/workflows/nightly.yml). They produce `.deb` packages for
-both x86_64 and ARM64.
+Nightly builds from Neovim's `master` branch run daily (Monday—Sunday) at 06:00 UTC via
+[`nightly.yml`](.github/workflows/nightly.yml). They produce `.deb` packages for both x86_64 and ARM64.
 
-> **Nightly builds do NOT create Releases.** Artifacts are available from the workflow
-> run page and expire after 30 days (workflow-configured retention).
+> **Nightly builds do NOT create Releases.** Artifacts are available from the workflow run page and expire after 30 days
+> (workflow-configured retention).
 
 ### Trigger a manual nightly build
 
@@ -177,8 +172,7 @@ both x86_64 and ARM64.
 2. Click **Run workflow**
 3. Click **Run workflow** again (no input needed)
 
-The workflow builds both architectures, runs the full test suite, and uploads the `.deb`
-files as workflow artifacts.
+The workflow builds both architectures, runs the full test suite, and uploads the `.deb` files as workflow artifacts.
 
 ### Download nightly artifacts
 
@@ -200,16 +194,15 @@ From the workflow run page:
 
 - **Branch**: Neovim `master` (latest development code)
 - **Build type**: `RelWithDebInfo` (optimised with debug info — same as upstream nightly)
-- **Verification**: Same 7-check test suite as stable releases (install, version, smoke,
-  health, dependencies, alternatives, uninstall)
+- **Verification**: Same 7-check test suite as stable releases (install, version, smoke, health, dependencies,
+  alternatives, uninstall)
 - **Architectures**: x86_64 and ARM64 (both must pass)
 
 ## Troubleshooting
 
 ### CI says "No .deb package found"
 
-The artifact verification step checks for `.deb` files in the `output/` directory. Possible
-causes:
+The artifact verification step checks for `.deb` files in the `output/` directory. Possible causes:
 
 - The Neovim version doesn't exist — check `https://github.com/neovim/neovim/releases`
 - A network issue prevented cloning — restart the workflow
@@ -219,20 +212,17 @@ Check the CI run logs for details: the build step output shows the full build lo
 
 ### Tag push didn't trigger CI
 
-Ensure the tag matches the `v*` pattern: `git tag v0.13.0` not `git tag 0.13.0` or
-`git tag neovim-0.13.0`.
+Ensure the tag matches the `v*` pattern: `git tag v0.13.0` not `git tag 0.13.0` or `git tag neovim-0.13.0`.
 
 ### Build succeeded but no release created
 
-Releases are only created on tag pushes, not on branch pushes, scheduled builds, or manual
-dispatch. If you need a GitHub Release entry rather than a workflow artifact, push a tag for
-that version.
+Releases are only created on tag pushes, not on branch pushes, scheduled builds, or manual dispatch. If you need a
+GitHub Release entry rather than a workflow artifact, push a tag for that version.
 
 ### apt wants to replace or downgrade Neovim after install
 
-This project intentionally builds the Debian package name `neovim`, so Ubuntu's archive
-package manager treats it as the system Neovim package. If `apt` later proposes replacing it,
-check the candidate versions:
+This project intentionally builds the Debian package name `neovim`, so Ubuntu's archive package manager treats it as the
+system Neovim package. If `apt` later proposes replacing it, check the candidate versions:
 
 ```bash
 apt policy neovim
@@ -261,8 +251,7 @@ Check which trigger you used and verify the version in the CI logs.
 
 ### "Permission denied" when pushing
 
-You need write access to the repository. If you're using a personal access token, ensure it
-has the `repo` scope.
+You need write access to the repository. If you're using a personal access token, ensure it has the `repo` scope.
 
 ## How it works (for the curious)
 
@@ -311,8 +300,8 @@ GitHub Actions triggers build.yml
 Users download from Releases page
 ```
 
-The build script (`build.sh`), container definition (`Containerfile`), and test script
-(`test.sh`) are all in the repository — you can inspect or run them locally.
+The build script (`build.sh`), container definition (`Containerfile`), and test script (`test.sh`) are all in the
+repository — you can inspect or run them locally.
 
 ## Reference
 
