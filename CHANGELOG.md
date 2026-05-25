@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Staleness guard CI enforcement: new `.github/workflows/staleness.yml` runs the AGENTS.md §11.3 pre-action gate and §11.5 offline drift scan on every push/PR to `main`. Drift (missing files, leaked artifacts, stale dates, missing docs) fails CI.
 - Nightly build documentation: added Nightly Builds section to `RELEASING.md` and §8.7 to `AGENTS.md` covering triggers, artifact download, and key differences from stable releases.
 - Anti-drift hardening: added C11 (RELEASING.md covers nightly) and C12 (nightly.yml exists) to AGENTS.md claim inventory. Pre-action gate, offline drift scan, and CI all enforce these new claims.
+- Dependency source-of-truth manifests: added `deps/ubuntu-build-deps.txt` for manual host prerequisites and `deps/ubuntu-ci-extra-deps.txt` for CI/container-only extras.
+- Dependency consistency check: added `scripts/check-dependencies.py` and wired it into build and staleness CI so README prerequisites, dependency manifests, Containerfile wiring, and build/test script expectations stay aligned.
 
 ### Changed
 
@@ -30,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RELEASING.md: added Nightly Builds section with manual trigger and artifact download instructions.
 - README.md: corrected ARM DEB artifact name from `nvim-linux-arm64.deb` to `nvim-linux-aarch64.deb` (matches `$(uname -m)` output); updated build environment from "Debian clang" to "Ubuntu gcc" (matches 24.04 container); removed `unzip` from prerequisites table (not used in build pipeline).
 - RELEASING.md: clarified nightly artifact retention as "30 days (workflow-configured)" instead of "GitHub's default 90 days".
+- Containerfile now installs build and CI/container dependencies from the committed `deps/*.txt` manifests instead of duplicating package names inline.
+- Authorship guard tightened from blacklist-style agent attribution blocking to strict canonical maintainer author/committer enforcement.
+- README.md and RELEASING.md now point to dependency manifests as source-of-truth files while keeping user-facing install commands readable.
 
 ### Fixed
 
@@ -38,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - docs/resources.md: corrected attribution from `code-of-hephaestus/neovim-builds` to `reaper8055/neovim-builds`.
 - .mailmap: added agent identity mappings for Claude, ChatGPT, and Copilot — all canonicalised to maintainer identity.
 - AGENTS.md: various stale claim fixes and added agent attribution guard (CI-enforced `check-author.yml`).
+- README.md manual build example: added missing `git` prerequisite to match the documented `git clone` flow.
+- docs/build-plan.md: corrected remaining ARM artifact reference from `nvim-linux-arm64.deb` to `nvim-linux-aarch64.deb`.
 
 ## [0.12.2] — 2026-05-22
 
