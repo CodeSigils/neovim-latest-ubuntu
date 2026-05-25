@@ -144,7 +144,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Container build**       | `docker build -t neovim-builder -f Containerfile .` (multi-arch manifest digest)                                                            |
 | **Build execution**       | `docker run --rm -e VERSION=x.y.z -v "$PWD/output:/output" neovim-builder`                                                                  |
 | **Artifact path**         | `/output` mounted to `output/` on host                                                                                                      |
-| **Architecture matrix**   | `x86_64` on `ubuntu-latest` + `aarch64` on `ubuntu-24.04-arm` (both must pass)                                                               |
+| **Architecture matrix**   | `x86_64` on `ubuntu-latest` + `aarch64` on `ubuntu-24.04-arm` (both must pass; target OS Ubuntu 26.04 via container; test runs inside the container to match runtime deps) |
 | **Lint**                  | `shellcheck build.sh test.sh` + `hadolint Containerfile` via `hadolint/hadolint-action@v3.3.0`                                              |
 | **Verification**          | `ls output/*.deb` before upload (fail-fast) per arch                                                                                        |
 | **Checksums**             | `sha256sum *.deb > SHA256SUMS` after verification (per arch)                                                                                |

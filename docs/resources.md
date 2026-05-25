@@ -73,6 +73,7 @@ All resources below have been evaluated against five criteria:
 | [Ubuntu Packaging Guide](https://packaging.ubuntu.com/)                                                                                          | Ubuntu official redirect | Latest  | Yes      | Yes          | Ubuntu contributor docs entry point |
 | [Install built packages](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/)                                  | Ubuntu official          | Latest  | Yes      | Yes          | Install/test scope only             |
 | [Ubuntu 26.04 LTS Release Notes](https://discourse.ubuntu.com/t/resolute-raccoon-release-notes/)                                                | Ubuntu official          | 26.04   | Yes      | Yes          | Release notes / changes             |
+| [GitHub Actions runner images](https://github.com/actions/runner-images)                                                                     | GitHub official          | 26.04   | Yes      | N/A          | Runner image reference              |
 
 ### Useful Debian wiki supplement
 
@@ -94,6 +95,32 @@ All resources below have been evaluated against five criteria:
    package, not a Debian archive replacement.
 6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health,
    dependency, alternatives, and uninstall checks.
+
+### Ubuntu 26.04 (Resolute Raccoon) packaging notes
+
+Target distribution is Ubuntu 26.04 LTS (Resolute Raccoon), with build and test running inside a pinned
+`ubuntu:26.04` container. Key characteristics relevant to .deb packaging:
+
+| Component     | Ubuntu 26.04 | Note                                                                 |
+| ------------- | ------------ | -------------------------------------------------------------------- |
+| glibc (libc6) | 2.43         | Up from 2.39 in 24.04 — packages built on 26.04 require libc6 >= 2.43 |
+| GCC           | 15           | libgcc-s1 from GCC 15; C23 language features available               |
+| dpkg          | 1.22.x       | usrmerge-aware; improved dpkg-shlibdeps                              |
+| apt           | 2.9.x        | UI improvements, performance                                          |
+| lintian       | 2.117–2.118  | Updated usrmerge policy checks                                        |
+| Python        | 3.13         | Default interpreter; may affect build-time scripts                    |
+| OpenSSL       | 3.x          | System TLS library                                                    |
+
+**Packaging toolchain notes:**
+
+- `dpkg-shlibdeps` emits versioned deps like `libc6 (>= 2.43)` — packages built on 26.04 will NOT install on 24.04
+  (glibc 2.39) or older. This is expected and correct for a native LTS package.
+- usrmerge (merged `/usr`) is complete in 26.04 — `/lib` and `/usr/lib` are the same filesystem. CPack and dpkg
+  handle this transparently.
+- GCC 15 ABI is backward-compatible; `libgcc-s1 (>= 3.3)` still covers all modern GCC versions.
+- Lintian runs on the GitHub Actions runner (currently ubuntu-24.04), not inside the build container. This is
+  acceptable for advisory/audit purposes. To get 26.04-accurate lintian results, run lintian inside the container.
+- The container digest is pinned via SHA256 for reproducibility; refresh per docs/reproducibility.md.
 
 ---
 

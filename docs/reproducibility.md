@@ -136,16 +136,17 @@ If `test.sh` passes all checks, the build is reproducible.
 
 ## Cross-Architecture Considerations
 
-The CI runs on `ubuntu-latest` GitHub Actions runners (x86_64; ARM64 uses `ubuntu-24.04-arm` as no
-`ubuntu-latest-arm` exists yet). The container provides the actual build environment (pinned to the
-current Ubuntu LTS).
+The CI runs on GitHub Actions runners with the build and test executed inside a
+reproducible `ubuntu:26.04` container. The runner OS does not need to match the target OS:
+x86_64 builds use `ubuntu-latest` runners; ARM64 uses `ubuntu-24.04-arm` (no `ubuntu-26.04-arm`
+runner is available yet). The container provides the actual build and test environment.
 
 The CI matrix builds on two architectures:
 
 | Architecture    | CI Runner          | `.deb` filename         |
 | --------------- | ------------------ | ----------------------- |
 | x86_64          | `ubuntu-latest`     | `nvim-linux-x86_64.deb`  |
-| aarch64 / ARM64 | `ubuntu-24.04-arm` | `nvim-linux-arm64.deb`  |
+| aarch64 / ARM64 | `ubuntu-24.04-arm` (target OS: Ubuntu 26.04 via container) | `nvim-linux-arm64.deb`  |
 
 The ARM runner/build matrix uses the `aarch64` architecture label, while the generated CPack `.deb` filename and Debian
 package metadata both use the Debian/Ubuntu architecture name `arm64`.
@@ -153,6 +154,32 @@ package metadata both use the Debian/Ubuntu architecture name `arm64`.
 Both architectures use the same `Containerfile` (the multi-arch manifest digest resolves to the correct platform image),
 the same `build.sh` parameters, and the same `test.sh` verification. The only difference is the binary itself — compiled
 for the target ISA.
+
+### Verification runs inside the build container
+
+Test verification (`test.sh`) runs **inside the same container** that built the `.deb`, not on the host runner. This
+is intentional: the container's runtime libraries match the build environment's. If the `.deb` declares `libc6 >= 2.43`
+(from Ubuntu 26.04), the test environment has exactly that version. Without this pattern, runner-side testing would
+fail because the runner (ubuntu-24.04) has an older glibc (2.39) that can't satisfy the package's dependencies.
+
+The CI workflow achieves this with:
+
+```yaml
+- name: Test .deb package
+  run: |
+    docker run neovim-builder \
+      bash /tmp/test.sh /output/$(ls output/*.deb | xargs -n1 basename)
+```
+
+### Future: ubuntu-26.04 runner adoption
+
+When GitHub releases `ubuntu-26.04` and `ubuntu-26.04-arm` runner images, update:
+
+- `build.yml` / `nightly.yml`: change ARM64 runner from `ubuntu-24.04-arm` to `ubuntu-26.04-arm`
+- `build.yml`: `ubuntu-latest` will auto-roll to `ubuntu-26.04` once GitHub updates the alias
+- This file: update the runner table to remove the `(no ... runner is available yet)` notation
+
+Monitor: https://github.com/actions/runner-images
 
 ## References
 
