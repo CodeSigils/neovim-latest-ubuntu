@@ -92,6 +92,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Base image**: Containerfile now uses `ubuntu:26.04@sha256:f3d28607...` (Ubuntu 26.04 LTS Resolute Raccoon). The build environment now runs on the current Ubuntu LTS.
 - **CI runners** remain `ubuntu-24.04` / `ubuntu-24.04-arm` (GitHub has not yet released `ubuntu-26.04` runners). The container provides the actual build environment.
 - All documentation references updated from Ubuntu 24.04 to 26.04.
+- **Ubuntu version centralization**: Set `UBUNTU_VERSION` and `UBUNTU_CODENAME` as GitHub repo variables — single source of truth for CI. Containerfile uses `ARG UBUNTU_VERSION` (configurable via `--build-arg`).
+- **CI runners**: x86_64 switched to `ubuntu-latest` (auto-rolls with GitHub's LTS); ARM64 remains `ubuntu-24.04-arm`. Documentation uses "Ubuntu LTS" where version was just descriptive context, reducing stale-reference maintenance.
 
 ## [0.12.2] — 2026-05-22
 

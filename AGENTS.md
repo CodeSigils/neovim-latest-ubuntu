@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-25 (Ubuntu 26.04 LTS base image migration)
+**Last updated:** 2026-05-25 (Ubuntu LTS version centralization + `ubuntu-latest` runners)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -73,13 +73,13 @@
 
 ## Current Status
 
-> Audit snapshot: 2026-05-25 (Ubuntu 26.04 LTS base image migration; CI verified, build & release pipeline operational)
+> Audit snapshot: 2026-05-25 (Ubuntu LTS variables + `ubuntu-latest` runners; CI verified, build & release pipeline operational)
 
-- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman `ubuntu:26.04` container. All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
+- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman container (Ubuntu LTS base image; see Containerfile for current version). All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
 - **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
-- **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned to `ubuntu:26.04@sha256:f3d28607...` for reproducible builds.
+- **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned via digest for reproducible builds; version configurable via `ARG UBUNTU_VERSION` (default: `26.04`).
 - **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in the build workflow and staleness guard to fail on drift between docs, manifests, Containerfile, and script expectations.
 - **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Findings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
@@ -613,6 +613,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Release badge target corrected | README release badge now links directly to `/releases/latest`; docs/reproducibility.md stale ARM filename explanation corrected to use `arm64` for actual `.deb` filenames. |
 | 2026-05-25 | paths-ignore efficiency + YAML validation lint step | Added `paths-ignore` to `build.yml` push trigger (doc-only pushes skip ~72% of main-branch CI runs = ~130 min saved). Added `scripts/check-yaml-syntax.py` + CI step validating all workflow YAML files. Fixed docs/build-plan.md §5 incorrect claim about tag pushes respecting paths-ignore (GitHub does NOT evaluate path filters for tags). Added §8.8 Workflow Quality Checks, C14 claim inventory, and decision log entry. Documented flat-structure rule for GitHub Actions YAML parser. |
 | 2026-05-25 | Migrate to Ubuntu 26.04 LTS base image | Updated Containerfile to `ubuntu:26.04@sha256:f3d28607...`. CI runners remain `ubuntu-24.04` (GH runner not available). Updated all docs, changelog, and resources to reflect current LTS. |
+| 2026-05-25 | Ubuntu LTS version centralization + `ubuntu-latest` runners | Set `UBUNTU_VERSION`/`UBUNTU_CODENAME` repo variables (single source of truth). Switched CI runners to `ubuntu-latest` (x86_64). Containerfile uses `ARG UBUNTU_VERSION`. Docs generified to "Ubuntu LTS" where version was just descriptive context. |
 
 ### 11. Staleness & Drift Guard
 

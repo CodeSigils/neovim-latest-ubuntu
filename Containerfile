@@ -1,10 +1,14 @@
-# Pin to multi-arch manifest list digest so the same Containerfile works
-# on both x86_64 and arm64 runners (Docker auto-selects per platform).
-# To update: docker pull ubuntu:26.04, then get the manifest list digest with
-# `docker inspect --format='{{index .RepoDigests 0}}' ubuntu:26.04`.
-FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+# Default Ubuntu version (override via --build-arg in CI).
+# To update: docker pull ubuntu:${UBUNTU_VERSION}, then get the manifest list
+# digest with `docker inspect --format='{{index .RepoDigests 0}}' ubuntu:${UBUNTU_VERSION}`.
+ARG UBUNTU_VERSION=26.04
+FROM ubuntu:${UBUNTU_VERSION}@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 
+ARG UBUNTU_VERSION
+ARG UBUNTU_CODENAME="Resolute Raccoon"
 LABEL description="Neovim build environment"
+LABEL ubuntu.version=${UBUNTU_VERSION}
+LABEL ubuntu.codename=${UBUNTU_CODENAME}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

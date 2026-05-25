@@ -50,7 +50,7 @@ The pipeline runs in parallel for **x86_64** and **ARM64**:
 
 1. **Lint** — `shellcheck` on `build.sh`/`test.sh`, `hadolint` on `Containerfile`, YAML syntax validation.
    If lint fails, the build is blocked.
-2. **Build** — Container image builds from `ubuntu:26.04`, then `build.sh` clones
+2. **Build** — Container image builds from the Ubuntu LTS base image, then `build.sh` clones
    Neovim at the tagged version, builds through its upstream Makefile wrapper
    (CMake + Ninja), and packages with CPack into a `.deb`.
 3. **Verify** — Checks the `.deb` exists, generates `SHA256SUMS`, runs the full

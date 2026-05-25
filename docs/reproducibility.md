@@ -20,17 +20,17 @@ they don't affect correctness or functionality.
 
 ### 1. Pinned Base Image
 
-The `Containerfile` pins the base image to a specific SHA256 digest of `ubuntu:26.04`:
+The `Containerfile` pins the base image to a specific SHA256 digest of the current Ubuntu LTS:
 
 ```dockerfile
-FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+FROM ubuntu:${UBUNTU_VERSION}@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 ```
 
 This means every build — whether on a developer's workstation, a CI runner, or a different day — starts from the exact
 same operating system image with the exact same toolchain versions. The pinning digest is the multi-arch manifest list,
 so the same `Containerfile` selects the correct platform-specific image on both x86_64 and ARM64.
 
-**How to update**: When `ubuntu:26.04` needs a security refresh, run:
+**How to update**: When the base image needs a security refresh, run:
 
 ```bash
 docker pull ubuntu:26.04
@@ -91,7 +91,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned `ubuntu:26.04`
+- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned base image
   image will produce packages that pass identical verification checks and behave identically at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
@@ -136,14 +136,15 @@ If `test.sh` passes all checks, the build is reproducible.
 
 ## Cross-Architecture Considerations
 
-The CI runs on `ubuntu-24.04` GitHub Actions runners (no `ubuntu-26.04` runner available yet).
-The container provides the actual build environment (`ubuntu:26.04`).
+The CI runs on `ubuntu-latest` GitHub Actions runners (x86_64; ARM64 uses `ubuntu-24.04-arm` as no
+`ubuntu-latest-arm` exists yet). The container provides the actual build environment (pinned to the
+current Ubuntu LTS).
 
 The CI matrix builds on two architectures:
 
 | Architecture    | CI Runner          | `.deb` filename         |
 | --------------- | ------------------ | ----------------------- |
-| x86_64          | `ubuntu-24.04`     | `nvim-linux-x86_64.deb` |
+| x86_64          | `ubuntu-latest`     | `nvim-linux-x86_64.deb`  |
 | aarch64 / ARM64 | `ubuntu-24.04-arm` | `nvim-linux-arm64.deb`  |
 
 The ARM runner/build matrix uses the `aarch64` architecture label, while the generated CPack `.deb` filename and Debian

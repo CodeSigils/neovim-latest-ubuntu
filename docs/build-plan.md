@@ -18,7 +18,7 @@ Not using:
 
 ### 2.1 Build Dependencies
 
-Install on the build host (Ubuntu 26.04 Resolute Raccoon or compatible). Source of truth:
+Install on the build host (Ubuntu LTS or compatible). Source of truth:
 [`deps/ubuntu-build-deps.txt`](../deps/ubuntu-build-deps.txt).
 
 ```bash
@@ -110,7 +110,7 @@ VERSION=latest ./build.sh           # Auto-detect latest stable
 All verification occurs in a **Podman container** matching the target OS. This ensures reproducibility and isolates from
 host system state.
 
-Container image: `ubuntu:26.04`.
+Container image: currently `ubuntu:26.04` (see Containerfile for current version).
 
 ### 4.2 Verification Checklist
 
@@ -122,7 +122,7 @@ Container image: `ubuntu:26.04`.
 - [x] `update-alternatives` registers (check `vi --version` points to nvim)
 - [x] Package uninstalls cleanly: `dpkg -r Neovim`
 
-> All checks passed on 2026-05-22 inside a Podman `ubuntu:26.04` container. Build: Neovim v0.12.2,
+> All checks passed on 2026-05-22 inside a Podman `ubuntu:26.04` container (Containerfile defines the current version). Build: Neovim v0.12.2,
 > `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64 via CI).
 
 ### 4.3 Test Script (for automation)
@@ -144,7 +144,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Container build**       | `docker build -t neovim-builder -f Containerfile .` (multi-arch manifest digest)                                                            |
 | **Build execution**       | `docker run --rm -e VERSION=x.y.z -v "$PWD/output:/output" neovim-builder`                                                                  |
 | **Artifact path**         | `/output` mounted to `output/` on host                                                                                                      |
-| **Architecture matrix**   | `x86_64` on `ubuntu-24.04` + `aarch64` on `ubuntu-24.04-arm` (both must pass)                                                               |
+| **Architecture matrix**   | `x86_64` on `ubuntu-latest` + `aarch64` on `ubuntu-24.04-arm` (both must pass)                                                               |
 | **Lint**                  | `shellcheck build.sh test.sh` + `hadolint Containerfile` via `hadolint/hadolint-action@v3.3.0`                                              |
 | **Verification**          | `ls output/*.deb` before upload (fail-fast) per arch                                                                                        |
 | **Checksums**             | `sha256sum *.deb > SHA256SUMS` after verification (per arch)                                                                                |
