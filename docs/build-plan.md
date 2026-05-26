@@ -1,7 +1,7 @@
 # Build Plan — Neovim Latest deb Package
 
 **Document type:** Plan (design document — implemented and verified) **Status:** Implemented — verified 2026-05-22
-**Last updated:** 2026-05-25
+**Last updated:** 2026-05-26
 
 ## 1. Approach
 
@@ -151,9 +151,9 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Package-policy audit**  | Non-blocking `lintian` run per built `.deb` so Debian/Ubuntu policy findings are visible without blocking CPack convenience packages        |
 | **Artifact upload**       | `actions/upload-artifact@v7` with arch-specific name (`nvim-linux-deb-${{ matrix.arch }}`)                                                  |
 | **Release aggregation**   | Separate `release` job downloads all arch artifacts, generates combined `SHA256SUMS`, creates Release with `softprops/action-gh-release@v3` |
-| **Trigger (branch push)** | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**]` — doc-only commits skip the pipeline                                     |
+| **Trigger (branch push)** | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**, .mailmap, .github/workflows/staleness.yml, .github/workflows/check-author.yml]` — doc/metadata/workflow-edit pushes skip the build pipeline, but excluded workflows (staleness, author guard) still run via their own triggers |
 | **Trigger (tag push)**    | `tags: ['v*']` — path filters NOT evaluated for tags (GitHub Actions behavior); tag pushes always build                                     |
-| **Trigger (PR)**          | `pull_request: [main]` with same doc-only `paths-ignore` as branch pushes; code/workflow changes still run lint + build                     |
+| **Trigger (PR)**          | `pull_request: [main]` with same `paths-ignore` as branch pushes; code/workflow changes still run lint + build                     |
 | **Trigger (schedule)**    | Weekly Monday 06:00 UTC — builds `latest` stable                                                                                            |
 
 **Key principle**: Keep artifact paths explicit at every boundary — container, host workspace, artifact upload, and release aggregation.
@@ -193,7 +193,7 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 
 1. **Tag push** (`git tag v0.13.0 && git push origin v0.13.0`) → CI builds matrix (x86_64 + aarch64) → release job
    aggregates artifacts
-2. **Main push** (non-doc changes) → CI builds matrix; doc-only pushes (`*.md`, `LICENSE`, `docs/**`) skip the pipeline
+2. **Main push** (non-doc changes) → CI builds matrix; doc/metadata/workflow-only pushes (`*.md`, `LICENSE`, `docs/**`, `.mailmap`, `staleness.yml`, `check-author.yml`) skip the pipeline (each skipped workflow runs independently)
 3. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-arm64.deb`) uploaded as release assets with
    combined SHA256SUMS
 4. **Users** → download the correct `.deb` for their architecture from Releases page and install via `dpkg -i`
