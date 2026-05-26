@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-26 (Package revision suffix support implemented)
+**Last updated:** 2026-05-26 (Build paths-ignore extended + check-upstream fix)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -521,7 +521,7 @@ The lint job in `build.yml` enforces these quality gates on every PR and branch 
 3. Path filters (`paths-ignore` / `paths`) are evaluated for branch pushes only — tag pushes always build regardless.
 4. Add the YAML validation command to any new workflow's lint job if it runs on push/PR triggers.
 
-**CI cycle efficiency**: The `paths-ignore` filter on `build.yml` skips doc-only pushes and doc-only PRs targeting `main` (`*.md`, `LICENSE`, `docs/**`), saving expensive build minutes. All other workflows (staleness, author check, CodeQL) still run on doc-only pushes to maintain CI integrity. Tag pushes always build fully because GitHub does not evaluate path filters for tag pushes.
+**CI cycle efficiency**: The `paths-ignore` filter on `build.yml` skips pushes/PRs that only touch doc or metadata files (`*.md`, `LICENSE`, `docs/**`, `.mailmap`), as well as edits to `staleness.yml` or `check-author.yml` (each has its own `on.push` trigger and runs independently). Tag pushes always build fully because GitHub does not evaluate path filters for tag pushes.
 
 ### 9. Guardrails (Must Not Do)
 
@@ -633,6 +633,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Release version policy documented | Releases track upstream Neovim tags exactly; existing tags are immutable; packaging suffix tags require explicit package-revision support before use. |
 | 2026-05-25 | Release readiness gate added | Added `scripts/check-release-readiness.sh` and tests; build workflow lint job now runs the release-readiness test suite. |
 | 2026-05-26 | Package revision suffix support | Tags now accept `vX.Y.Z-N` format for rebuilds. Release readiness gate, version extraction, and upstream link all handle the suffix. Former limitation removed. |
+| 2026-05-26 | Build paths-ignore extended + check-upstream fix | Added `staleness.yml`, `check-author.yml`, `.mailmap` to Build's `paths-ignore` so editing these files doesn't trigger the full 225s container build. Fixed `check-upstream.yml` version comparison to strip `-N` suffix before comparing — prevents false-positive new-release PRs when latest tag has a revision suffix. |
 
 ### 11. Staleness & Drift Guard
 

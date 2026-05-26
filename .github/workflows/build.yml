@@ -10,6 +10,7 @@ on:
       - 'docs/**'
       - '.github/workflows/staleness.yml'
       - '.github/workflows/check-author.yml'
+      - '.mailmap'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -18,6 +19,7 @@ on:
       - 'docs/**'
       - '.github/workflows/staleness.yml'
       - '.github/workflows/check-author.yml'
+      - '.mailmap'
   schedule:
     - cron: '0 6 * * 1'   # Weekly: Monday 06:00 UTC — builds latest stable
   workflow_dispatch:
