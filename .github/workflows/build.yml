@@ -133,15 +133,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends lintian
-          DEB=$(ls output/*.deb | head -1)
-          echo "Running non-blocking lintian audit: $DEB"
           set +e
-          lintian "$DEB"
-          lintian_status=$?
+          for deb in output/*.deb; do
+            echo "Running non-blocking lintian audit: $deb"
+            lintian "$deb"
+            lintian_status=$?
+            if [ "$lintian_status" -ne 0 ]; then
+              echo "lintian reported package-policy findings for $deb (exit $lintian_status); continuing because this is an advisory audit for a CPack convenience package."
+            fi
+          done
           set -e
-          if [ "$lintian_status" -ne 0 ]; then
-            echo "lintian reported package-policy findings (exit $lintian_status); continuing because this is an advisory audit for a CPack convenience package."
-          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
