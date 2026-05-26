@@ -81,7 +81,9 @@ class ReleaseReadinessTests(unittest.TestCase):
             set -euo pipefail
             case "${{1:-}} ${{2:-}}" in
               "auth status") exit 0 ;;
-              "variable list") printf 'UBUNTU_VERSION\t26.04\nUBUNTU_CODENAME\tResolute Raccoon\n'; exit 0 ;;
+              # Mock fixture — values are placeholders, not assertions.
+            # The script only checks that these variables EXIST, not their values.
+            "variable list") printf 'UBUNTU_VERSION\t26.04\nUBUNTU_CODENAME\tResolute Raccoon\n'; exit 0 ;;
               "release view") {release_view_exit} ;;
               *) printf 'unexpected gh call: %s\n' "$*" >&2; exit 1 ;;
             esac

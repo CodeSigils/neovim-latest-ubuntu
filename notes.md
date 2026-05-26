@@ -10,12 +10,13 @@ Full agent instructions in [`AGENTS.md`](./AGENTS.md).
 - Existing tags/releases are immutable; do not reuse `v0.12.2` for rebuilds.
 - Packaging suffix tags require explicit package-revision support before use.
 
-
 ## 2026-05-25 — Release readiness gate
 
 - Added `scripts/check-release-readiness.sh` as a read-only pre-tag gate.
 - Added `tests/test_release_readiness.py` and wired it into the build workflow lint job.
 
-## Active
+## 2026-05-26 — Mock values in test_release_readiness.py
 
-- None.
+- Confirmed: mock values for UBUNTU_VERSION and UBUNTU_CODENAME are placeholders, not assertions.
+- The script only checks that repo variables EXIST, not their values — no need for abstraction.
+- Added clarifying comment to the mock so nobody worries about stale values.
