@@ -10,6 +10,12 @@ Full agent instructions in [`AGENTS.md`](./AGENTS.md).
 - Existing tags/releases are immutable; do not reuse `v0.12.2` for rebuilds.
 - Packaging suffix tags require explicit package-revision support before use.
 
+
+## 2026-05-25 — Release readiness gate
+
+- Added `scripts/check-release-readiness.sh` as a read-only pre-tag gate.
+- Added `tests/test_release_readiness.py` and wired it into the build workflow lint job.
+
 ## Active
 
 - None.

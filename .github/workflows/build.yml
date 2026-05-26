@@ -40,6 +40,8 @@ jobs:
         run: shellcheck build.sh test.sh
       - name: Validate YAML workflow syntax
         run: python3 scripts/check-yaml-syntax.py
+      - name: Run release readiness tests
+        run: python3 tests/test_release_readiness.py
       - name: Run hadolint
         uses: hadolint/hadolint-action@v3.3.0
         with:

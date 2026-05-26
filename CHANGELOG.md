@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Release readiness gate: added `scripts/check-release-readiness.sh` plus tests to verify release policy before tagging.
 - Nightly builds: new `.github/workflows/nightly.yml` runs daily at 06:00 UTC, building Neovim's `master` branch on both
   `x86_64` and `aarch64`. Artifacts are uploaded (no release page). `build.sh` now supports `VERSION=nightly`.
 - Nightly artifact cleanup: artifacts auto-expire after 30 days (`retention-days: 30`) — prevents clutter from 2

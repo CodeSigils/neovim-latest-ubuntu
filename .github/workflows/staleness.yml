@@ -75,6 +75,16 @@ jobs:
             errors=$((errors+1))
           fi
 
+          # C16: Release readiness gate exists and has tests
+          if [ ! -x scripts/check-release-readiness.sh ]; then
+            echo "::error title=DRIFT C16::scripts/check-release-readiness.sh missing or not executable"
+            errors=$((errors+1))
+          fi
+          if [ ! -f tests/test_release_readiness.py ]; then
+            echo "::error title=DRIFT C16::tests/test_release_readiness.py missing"
+            errors=$((errors+1))
+          fi
+
           echo "Pre-Action Gate: $errors error(s)"
           echo "gate_errors=$errors" >> "$GITHUB_OUTPUT"
 
@@ -125,6 +135,19 @@ jobs:
           # C13: check-author.yml exists
           if [ ! -f .github/workflows/check-author.yml ]; then
             echo "::error title=FILE MISSING::.github/workflows/check-author.yml"
+            errors=$((errors+1))
+          fi
+
+          # C16: release readiness gate exists and tests pass
+          if [ ! -x scripts/check-release-readiness.sh ]; then
+            echo "::error title=FILE MISSING::scripts/check-release-readiness.sh missing or not executable"
+            errors=$((errors+1))
+          fi
+          if [ ! -f tests/test_release_readiness.py ]; then
+            echo "::error title=FILE MISSING::tests/test_release_readiness.py"
+            errors=$((errors+1))
+          elif ! python3 tests/test_release_readiness.py; then
+            echo "::error title=TEST FAILURE::release readiness tests failed"
             errors=$((errors+1))
           fi
 

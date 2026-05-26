@@ -53,6 +53,14 @@ leading `v` and passes the rest to `build.sh` as the upstream Neovim version, so
 a suffix tag would make CI look for an upstream version that likely does not
 exist.
 
+Run the read-only readiness gate before tagging:
+
+```bash
+scripts/check-release-readiness.sh 0.13.0
+```
+
+Only tag when it prints `READY`.
+
 ### 1. Confirm the version exists
 
 ```bash

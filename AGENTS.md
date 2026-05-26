@@ -46,8 +46,11 @@
 │   ├── ubuntu-build-deps.txt    ← Source of truth for manual host prerequisites (README + docs)
 │   └── ubuntu-ci-extra-deps.txt ← Extra packages required only by CI/container automation
 ├── scripts/
-│   ├── check-dependencies.py    ← Enforces dependency-list consistency across docs + CI
-│   └── check-yaml-syntax.py     ← Validates YAML in all workflow files via yaml.safe_load()
+│   ├── check-dependencies.py        ← Enforces dependency-list consistency across docs + CI
+│   ├── check-release-readiness.sh   ← Read-only pre-tag release gate
+│   └── check-yaml-syntax.py         ← Validates YAML in all workflow files via yaml.safe_load()
+├── tests/
+│   └── test_release_readiness.py    ← Unit tests for release-readiness policy checks
 ├── .githooks/
 │   └── prepare-commit-msg       ← Git hook that strips AI agent attribution trailers from commit messages
 ├── .github/            ← CI workflow configuration
@@ -82,6 +85,7 @@
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned via digest for reproducible builds; version configurable via `ARG UBUNTU_VERSION` (default: `26.04`).
 - **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in the build workflow and staleness guard to fail on drift between docs, manifests, Containerfile, and script expectations.
+- **Release readiness gate** — `scripts/check-release-readiness.sh` is a read-only pre-tag check that enforces upstream tag alignment, immutable existing tags/releases, repo variable presence, clean git state, and local validation checks before publishing. Tests live in `tests/test_release_readiness.py` and run in the build workflow lint job.
 - **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Findings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
@@ -448,6 +452,7 @@ release lifecycle:
   If upstream latest is already released here, wait for the next upstream release.
 - Do not use packaging suffix tags such as `v0.12.2-1` unless package-revision support is added first;
   today the workflow passes the stripped tag directly to `build.sh` as the upstream Neovim version.
+- Run `scripts/check-release-readiness.sh <version>` before pushing a release tag.
 - For manual dispatch, the `version` input overrides this
 - `build.sh` supports `VERSION=latest` to auto-fetch the latest stable tag via GitHub API
 - Both matrix jobs (x86_64, aarch64) receive the same version parameter from the same priority chain
@@ -504,6 +509,7 @@ The lint job in `build.yml` enforces these quality gates on every PR and branch 
 | Shell script lint | `shellcheck` | `build.sh`, `test.sh` | POSIX shell correctness, common bugs |
 | Containerfile lint | `hadolint` | `Containerfile` | Dockerfile best practices, security |
 | Dependency consistency | `scripts/check-dependencies.py` | `deps/*.txt`, docs, `Containerfile` | No drift between source-of-truth manifests and documentation |
+| Release readiness tests | `python3 tests/test_release_readiness.py` | `scripts/check-release-readiness.sh` | Pre-tag release policy stays executable and tested |
 
 **When editing workflow files (`.github/workflows/*.yml`):**
 
@@ -622,6 +628,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Doc-only PR build skip | Added the same `paths-ignore` rules to `build.yml` pull_request trigger so doc-only PRs skip the expensive build workflow; code/workflow PRs still build. |
 | 2026-05-25 | Doc-only PR build skip verified | Temporary PR #10 changed only `notes.md`; Author Attribution Guard, Staleness Guard, and CodeQL ran/passed while `Build Neovim deb Package` did not run. PR closed without merge and branch deleted. |
 | 2026-05-25 | Release version policy documented | Releases track upstream Neovim tags exactly; existing tags are immutable; packaging suffix tags require explicit package-revision support before use. |
+| 2026-05-25 | Release readiness gate added | Added `scripts/check-release-readiness.sh` and tests; build workflow lint job now runs the release-readiness test suite. |
 
 ### 11. Staleness & Drift Guard
 
@@ -653,6 +660,7 @@ command that proves or disproves the claim.
 | C13 | §9.1, check-author.yml | Author attribution guard CI-enforced | `test -f .github/workflows/check-author.yml` — file exists |
 | C14 | §8.8, build.yml lint job | Workflow YAML files parse correctly | `python3 scripts/check-yaml-syntax.py` — exit code 0 |
 | C15 | Current Status §, docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption" | ubuntu-26.04-arm runner availability tracked for future migration | Manual check: visit https://github.com/actions/runner-images — if `ubuntu-26.04` listed, time to update ARM runner labels |
+| C16 | §8.3, §8.8, release readiness files | Release-readiness gate exists and tests pass | `test -x scripts/check-release-readiness.sh && python3 tests/test_release_readiness.py` — exit code 0 |
 
 #### 11.2 Drift-Prone Sections (highest risk)
 

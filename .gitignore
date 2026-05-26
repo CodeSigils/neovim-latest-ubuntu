@@ -102,6 +102,10 @@ notes.txt
 .omo
 .open-mem
 
+# Python generated files
+__pycache__/
+*.py[cod]
+
 # Project generated artifacts
 docs/research/
 nvim-linux-*.deb
