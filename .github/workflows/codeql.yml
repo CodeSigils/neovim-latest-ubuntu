@@ -10,14 +10,8 @@ on:
       - '.gitattributes'
       - '.gitignore'
       - '.githooks/**'
-      - '.github/dependabot.yml'
-      - '.github/workflows/build.yml'
-      - '.github/workflows/nightly.yml'
-      - '.github/workflows/staleness.yml'
-      - '.github/workflows/check-author.yml'
-      - '.github/workflows/codeql.yml'
-      - '.github/workflows/check-upstream.yml'
       - '.mailmap'
+      - '.github/dependabot.yml'
   pull_request:
     branches: [main]
   schedule:
@@ -38,14 +32,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Cache CodeQL CLI
-        uses: actions/cache@v4
-        with:
-          path: ~/.codeql
-          key: ${{ runner.os }}-codeql-${{ hashFiles('.github/workflows/codeql.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-codeql-
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
