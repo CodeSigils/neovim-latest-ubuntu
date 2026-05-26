@@ -61,8 +61,8 @@ Before any build runs, the CI workflow validates:
 - **shellcheck** on `build.sh` and `test.sh` — catches scripting errors
 - **hadolint** on `Containerfile` — catches container anti-patterns
 
-These lints ensure the build scripts are deterministic and well-formed. A ShellCheck-clean script is much less likely
-to depend on accidental shell behavior.
+These lints ensure the build scripts are deterministic and well-formed. A ShellCheck-clean script is much less likely to
+depend on accidental shell behavior.
 
 ### 4. Verification Checklist (test.sh)
 
@@ -91,8 +91,8 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned base image
-  image will produce packages that pass identical verification checks and behave identically at runtime.
+- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned base image image
+  will produce packages that pass identical verification checks and behave identically at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
 - **Cross-architecture consistency**: The same build runs for x86_64 and ARM64. The verification checklist is identical.
@@ -136,16 +136,16 @@ If `test.sh` passes all checks, the build is reproducible.
 
 ## Cross-Architecture Considerations
 
-The CI runs on GitHub Actions runners with the build and test executed inside a
-reproducible `ubuntu:26.04` container. The runner OS does not need to match the target OS:
-x86_64 builds use `ubuntu-latest` runners; ARM64 uses `ubuntu-24.04-arm` (no `ubuntu-26.04-arm`
-runner is available yet). The container provides the actual build and test environment.
+The CI runs on GitHub Actions runners with the build and test executed inside a reproducible `ubuntu:26.04` container.
+The runner OS does not need to match the target OS: x86_64 builds use `ubuntu-latest` runners; ARM64 uses
+`ubuntu-24.04-arm` (no `ubuntu-26.04-arm` runner is available yet). The container provides the actual build and test
+environment.
 
 The CI matrix builds on two architectures:
 
-| Architecture    | CI Runner          | `.deb` filename         |
-| --------------- | ------------------ | ----------------------- |
-| x86_64          | `ubuntu-latest`     | `nvim-linux-x86_64.deb`  |
+| Architecture    | CI Runner                                                  | `.deb` filename         |
+| --------------- | ---------------------------------------------------------- | ----------------------- |
+| x86_64          | `ubuntu-latest`                                            | `nvim-linux-x86_64.deb` |
 | aarch64 / ARM64 | `ubuntu-24.04-arm` (target OS: Ubuntu 26.04 via container) | `nvim-linux-arm64.deb`  |
 
 The ARM runner/build matrix uses the `aarch64` architecture label, while the generated CPack `.deb` filename and Debian
@@ -157,10 +157,10 @@ for the target ISA.
 
 ### Verification runs inside the build container
 
-Test verification (`test.sh`) runs **inside the same container** that built the `.deb`, not on the host runner. This
-is intentional: the container's runtime libraries match the build environment's. If the `.deb` declares `libc6 >= 2.43`
-(from Ubuntu 26.04), the test environment has exactly that version. Without this pattern, runner-side testing would
-fail because the runner (ubuntu-24.04) has an older glibc (2.39) that can't satisfy the package's dependencies.
+Test verification (`test.sh`) runs **inside the same container** that built the `.deb`, not on the host runner. This is
+intentional: the container's runtime libraries match the build environment's. If the `.deb` declares `libc6 >= 2.43`
+(from Ubuntu 26.04), the test environment has exactly that version. Without this pattern, runner-side testing would fail
+because the runner (ubuntu-24.04) has an older glibc (2.39) that can't satisfy the package's dependencies.
 
 The CI workflow achieves this with:
 

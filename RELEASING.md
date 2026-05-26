@@ -1,21 +1,20 @@
 # Releasing a New Neovim Version
 
-This guide covers every way to build and distribute Neovim as a `.deb` package via
-this repository's CI pipeline — from a one-command tag push (the happy path) to
-local container builds for testing.
+This guide covers every way to build and distribute Neovim as a `.deb` package via this repository's CI pipeline — from
+a one-command tag push (the happy path) to local container builds for testing.
 
 ## Quick reference
 
-| Method | Trigger | Creates Release? | Use when |
-|--------|---------|-----------------|----------|
-| Tag push | `git push origin v0.13.0` | Yes | Official stable release |
-| Manual dispatch | Actions tab → Run workflow | No | RC, pre-release, or ad-hoc build |
-| Schedule | Weekly cron (Mon 06:00 UTC) | No | Latest stable, automated |
-| Nightly | Daily cron (06:00 UTC) | No | Track master branch |
-| Local build | `./build.sh 0.13.0` | — | Testing, unreleased versions |
+| Method          | Trigger                     | Creates Release? | Use when                         |
+| --------------- | --------------------------- | ---------------- | -------------------------------- |
+| Tag push        | `git push origin v0.13.0`   | Yes              | Official stable release          |
+| Manual dispatch | Actions tab → Run workflow  | No               | RC, pre-release, or ad-hoc build |
+| Schedule        | Weekly cron (Mon 06:00 UTC) | No               | Latest stable, automated         |
+| Nightly         | Daily cron (06:00 UTC)      | No               | Track master branch              |
+| Local build     | `./build.sh 0.13.0`         | —                | Testing, unreleased versions     |
 
-> **Tag pushes are the only trigger that creates a GitHub Release.** All other
-> methods upload `.deb` artifacts to the workflow run page instead.
+> **Tag pushes are the only trigger that creates a GitHub Release.** All other methods upload `.deb` artifacts to the
+> workflow run page instead.
 
 ---
 
@@ -25,10 +24,9 @@ The standard release flow. Push a tag and let CI do the rest.
 
 ### Release version policy
 
-This project currently tracks upstream Neovim stable versions exactly. Use the
-same tag as upstream, for example `v0.13.0`, and create a GitHub Release only
-when that upstream release exists and this repository has not already released
-the same tag.
+This project currently tracks upstream Neovim stable versions exactly. Use the same tag as upstream, for example
+`v0.13.0`, and create a GitHub Release only when that upstream release exists and this repository has not already
+released the same tag.
 
 Before tagging, check both upstream and this repository:
 
@@ -43,17 +41,16 @@ git ls-remote --tags origin 'v*'
 gh release list --limit 20
 ```
 
-Do not reuse an existing tag. Published tags and Releases are treated as
-immutable.
+Do not reuse an existing tag. Published tags and Releases are treated as immutable.
 
 Tags now support two formats:
-- `vX.Y.Z` — exact upstream Neovim version (e.g., `v0.13.0`) for a first-time build.
-- `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim
-  version (packaging fix, base image update, etc.). The revision number `N` resets per version.
 
-The release readiness gate and CI workflow both handle the revision suffix correctly:
-the base Neovim version is extracted for upstream comparison and source checkout, while the
-full tag is used for the GitHub Release.
+- `vX.Y.Z` — exact upstream Neovim version (e.g., `v0.13.0`) for a first-time build.
+- `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim version (packaging fix, base
+  image update, etc.). The revision number `N` resets per version.
+
+The release readiness gate and CI workflow both handle the revision suffix correctly: the base Neovim version is
+extracted for upstream comparison and source checkout, while the full tag is used for the GitHub Release.
 
 Run the read-only readiness gate before tagging:
 
@@ -70,8 +67,8 @@ curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
   | grep '"tag_name":' | head -1
 ```
 
-Or visit [neovim/neovim/releases](https://github.com/neovim/neovim/releases)
-and look for the latest stable tag (e.g. `v0.13.0`).
+Or visit [neovim/neovim/releases](https://github.com/neovim/neovim/releases) and look for the latest stable tag (e.g.
+`v0.13.0`).
 
 ### 2. Tag and push
 
@@ -88,22 +85,21 @@ Watch the run at https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 
 The pipeline runs in parallel for **x86_64** and **ARM64**:
 
-1. **Lint** — `shellcheck` on `build.sh`/`test.sh`, `hadolint` on `Containerfile`, YAML syntax validation.
-   If lint fails, the build is blocked.
-2. **Build** — Container image builds from the Ubuntu LTS base image, then `build.sh` clones
-   Neovim at the tagged version, builds through its upstream Makefile wrapper
-   (CMake + Ninja), and packages with CPack into a `.deb`.
-3. **Verify** — Checks the `.deb` exists, generates `SHA256SUMS`, runs the full
-   7-check test suite, and performs a non-blocking `lintian` package-policy audit.
-4. **Release** — Aggregates both architecture artifacts, regenerates a combined
-   `SHA256SUMS`, attests provenance, and creates a GitHub Release with all assets attached.
+1. **Lint** — `shellcheck` on `build.sh`/`test.sh`, `hadolint` on `Containerfile`, YAML syntax validation. If lint
+   fails, the build is blocked.
+2. **Build** — Container image builds from the Ubuntu LTS base image, then `build.sh` clones Neovim at the tagged
+   version, builds through its upstream Makefile wrapper (CMake + Ninja), and packages with CPack into a `.deb`.
+3. **Verify** — Checks the `.deb` exists, generates `SHA256SUMS`, runs the full 7-check test suite, and performs a
+   non-blocking `lintian` package-policy audit.
+4. **Release** — Aggregates both architecture artifacts, regenerates a combined `SHA256SUMS`, attests provenance, and
+   creates a GitHub Release with all assets attached.
 
 ### 4. Verify the release
 
 Once CI finishes:
 
-- Check the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases)
-  for the new entry with both `.deb` files attached.
+- Check the [Releases page](https://github.com/CodeSigils/neovim-latest-ubuntu/releases) for the new entry with both
+  `.deb` files attached.
 - Verify integrity:
 
   ```bash
@@ -143,16 +139,14 @@ git push origin main
 
 ## Build a specific version (manual dispatch)
 
-Use the Actions tab to build any version — including release candidates like
-`v0.14.0-rc1` — without creating a tag.
+Use the Actions tab to build any version — including release candidates like `v0.14.0-rc1` — without creating a tag.
 
 1. Go to https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml
 2. Click **Run workflow**
 3. Enter the version (e.g. `0.14.0-rc1`)
 4. Click **Run workflow**
 
-CI builds that version and uploads the `.deb` as a workflow artifact. No Release
-will be created — use this for testing.
+CI builds that version and uploads the `.deb` as a workflow artifact. No Release will be created — use this for testing.
 
 ---
 
@@ -181,16 +175,15 @@ podman run --rm -e VERSION=0.14.0 -v "$PWD/output:/output" neovim-builder
 
 ## Nightly builds
 
-Neovim's `master` branch is built daily at **06:00 UTC** (every day) via
-[`nightly.yml`](.github/workflows/nightly.yml). Both architectures are built.
+Neovim's `master` branch is built daily at **06:00 UTC** (every day) via [`nightly.yml`](.github/workflows/nightly.yml).
+Both architectures are built.
 
-> **Nightlies do not create Releases.** Artifacts are available from the workflow
-> run page and expire after 30 days.
+> **Nightlies do not create Releases.** Artifacts are available from the workflow run page and expire after 30 days.
 
 ### Trigger a manual nightly
 
-Go to https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml
-and click **Run workflow** (no input needed).
+Go to https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml and click **Run workflow** (no
+input needed).
 
 ### Download nightly artifacts
 
@@ -207,12 +200,12 @@ and click **Run workflow** (no input needed).
 
 ### What gets built
 
-| | |
-|---|---|
-| **Branch** | Neovim `master` |
-| **Build type** | `RelWithDebInfo` (optimised with debug info) |
-| **Verification** | Same 7-check suite as stable releases |
-| **Architectures** | x86_64 + ARM64 (both must pass) |
+|                   |                                              |
+| ----------------- | -------------------------------------------- |
+| **Branch**        | Neovim `master`                              |
+| **Build type**    | `RelWithDebInfo` (optimised with debug info) |
+| **Verification**  | Same 7-check suite as stable releases        |
+| **Architectures** | x86_64 + ARM64 (both must pass)              |
 
 ---
 
@@ -232,14 +225,13 @@ Tags must match the `v*` pattern. Use `git tag v0.13.0`, not `0.13.0` or `neovim
 
 ### Build succeeded but no release created
 
-Releases are only created on tag pushes. If you used manual dispatch, scheduled
-build, or a branch push, the `.deb` is stored as a workflow artifact only.
-Push a tag to create a Release.
+Releases are only created on tag pushes. If you used manual dispatch, scheduled build, or a branch push, the `.deb` is
+stored as a workflow artifact only. Push a tag to create a Release.
 
 ### apt wants to replace or downgrade Neovim
 
-This project intentionally uses the Debian package name `neovim` so Ubuntu's
-package manager treats it as the system package. To pin it:
+This project intentionally uses the Debian package name `neovim` so Ubuntu's package manager treats it as the system
+package. To pin it:
 
 ```bash
 sudo apt-mark hold neovim
@@ -260,8 +252,7 @@ Check which trigger you used and verify the version in the CI logs.
 
 ### "Permission denied" when pushing
 
-You need write access to the repository. If using a personal access token,
-ensure it has the `repo` scope.
+You need write access to the repository. If using a personal access token, ensure it has the `repo` scope.
 
 ---
 

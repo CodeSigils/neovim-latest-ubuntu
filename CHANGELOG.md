@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Package revision suffix support: tags now accept `vX.Y.Z-N` format (e.g. `v0.12.2-1`) for rebuilds of the same Neovim version. The release readiness gate, version extraction, and upstream release link all handle the suffix correctly.
+- Package revision suffix support: tags now accept `vX.Y.Z-N` format (e.g. `v0.12.2-1`) for rebuilds of the same Neovim
+  version. The release readiness gate, version extraction, and upstream release link all handle the suffix correctly.
 
 - Release readiness gate: added `scripts/check-release-readiness.sh` plus tests to verify release policy before tagging.
 - Nightly builds: new `.github/workflows/nightly.yml` runs daily at 06:00 UTC, building Neovim's `master` branch on both
@@ -19,14 +20,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Nightly failure alerts: failed nightly builds create a GitHub issue with label `nightly`, linking to the failed run.
   Duplicate-protected — no new issue if one is already open.
 - Nightly success auto-close: when the nightly build recovers after a failure, the open failure issue is automatically
-  commented and closed. This keeps the feedback loop clean — old issues don't linger, new failures always create an issue.
+  commented and closed. This keeps the feedback loop clean — old issues don't linger, new failures always create an
+  issue.
 - Auto-update PR on new upstream release: the `check-upstream` workflow now opens a PR with version bumps, CHANGELOG
   entry, and documentation updates when a newer Neovim release is detected (instead of just filing an issue).
 - CodeQL scanning for GitHub Actions workflows: runs weekly and on every PR/push to `main`.
-- Multi-arch CI matrix: stable builds now run on both `x86_64` (`ubuntu-latest`) and `aarch64`
-  (`ubuntu-24.04-arm`) in parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
-- Release body template: Release notes now use a curated static body with install, integrity-check, upstream release notes,
-  and `:help news` links.
+- Multi-arch CI matrix: stable builds now run on both `x86_64` (`ubuntu-latest`) and `aarch64` (`ubuntu-24.04-arm`) in
+  parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
+- Release body template: Release notes now use a curated static body with install, integrity-check, upstream release
+  notes, and `:help news` links.
 - Staleness guard CI enforcement: new `.github/workflows/staleness.yml` runs the AGENTS.md §11.3 pre-action gate and
   §11.5 offline drift scan on every push/PR to `main`. Drift (missing files, leaked artifacts, stale dates, missing
   docs) fails CI.
@@ -47,13 +49,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Nightly build runner labels updated from `ubuntu-24.04` to `ubuntu-latest` for x86_64 and report-failure jobs. Updated comment to reflect that `ubuntu-latest` now maps to ubuntu-26.04.
-- Nightly build now runs hadolint and shellcheck in a lint job before building (catches Containerfile/bash issues early).
-- Build workflow `paths-ignore` extended: `.github/workflows/staleness.yml`, `.github/workflows/check-author.yml`, `.github/workflows/nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, and `.github/dependabot.yml` changes no longer trigger the full container build.
-- Build workflow lintian audit now loops over all `.deb` files instead of auditing only the first one alphabetically. Aligned with Debian Developer's Reference §6 best practices.
-- `check-upstream.yml` version comparison now strips `-N` revision suffix before comparing against our tags — prevents false-positive new-release PRs when the latest local tag has a revision suffix (e.g. `v0.12.2-1`).
-- RELEASING.md now documents release-version policy: stable GitHub Releases track upstream Neovim tags exactly,
-  existing tags are immutable, and packaging suffix tags require explicit workflow support before use.
+- Nightly build runner labels updated from `ubuntu-24.04` to `ubuntu-latest` for x86_64 and report-failure jobs. Updated
+  comment to reflect that `ubuntu-latest` now maps to ubuntu-26.04.
+- Nightly build now runs hadolint and shellcheck in a lint job before building (catches Containerfile/bash issues
+  early).
+- Build workflow `paths-ignore` extended: `.github/workflows/staleness.yml`, `.github/workflows/check-author.yml`,
+  `.github/workflows/nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, and
+  `.github/dependabot.yml` changes no longer trigger the full container build.
+- Build workflow lintian audit now loops over all `.deb` files instead of auditing only the first one alphabetically.
+  Aligned with Debian Developer's Reference §6 best practices.
+- `check-upstream.yml` version comparison now strips `-N` revision suffix before comparing against our tags — prevents
+  false-positive new-release PRs when the latest local tag has a revision suffix (e.g. `v0.12.2-1`).
+- RELEASING.md now documents release-version policy: stable GitHub Releases track upstream Neovim tags exactly, existing
+  tags are immutable, and packaging suffix tags require explicit workflow support before use.
 - Containerfile base image pin updated from amd64-specific digest to multi-arch manifest list digest — same
   `Containerfile` now works on both architectures.
 - ARM builds now enforce pass requirement: `continue-on-error: true` removed. Both architectures must succeed for a
@@ -87,7 +95,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Release page upstream resource links: replaced a broken Neovim changelog URL and XML news URL with the upstream
   release notes page and HTML `:help news` page.
-- Documentation audit: corrected stale release-template, runner-label, AGENTS.md authorship, and reproducibility snippets.
+- Documentation audit: corrected stale release-template, runner-label, AGENTS.md authorship, and reproducibility
+  snippets.
 - PR trigger efficiency: doc-only pull requests now skip the expensive build workflow using the same path filters as
   doc-only pushes. Verified with temporary PR #10; non-build checks still ran and passed.
 - docs/reproducibility.md: corrected verification checklist count from "six" to "seven" checks.
@@ -106,11 +115,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Base image**: Containerfile now uses `ubuntu:26.04@sha256:f3d28607...` (Ubuntu 26.04 LTS Resolute Raccoon). The build environment now runs on the current Ubuntu LTS.
-- **CI runners** remain `ubuntu-24.04` / `ubuntu-24.04-arm` (GitHub has not yet released `ubuntu-26.04` runners). The container provides the actual build environment.
+- **Base image**: Containerfile now uses `ubuntu:26.04@sha256:f3d28607...` (Ubuntu 26.04 LTS Resolute Raccoon). The
+  build environment now runs on the current Ubuntu LTS.
+- **CI runners** remain `ubuntu-24.04` / `ubuntu-24.04-arm` (GitHub has not yet released `ubuntu-26.04` runners). The
+  container provides the actual build environment.
 - All documentation references updated from Ubuntu 24.04 to 26.04.
-- **Ubuntu version centralization**: Set `UBUNTU_VERSION` and `UBUNTU_CODENAME` as GitHub repo variables — single source of truth for CI. Containerfile uses `ARG UBUNTU_VERSION` (configurable via `--build-arg`).
-- **CI runners**: x86_64 switched to `ubuntu-latest` (auto-rolls with GitHub's LTS); ARM64 remains `ubuntu-24.04-arm`. Documentation uses "Ubuntu LTS" where version was just descriptive context, reducing stale-reference maintenance.
+- **Ubuntu version centralization**: Set `UBUNTU_VERSION` and `UBUNTU_CODENAME` as GitHub repo variables — single source
+  of truth for CI. Containerfile uses `ARG UBUNTU_VERSION` (configurable via `--build-arg`).
+- **CI runners**: x86_64 switched to `ubuntu-latest` (auto-rolls with GitHub's LTS); ARM64 remains `ubuntu-24.04-arm`.
+  Documentation uses "Ubuntu LTS" where version was just descriptive context, reducing stale-reference maintenance.
 
 ## [0.12.2] — 2026-05-22
 

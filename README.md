@@ -135,10 +135,10 @@ podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 ./test.sh output/nvim-linux-x86_64.deb
 ```
 
-The container image (pinned to the current Ubuntu LTS in the Containerfile) includes all build prerequisites and runs [`build.sh`](./build.sh) on startup. Set
-`VERSION` via `-e` to build a specific release; defaults to the version in `build.sh`. Use `VERSION=latest` to build the
-latest stable release (the CI workflow uses this for its weekly scheduled build). The `-v "$(pwd)/output:/output"` mount
-ensures the `.deb` appears in the `output/` directory on your host.
+The container image (pinned to the current Ubuntu LTS in the Containerfile) includes all build prerequisites and runs
+[`build.sh`](./build.sh) on startup. Set `VERSION` via `-e` to build a specific release; defaults to the version in
+`build.sh`. Use `VERSION=latest` to build the latest stable release (the CI workflow uses this for its weekly scheduled
+build). The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in the `output/` directory on your host.
 
 ### Build Output
 
@@ -154,14 +154,15 @@ Build verification and technical information:
 
 ### Build environment
 
-The container build runs inside the Ubuntu LTS base image (pinned via digest in Containerfile) and currently produces packages for both supported CI architectures:
+The container build runs inside the Ubuntu LTS base image (pinned via digest in Containerfile) and currently produces
+packages for both supported CI architectures:
 
 - x86_64
 - aarch64
 
 Compiler, target triple, and resolved runtime dependency details come from the specific build environment and package
-metadata at build time, so they may change as the base image is refreshed. For repo-stable facts, treat the
-workflow matrix and the generated package itself as the source of truth rather than a hard-coded snapshot.
+metadata at build time, so they may change as the base image is refreshed. For repo-stable facts, treat the workflow
+matrix and the generated package itself as the source of truth rather than a hard-coded snapshot.
 
 ### Verification Checklist
 
@@ -206,4 +207,3 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
 - **[CHANGELOG.md](./CHANGELOG.md)** — Release history (user-facing)
-
