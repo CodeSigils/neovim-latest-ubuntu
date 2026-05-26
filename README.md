@@ -204,4 +204,5 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 - **[AGENTS.md](./AGENTS.md)** — Full agent instructions, research findings, design decisions, staleness guard
 - **[docs/build-plan.md](./docs/build-plan.md)** — Build pipeline details, test strategy, versioning approach
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
+- **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
 - **[CHANGELOG.md](./CHANGELOG.md)** — Release history (user-facing)

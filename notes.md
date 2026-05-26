@@ -1,20 +1,16 @@
-# Agent notes
+# notes.md — Agent scratchpad
 
-## Session: 2026-05-26 — paths-ignore extensions + nightly cleanup
+## 2026-05-26 — Doc drift cleanup
 
-### Part 1: git metadata, hooks, dependabot
-Extended Build's `paths-ignore` with 4 file categories:
-- `.gitignore` / `.gitattributes` — git configuration only
-- `.githooks/**` — local git hooks
-- `.github/dependabot.yml` — Dependabot service config
+Fixed 4 doc drifts found during audit:
+1. docs/build-plan.md §5 — paths-ignore table missing `.mailmap`
+2. docs/build-plan.md §5 — No `workflow_dispatch` trigger row
+3. docs/build-plan.md §5 — Lint description only had 2 of 5 checks
+4. README.md — Documentation section missing `docs/reproducibility.md`
 
-### Part 2: nightly.yml cleanup + paths-ignore
-- Updated runner labels: `ubuntu-24.04` → `ubuntu-latest` (x86_64 + report-failure)
-- Updated glibc comment to reflect ubuntu-latest → 26.04
-- Added `nightly.yml` to Build's `paths-ignore` (same pattern as staleness/author)
-- Updated CHANGELOG, AGENTS.md (CI efficiency + decision log), docs/build-plan.md
+All fixes verified against actual state. Git tree clean pending commit.
 
-### Current Build paths-ignore list:
-`*.md`, `LICENSE`, `docs/**`, `.gitignore`, `.gitattributes`, `.githooks/**`,
-`.github/dependabot.yml`, `.github/workflows/nightly.yml`,
-`.github/workflows/staleness.yml`, `.github/workflows/check-author.yml`, `.mailmap`
+### Upstream release watch
+
+- check-upstream.yml runs weekly (Mon 06:30 UTC)
+- On detection: auto-creates PR with version bump
