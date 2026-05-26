@@ -1,7 +1,7 @@
 # Ubuntu Packaging Resources
 
 **Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:**
-2026-05-25 (filtered toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation) **Base distribution:**
+2026-05-26 (added Category 6: CodeQL best practices) (filtered toward official Neovim, Debian, Ubuntu, CMake, and Podman documentation) **Base distribution:**
 Ubuntu 26.04 LTS (Resolute Raccoon)
 
 This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
@@ -225,6 +225,43 @@ minutes of runner time per run.
 **Verdict**: paths-ignore is highly effective for this project. The high doc-to-code ratio (~3:1) means ~3 of every 4
 main-branch pushes skip the 10-min build. The lightweight validation workflows (staleness, author, CodeQL) still
 validate doc-only changes in ~2 minutes total.
+
+---
+
+## Category 6: CodeQL / code scanning
+
+### Official documentation
+
+| Resource                                                                                                                                                           | Authoritative          | Current | Specific             | Reproducible | Complete                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | ------- | -------------------- | ------------ | ------------------------- |
+| [github/codeql-action](https://github.com/github/codeql-action)                                                                                                    | GitHub official        | Latest  | Yes                  | Yes          | Action reference + README |
+| [About code scanning with CodeQL](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-code-scanning-with-codeql)                          | GitHub Docs (concept)  | Latest  | Yes                  | Yes          | Conceptual overview       |
+| [CodeQL code scanning for compiled languages](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-codeql-code-scanning-for-compiled-languages) | GitHub Docs (concept)  | Latest  | Yes (C/C++ specific) | Yes          | Build modes + caching     |
+| [CodeQL query suites](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-query-suites)                                                 | GitHub Docs (concept)  | Latest  | Yes                  | Yes          | Default / security-extended / security-and-quality |
+| [Configuring advanced setup](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configuring-advanced-setup-for-code-scanning) | GitHub Docs (how-to)   | Latest  | Yes                  | Yes          | Step-by-step guide        |
+| [CodeQL CLI](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-the-codeql-cli)                                                          | GitHub Docs (concept)  | Latest  | Yes                  | Yes          | CLI reference             |
+| [CodeQL documentation](https://codeql.github.com/docs/)                                                                                                           | CodeQL official        | Latest  | Yes                  | Yes          | Full reference            |
+| [CodeQL init action.yml](https://github.com/github/codeql-action/blob/main/init/action.yml)                                                                        | GitHub official (code) | Latest  | All input parameters | Yes          | Action YAML spec          |
+
+### Key best practices for this project
+
+1. **Use `security-extended` over `security-and-quality` for the `actions` language** — The `actions` language (GitHub Actions YAML workflows) is a relatively small analysis surface (~1000 lines across 6 workflow files). `security-and-quality` adds code-quality queries that generate noise on workflow files without meaningful security signal. `security-extended` catches all relevant security vulnerabilities with fewer false positives.
+
+2. **paths-ignore must NOT exclude workflow files** — CodeQL's purpose is to analyze workflow file changes for security issues. Excluding `.github/workflows/*.yml` from CodeQL's paths-ignore defeats its purpose. Build.yml's paths-ignore excludes workflow files to save build minutes; CodeQL's should only exclude doc/metadata files. Independent trigger lists serve different purposes.
+
+3. **Pin to major version, not SHA** — Reference `github/codeql-action/init@v4` and `github/codeql-action/analyze@v4` (not a commit SHA). Dependabot will keep the major-version tag updated. This ensures bug fixes and new query definitions are picked up automatically.
+
+4. **Use `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true`** — GitHub Actions is migrating from Node 20 to Node 24. Setting this env var opt-in to the Node 24 runtime now, avoiding breakage when the default switches.
+
+5. **Schedule analysis weekly, not daily** — CodeQL runs on every push to main anyway. The schedule trigger exists to catch dormant code (no push activity). Weekly (Monday 06:45 UTC) is sufficient; daily burns minutes on idle repos.
+
+6. **Use `permissions:` explicitly** — CodeQL needs `security-events: write` to upload results and `contents: read` to checkout code. Setting these explicitly follows least-privilege and avoids issues with GITHUB_TOKEN defaults changing.
+
+7. **Single-language job for `actions`** — The `actions` language is analyzed alone (not in a matrix with C/C++ or other languages). This keeps the job fast (~54s) and avoids unnecessary build steps. The `actions` query pack doesn't require compilation.
+
+8. **No CLI caching for the `actions` language** — For the `actions` language (~1000 lines across 6 YAML files), the CodeQL CLI download is fast enough (a few seconds) that a caching step adds complexity with negligible benefit. The real savings come from paths-ignore skipping doc-only pushes entirely.
+
+9. **Dependency caching is for compiled languages** — CodeQL dependency caching (https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-codeql-code-scanning-for-compiled-languages#about-dependency-caching-for-codeql) applies to compiled languages like C/C++, Java, Go, Rust, and Swift — not to the `actions` language. If this project adds C/C++ CodeQL analysis in the future, consider caching Go module dependencies or other build artifacts.
 
 ---
 
