@@ -40,7 +40,8 @@ jobs:
           if [ -z "$OUR_TAG" ]; then
             echo "version=none" >> "$GITHUB_OUTPUT"
           else
-            echo "version=${OUR_TAG#v}" >> "$GITHUB_OUTPUT"
+            RAW_VERSION="${OUR_TAG#v}"
+            echo "version=${RAW_VERSION%%-*}" >> "$GITHUB_OUTPUT"
             echo "tag=$OUR_TAG" >> "$GITHUB_OUTPUT"
           fi
 
