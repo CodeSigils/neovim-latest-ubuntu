@@ -1,14 +1,16 @@
-# notes.md — Agent Scratchpad / Task-Level Record
+# Agent notes
 
-**Purpose:** Internal agent scratchpad — lightweight task-level change log. Not user-facing.
-User-facing release history lives in [`CHANGELOG.md`](./CHANGELOG.md).
-Full agent instructions in [`AGENTS.md`](./AGENTS.md).
+## Session: 2026-05-26 — paths-ignore: exclude git metadata, hooks, dependabot
 
-## 2026-05-26 — CI trigger optimizations + check-upstream fix
+Extended Build's `paths-ignore` with 4 additional file categories that
+have zero build impact:
 
-- Added `staleness.yml`, `check-author.yml`, `.mailmap` to Build's
-  `paths-ignore` so editing these files doesn't trigger the full build.
-  Each excluded workflow has its own `on.push` trigger.
-- Fixed `check-upstream.yml` version comparison to strip `-N` suffix
-  before comparing against upstream tags.
-- Enabled delete-branch-on-merge in repo settings.
+- `.gitignore` and `.gitattributes` — git configuration only
+- `.githooks/**` — local git hooks
+- `.github/dependabot.yml` — Dependabot service config
+
+Patched build.yml, CHANGELOG.md, AGENTS.md (CI efficiency + decision log),
+docs/build-plan.md (table + §8.1).
+
+Pushing only these changes (no non-excluded files touched) will **not**
+trigger a Build — only Staleness, CodeQL, and Author Attribution will run.
