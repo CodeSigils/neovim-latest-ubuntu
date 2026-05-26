@@ -26,6 +26,17 @@ fi
 REQUESTED="${1#v}"
 TAG="v${REQUESTED}"
 
+# Package revision suffix support: if REQUESTED is "0.12.2-1", extract
+# BASE_VERSION="0.12.2" for upstream Neovim comparisons.
+if [[ "$REQUESTED" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+  BASE_VERSION="${BASH_REMATCH[1]}"
+  PKG_REVISION="${BASH_REMATCH[2]}"
+else
+  BASE_VERSION="$REQUESTED"
+  PKG_REVISION=""
+fi
+BASE_TAG="v${BASE_VERSION}"
+
 blockers=()
 warnings=()
 
@@ -61,8 +72,8 @@ for cmd in git gh curl python3; do
   fi
 done
 
-if [[ ! "$REQUESTED" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  add_blocker "Unsupported release version format: ${REQUESTED} (expected X.Y.Z; package-revision suffixes are not supported yet)"
+if [[ ! "$REQUESTED" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$ ]]; then
+  add_blocker "Unsupported release version format: ${REQUESTED} (expected X.Y.Z or X.Y.Z-N)"
 fi
 
 if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -119,8 +130,8 @@ if command_exists curl && command_exists python3; then
     | python3 -c 'import json,sys; print(json.load(sys.stdin).get("tag_name", ""))' 2>/dev/null || true)"
   if [[ -z "$upstream_tag" ]]; then
     add_blocker "Could not determine latest upstream Neovim release"
-  elif [[ "$upstream_tag" != "$TAG" ]]; then
-    add_blocker "Requested tag ${TAG} does not match latest upstream Neovim release ${upstream_tag}"
+  elif [[ "$upstream_tag" != "$BASE_TAG" ]]; then
+    add_blocker "Requested tag ${TAG} (base Neovim ${BASE_TAG}) does not match latest upstream Neovim release ${upstream_tag}"
   fi
 fi
 
@@ -128,16 +139,16 @@ if [[ -f build.sh ]]; then
   default_version="$(sed -n 's/^VERSION="${1:-${VERSION:-\([^}]*\)}}"$/\1/p' build.sh | head -1)"
   if [[ -z "$default_version" ]]; then
     add_warning "Could not parse build.sh default version; verify manually"
-  elif [[ "$default_version" != "$REQUESTED" ]]; then
-    add_blocker "build.sh default version is ${default_version}, expected ${REQUESTED}"
+  elif [[ "$default_version" != "$BASE_VERSION" ]]; then
+    add_blocker "build.sh default version is ${default_version}, expected ${BASE_VERSION}"
   fi
 else
   add_blocker "build.sh missing"
 fi
 
 if [[ -f CHANGELOG.md ]]; then
-  if ! grep -Eq "(${REQUESTED}|${TAG})" CHANGELOG.md; then
-    add_blocker "CHANGELOG.md does not mention ${REQUESTED}/${TAG}"
+  if ! grep -Eq "(${REQUESTED}|${TAG}|${BASE_VERSION}|${BASE_TAG})" CHANGELOG.md; then
+    add_blocker "CHANGELOG.md does not mention ${REQUESTED}/${TAG} (or base ${BASE_VERSION})"
   fi
 else
   add_blocker "CHANGELOG.md missing"

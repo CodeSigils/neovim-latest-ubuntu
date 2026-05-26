@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Package revision suffix support: tags now accept `vX.Y.Z-N` format (e.g. `v0.12.2-1`) for rebuilds of the same Neovim version. The release readiness gate, version extraction, and upstream release link all handle the suffix correctly.
+
 - Release readiness gate: added `scripts/check-release-readiness.sh` plus tests to verify release policy before tagging.
 - Nightly builds: new `.github/workflows/nightly.yml` runs daily at 06:00 UTC, building Neovim's `master` branch on both
   `x86_64` and `aarch64`. Artifacts are uploaded (no release page). `build.sh` now supports `VERSION=nightly`.

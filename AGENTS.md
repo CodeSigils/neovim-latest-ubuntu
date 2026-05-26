@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-25 (Documentation stale-claim audit; release links + author guard semantics)
+**Last updated:** 2026-05-26 (Package revision suffix support implemented)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -448,10 +448,13 @@ release lifecycle:
 #### 8.3 Version Parameterization
 
 - The CI workflow reads the git tag for the version (`v0.13.0` → `VERSION=0.13.0`)
-- Release tags currently track upstream Neovim stable tags exactly. Do not reuse an existing tag.
-  If upstream latest is already released here, wait for the next upstream release.
-- Do not use packaging suffix tags such as `v0.12.2-1` unless package-revision support is added first;
-  today the workflow passes the stripped tag directly to `build.sh` as the upstream Neovim version.
+- Release tags now accept two formats:
+  - `vX.Y.Z` — exact upstream Neovim version (e.g., `v0.13.0`) for a first-time build of a new release.
+  - `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim version
+    (packaging fix, base image update, etc.). The revision number `N` resets per Neovim version.
+- Do not reuse an existing tag; published tags and Releases are immutable.
+- The release readiness gate extracts the base Neovim version from the tag for upstream comparison,
+  and the workflow strips the revision suffix before passing the version to the build container.
 - Run `scripts/check-release-readiness.sh <version>` before pushing a release tag.
 - For manual dispatch, the `version` input overrides this
 - `build.sh` supports `VERSION=latest` to auto-fetch the latest stable tag via GitHub API
@@ -629,6 +632,7 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Doc-only PR build skip verified | Temporary PR #10 changed only `notes.md`; Author Attribution Guard, Staleness Guard, and CodeQL ran/passed while `Build Neovim deb Package` did not run. PR closed without merge and branch deleted. |
 | 2026-05-25 | Release version policy documented | Releases track upstream Neovim tags exactly; existing tags are immutable; packaging suffix tags require explicit package-revision support before use. |
 | 2026-05-25 | Release readiness gate added | Added `scripts/check-release-readiness.sh` and tests; build workflow lint job now runs the release-readiness test suite. |
+| 2026-05-26 | Package revision suffix support | Tags now accept `vX.Y.Z-N` format for rebuilds. Release readiness gate, version extraction, and upstream link all handle the suffix. Former limitation removed. |
 
 ### 11. Staleness & Drift Guard
 

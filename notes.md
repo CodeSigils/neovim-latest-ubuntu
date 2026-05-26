@@ -20,3 +20,12 @@ Full agent instructions in [`AGENTS.md`](./AGENTS.md).
 - Confirmed: mock values for UBUNTU_VERSION and UBUNTU_CODENAME are placeholders, not assertions.
 - The script only checks that repo variables EXIST, not their values — no need for abstraction.
 - Added clarifying comment to the mock so nobody worries about stale values.
+
+## 2026-05-26 — Package revision suffix support
+
+- Updated `scripts/check-release-readiness.sh` to accept `X.Y.Z-N` version format (strips suffix for upstream comparison, uses BASE_VERSION for build.sh/CHANGELOG checks).
+- Added test `test_package_revision_suffix_accepted` to `tests/test_release_readiness.py`.
+- Updated `.github/workflows/build.yml` version extraction: strips `-N` suffix before passing to container; adds upstream tag extraction step for release body link.
+- Updated AGENTS.md §8.3 Version Parameterization, Decision Log, and Last updated date.
+- Updated RELEASING.md tag policy to document the two supported formats.
+- Added CHANGELOG.md entry under [Unreleased] > Added.

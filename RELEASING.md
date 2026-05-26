@@ -44,14 +44,16 @@ gh release list --limit 20
 ```
 
 Do not reuse an existing tag. Published tags and Releases are treated as
-immutable. If upstream latest is already released here, wait for the next
-upstream Neovim release.
+immutable.
 
-Do not use packaging suffix tags such as `v0.12.2-1` unless the workflow has
-explicit package-revision support. Today, the release workflow strips only the
-leading `v` and passes the rest to `build.sh` as the upstream Neovim version, so
-a suffix tag would make CI look for an upstream version that likely does not
-exist.
+Tags now support two formats:
+- `vX.Y.Z` — exact upstream Neovim version (e.g., `v0.13.0`) for a first-time build.
+- `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim
+  version (packaging fix, base image update, etc.). The revision number `N` resets per version.
+
+The release readiness gate and CI workflow both handle the revision suffix correctly:
+the base Neovim version is extracted for upstream comparison and source checkout, while the
+full tag is used for the GitHub Release.
 
 Run the read-only readiness gate before tagging:
 

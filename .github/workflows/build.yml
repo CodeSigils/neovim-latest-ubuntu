@@ -82,6 +82,7 @@ jobs:
             VERSION="latest"
           elif [ -n "$VERSION_FROM_REF" ]; then
             VERSION="${VERSION_FROM_REF#v}"
+            VERSION="${VERSION%%-*}"  # Strip package revision suffix (e.g. 0.12.2-1 → 0.12.2)
           else
             VERSION="0.12.2"
           fi
@@ -161,6 +162,14 @@ jobs:
       - name: List downloaded artifacts
         run: ls -lh
 
+      - name: Determine upstream tag for release notes link
+        id: version
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Strip package revision suffix (e.g. v0.12.2-1 → v0.12.2)
+          UPSTREAM_TAG="${TAG%%-*}"
+          echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+
       - name: Regenerate combined SHA256SUMS
         run: |
           sha256sum *.deb > SHA256SUMS
@@ -191,7 +200,7 @@ jobs:
             ```
 
             **Upstream resources:**
-            - [Release notes](https://github.com/neovim/neovim/releases/tag/${{ github.ref_name }}) (upstream changes for this version)
+            - [Release notes](https://github.com/neovim/neovim/releases/tag/${{ steps.version.outputs.upstream_tag }}) (upstream changes for this version)
             - [News](https://neovim.io/doc/user/news.html) (`:help news` in Nvim)
 
             **Assets:** nvim-linux-x86_64.deb, nvim-linux-arm64.deb, SHA256SUMS

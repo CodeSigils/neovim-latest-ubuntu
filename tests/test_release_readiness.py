@@ -124,6 +124,21 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertIn("git tag v1.2.3", result.stdout)
         self.assertIn("git push origin v1.2.3", result.stdout)
 
+    def test_package_revision_suffix_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            tmp_path = Path(raw)
+            repo = self.make_repo(tmp_path, version="1.2.3")
+            fake = self.make_fake_bin(tmp_path, upstream="v1.2.3")
+            env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
+
+            result = run(
+                ["bash", "scripts/check-release-readiness.sh", "1.2.3-1"], repo, env=env
+            )
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("READY: safe to publish v1.2.3-1", result.stdout)
+        self.assertIn("git tag v1.2.3-1", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
