@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   builds/day × 365 days.
 - Nightly failure alerts: failed nightly builds create a GitHub issue with label `nightly`, linking to the failed run.
   Duplicate-protected — no new issue if one is already open.
+- Nightly success auto-close: when the nightly build recovers after a failure, the open failure issue is automatically
+  commented and closed. This keeps the feedback loop clean — old issues don't linger, new failures always create an issue.
 - Auto-update PR on new upstream release: the `check-upstream` workflow now opens a PR with version bumps, CHANGELOG
   entry, and documentation updates when a newer Neovim release is detected (instead of just filing an issue).
 - CodeQL scanning for GitHub Actions workflows: runs weekly and on every PR/push to `main`.

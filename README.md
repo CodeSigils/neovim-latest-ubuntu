@@ -206,3 +206,4 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
 - **[CHANGELOG.md](./CHANGELOG.md)** — Release history (user-facing)
+

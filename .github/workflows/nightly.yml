@@ -125,3 +125,33 @@ jobs:
           **Branch**: ${{ github.ref_name }}
 
           Check the workflow run for details on which architecture(s) failed and why."
+
+  report-success:
+    needs: build
+    if: ${{ success() && github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check for and close nightly failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE=$(gh issue list \
+            --repo ${{ github.repository }} \
+            --label nightly \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty' 2>/dev/null)
+          if [ -n "$ISSUE" ]; then
+            echo "Closing nightly failure issue #$ISSUE — build has recovered"
+            gh issue comment "$ISSUE" \
+              --repo ${{ github.repository }} \
+              --body "Nightly build has been passing again since $(date +%Y-%m-%d). Closing."
+            gh issue close "$ISSUE" \
+              --repo ${{ github.repository }}
+          else
+            echo "No open nightly failure issues — all clear"
+          fi
