@@ -9,7 +9,19 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run shellcheck
+        run: shellcheck build.sh test.sh
+      - name: Run hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Containerfile
+
   build:
+    needs: lint
     strategy:
       fail-fast: false
       matrix:

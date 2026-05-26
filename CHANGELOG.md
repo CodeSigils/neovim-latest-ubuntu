@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Nightly build runner labels updated from `ubuntu-24.04` to `ubuntu-latest` for x86_64 and report-failure jobs. Updated comment to reflect that `ubuntu-latest` now maps to ubuntu-26.04.
+- Nightly build now runs hadolint and shellcheck in a lint job before building (catches Containerfile/bash issues early).
 - Build workflow `paths-ignore` extended: `.github/workflows/staleness.yml`, `.github/workflows/check-author.yml`, `.github/workflows/nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, and `.github/dependabot.yml` changes no longer trigger the full container build.
 - Build workflow lintian audit now loops over all `.deb` files instead of auditing only the first one alphabetically. Aligned with Debian Developer's Reference §6 best practices.
 - `check-upstream.yml` version comparison now strips `-N` revision suffix before comparing against our tags — prevents false-positive new-release PRs when the latest local tag has a revision suffix (e.g. `v0.12.2-1`).
