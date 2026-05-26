@@ -15,6 +15,7 @@ on:
       - '.github/workflows/nightly.yml'
       - '.github/workflows/staleness.yml'
       - '.github/workflows/check-author.yml'
+      - '.github/workflows/codeql.yml'
       - '.mailmap'
   pull_request:
     branches: [main]
