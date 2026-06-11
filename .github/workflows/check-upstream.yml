@@ -2,8 +2,8 @@ name: Check Upstream Release
 
 on:
   schedule:
-    # Monday 06:30 UTC — 30 min after build cron, gives the weekly build a head start
-    - cron: '30 6 * * 1'
+    # Daily 06:30 UTC — catches upstream releases within ~24h
+    - cron: '30 6 * * *'
   workflow_dispatch:
 
 env:
