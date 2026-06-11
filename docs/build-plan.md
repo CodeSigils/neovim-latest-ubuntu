@@ -51,7 +51,7 @@ build time.
 ### 3.1 Clone
 
 ```bash
-VERSION="0.12.2"   # parameterised — change for future releases
+VERSION="0.12.3"   # parameterised — change for future releases
 git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim
 cd neovim
 ```
@@ -124,7 +124,7 @@ Container image: currently `ubuntu:26.04` (see Containerfile for current version
 - [x] Package uninstalls cleanly: `dpkg -r Neovim`
 
 > All checks passed on 2026-05-22 inside a Podman `ubuntu:26.04` container (Containerfile defines the current version).
-> Build: Neovim v0.12.2, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64
+> Build: Neovim v0.12.3, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64
 > via CI).
 
 ### 4.3 Test Script (for automation)
@@ -156,7 +156,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Trigger (branch push)**       | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**, .gitignore, .gitattributes, .mailmap, .githooks/**, .github/dependabot.yml, .github/workflows/nightly.yml, .github/workflows/staleness.yml, .github/workflows/check-author.yml, .github/workflows/codeql.yml]` — doc/metadata/workflow-edit pushes skip the build pipeline, but excluded workflows (staleness, author guard, codeql) still run via their own triggers |
 | **Trigger (tag push)**          | `tags: ['v*']` — path filters NOT evaluated for tags (GitHub Actions behavior); tag pushes always build                                                                                                                                                                                                                                                                                           |
 | **Trigger (PR)**                | `pull_request: [main]` with same `paths-ignore` as branch pushes; code/workflow changes still run lint + build                                                                                                                                                                                                                                                                                    |
-| **Trigger (workflow_dispatch)** | Manual trigger with optional `version` input — accepts stable version string (e.g. `0.14.0`), `latest`, or empty (defaults to `0.12.3`)                                                                                                                                                                                                                                                           |
+| **Trigger (workflow_dispatch)** | Manual trigger with optional `version` input — accepts stable version string (e.g. `0.14.0`), `latest`, or empty (defaults to `latest` — auto-detects current stable via GitHub API)                                                                                                                                                                                                              |
 | **Trigger (schedule)**          | Weekly Monday 06:00 UTC — builds `latest` stable                                                                                                                                                                                                                                                                                                                                                  |
 
 **Key principle**: Keep artifact paths explicit at every boundary — container, host workspace, artifact upload, and

@@ -91,7 +91,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.2 inside the pinned base image image
+- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.3 inside the pinned base image image
   will produce packages that pass identical verification checks and behave identically at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
@@ -123,10 +123,10 @@ To verify that your build matches the canonical output:
 ```bash
 # 1. Build inside the pinned container
 docker build -t neovim-builder -f Containerfile .
-docker run --rm -e VERSION=0.12.2 -v "$PWD/output:/output" neovim-builder
+docker run --rm -e VERSION=0.12.3 -v "$PWD/output:/output" neovim-builder
 
 # 2. Run test.sh on the result
-./test.sh output/nvim-linux-x86_64.deb 0.12.2
+./test.sh output/nvim-linux-x86_64.deb 0.12.3
 
 # 3. Compare checksum style (not exact values — timestamps differ)
 sha256sum output/*.deb

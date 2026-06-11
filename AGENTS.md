@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-05-26 (Build paths-ignore extended + check-upstream fix)
+**Last updated:** 2026-06-11 (v0.12.3 release; version defaults consolidated to `latest`)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -76,12 +76,12 @@
 
 ## Current Status
 
-> Audit snapshot: 2026-05-25 (Ubuntu 26.04 LTS target; container-based test fix; CI verified, build & release pipeline operational)
+> Audit snapshot: 2026-06-11 (Ubuntu 26.04 LTS target; v0.12.3 release; version defaults consolidated to `latest`)
 
-- **Build verified** — Neovim v0.12.2 built and packaged inside a Podman container (Ubuntu LTS base image; see Containerfile for current version). All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
+- **Build verified** — Neovim v0.12.3 built and packaged inside a Podman container (Ubuntu LTS base image; see Containerfile for current version). All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
 - **Test runs inside build container** — `.deb` verification (`test.sh`) runs via `docker run neovim-builder` to match the container's runtime libraries, not the host runner's. Fixes the glibc version skew between `ubuntu:26.04` container (libc6 2.43) and the `ubuntu-24.04` runner (libc6 2.39). See docs/reproducibility.md §"Verification runs inside the build container".
-- **Tag version extraction fixed** — Tag pushes (`v0.13.0`) always built default `0.12.2` because `github.event.inputs.version` only exists for `workflow_dispatch`. Now uses env-level variables with a priority chain: dispatch input → git tag → default.
+- **No hardcoded version defaults in CI** — The `build.yml` workflow previously had a hardcoded `0.12.2` fallback that went stale on version bumps. Now uses `latest` (auto-detects current stable via GitHub API) as the default, so the workflow is always current. `Containerfile` also removed its hardcoded `ENV VERSION` — `build.sh` is the single source of truth for the default version.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned via digest for reproducible builds; version configurable via `ARG UBUNTU_VERSION` (default: `26.04`).
 - **Dependency consistency** — `deps/ubuntu-build-deps.txt` is the source of truth for README/manual host prerequisites; `deps/ubuntu-ci-extra-deps.txt` captures CI/container-only packages. `scripts/check-dependencies.py` runs in the build workflow and staleness guard to fail on drift between docs, manifests, Containerfile, and script expectations.
@@ -222,7 +222,7 @@ For nightly builds, `CMAKE_BUILD_TYPE=RelWithDebInfo` is used instead (retains a
 A simplified version for local builds:
 
 ```
-VERSION=0.12.2                                # parameterised
+VERSION=0.12.3                                # parameterised
 git clone --depth 1 --branch v${VERSION} https://github.com/neovim/neovim
 cd neovim
 make CMAKE_BUILD_TYPE=RelWithDebInfo          # convenience wrapper around cmake --build
@@ -423,7 +423,7 @@ release lifecycle:
 | Schedule (daily, 06:00 UTC) via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 | Manual dispatch via `nightly.yml` | Build nightly from Neovim `master` (x86_64 + aarch64) | `.deb` files uploaded as workflow artifacts (no Release) |
 
-**Ancillary Monday schedule**: The Monday 06:00 UTC `build.yml` trigger kicks off a ~1hr CI maintenance window. [`check-upstream.yml`](./.github/workflows/check-upstream.yml) runs at 06:30 UTC (checks for new Neovim releases), [`codeql.yml`](./.github/workflows/codeql.yml) at 06:45 UTC (security analysis), and [`staleness.yml`](./.github/workflows/staleness.yml) at 07:00 UTC (AGENTS.md drift guard). These are internal maintenance workflows — they don't produce user-facing artifacts.
+**Ancillary Monday schedule**: The Monday 06:00 UTC `build.yml` trigger kicks off a ~1hr CI maintenance window. [`check-upstream.yml`](./.github/workflows/check-upstream.yml) runs daily at 06:30 UTC (checks for new Neovim releases), [`codeql.yml`](./.github/workflows/codeql.yml) at 06:45 UTC (security analysis), and [`staleness.yml`](./.github/workflows/staleness.yml) at 07:00 UTC (AGENTS.md drift guard). These are internal maintenance workflows — they don't produce user-facing artifacts.
 
 #### 8.2 Release Workflow (tag push)
 
@@ -634,6 +634,9 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Release readiness gate added | Added `scripts/check-release-readiness.sh` and tests; build workflow lint job now runs the release-readiness test suite. |
 | 2026-05-26 | Package revision suffix support | Tags now accept `vX.Y.Z-N` format for rebuilds. Release readiness gate, version extraction, and upstream link all handle the suffix. Former limitation removed. |
 | 2026-05-26 | Build paths-ignore extended + check-upstream fix + nightly cleanup | Added `staleness.yml`, `check-author.yml`, `nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, `.github/dependabot.yml` to Build's `paths-ignore` — editing these files no longer triggers the full 225s container build. Fixed nightly.yml runner labels (`ubuntu-24.04` → `ubuntu-latest`). Fixed `check-upstream.yml` version comparison to strip `-N` suffix. |
+| 2026-06-11 | check-upstream schedule: weekly → daily | Reduces detection lag for new upstream releases from 0–7 days to 0–24 hours. |
+| 2026-06-11 | v0.12.3 release | Tag v0.12.3 pushed; CI built + released x86_64 and ARM64 .deb packages. Build verified, all checks pass. |
+| 2026-06-11 | Version defaults consolidated to `latest` | Removed hardcoded `0.12.2` from `Containerfile` (`ENV VERSION` deleted) and `build.yml` (fallback → `latest`). `build.sh` is the single source of truth for the default version; CI fallback auto-detects current stable via GitHub API. Never out of date on version bumps. |
 
 ### 11. Staleness & Drift Guard
 
@@ -777,7 +780,7 @@ When verification reveals a stale claim, follow this sequence exactly:
 Example diff:
 ```diff
 - **No build has been run yet**
-+ **Build verified** — Neovim v0.12.2 (`nvim --version | grep "NVIM v0.12.2"`)
++ **Build verified** — Neovim v0.12.3 (`nvim --version | grep "NVIM v0.12.3"`)
 ```
 
 #### 11.5 Offline Drift Scan

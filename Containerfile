@@ -23,8 +23,7 @@ RUN apt-get update \
 
 COPY --chmod=755 build.sh /usr/local/bin/build-neovim
 
-ENV VERSION=0.12.2 \
-    OUTPUT_DIR=/output
+ENV OUTPUT_DIR=/output
 
 WORKDIR /tmp/build
 

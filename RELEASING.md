@@ -244,9 +244,10 @@ sudo apt-mark unhold neovim
 The CI determines the version with this priority chain:
 
 1. **Manual dispatch input** — from the Actions tab
-2. **Schedule** — builds `latest` (auto-fetched from GitHub API)
-3. **Git tag** — extracted from the pushed tag (`v` prefix stripped)
-4. **Default** — `0.12.2` (fallback)
+2. **Git tag** — extracted from the pushed tag (`v` prefix stripped)
+3. **Default** — `latest` (auto-detects current stable via GitHub API; no hardcoded version to go stale)
+
+The schedule trigger and bare workflow_dispatch both resolve to the default (`latest`).
 
 Check which trigger you used and verify the version in the CI logs.
 
