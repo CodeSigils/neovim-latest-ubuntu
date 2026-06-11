@@ -98,8 +98,8 @@ See [`build.sh`](../build.sh) for the actual implementation. Key features:
 - **Error handling**: checks for missing `.deb` in output, empty version
 
 ```bash
-# Examples (matched to build.sh v0.12.2+)
-./build.sh                          # Build default (0.12.2)
+# Examples (matched to build.sh v0.12.3+)
+./build.sh                          # Build default (0.12.3)
 ./build.sh 0.13.0 ./out             # Build specific version
 VERSION=latest ./build.sh           # Auto-detect latest stable
 ```
@@ -156,7 +156,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Trigger (branch push)**       | `branches: [main]` with `paths-ignore: ['*.md', LICENSE, docs/**, .gitignore, .gitattributes, .mailmap, .githooks/**, .github/dependabot.yml, .github/workflows/nightly.yml, .github/workflows/staleness.yml, .github/workflows/check-author.yml, .github/workflows/codeql.yml]` — doc/metadata/workflow-edit pushes skip the build pipeline, but excluded workflows (staleness, author guard, codeql) still run via their own triggers |
 | **Trigger (tag push)**          | `tags: ['v*']` — path filters NOT evaluated for tags (GitHub Actions behavior); tag pushes always build                                                                                                                                                                                                                                                                                           |
 | **Trigger (PR)**                | `pull_request: [main]` with same `paths-ignore` as branch pushes; code/workflow changes still run lint + build                                                                                                                                                                                                                                                                                    |
-| **Trigger (workflow_dispatch)** | Manual trigger with optional `version` input — accepts stable version string (e.g. `0.14.0`), `latest`, or empty (defaults to `0.12.2`)                                                                                                                                                                                                                                                           |
+| **Trigger (workflow_dispatch)** | Manual trigger with optional `version` input — accepts stable version string (e.g. `0.14.0`), `latest`, or empty (defaults to `0.12.3`)                                                                                                                                                                                                                                                           |
 | **Trigger (schedule)**          | Weekly Monday 06:00 UTC — builds `latest` stable                                                                                                                                                                                                                                                                                                                                                  |
 
 **Key principle**: Keep artifact paths explicit at every boundary — container, host workspace, artifact upload, and
@@ -166,7 +166,7 @@ release aggregation.
 
 | Parameter        | Value                                                                                            | Notes                          |
 | ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ |
-| `VERSION`        | `0.12.2` (default)                                                                               | Git tag — `v${VERSION}`        |
+| `VERSION`        | `0.12.3` (default)                                                                               | Git tag — `v${VERSION}`        |
 | Output name      | `nvim-linux-{arch}.deb`                                                                          | From upstream CPack config     |
 | Script parameter | `VERSION` as first arg or env var (`OUTPUT_DIR` is container-managed in CI/local container runs) | Future-proof for version bumps |
 
@@ -211,7 +211,7 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 For testing or offline distribution:
 
 ```bash
-./build.sh                 # builds default version (0.12.2)
+./build.sh                 # builds default version (0.12.3)
 ./build.sh 0.14.0          # builds specific version
 VERSION=latest ./build.sh  # auto-fetches latest stable tag
 ```

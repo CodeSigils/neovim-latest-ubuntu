@@ -3,7 +3,7 @@
 #
 # Usage: ./test.sh <deb-file> [EXPECTED_VERSION]
 #   deb-file         Path to the .deb package to test
-#   EXPECTED_VERSION Neovim version to verify (default: 0.12.2)
+#   EXPECTED_VERSION Neovim version to verify (default: 0.12.3)
 #
 # Runs all checks and reports results at the end.
 

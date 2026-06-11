@@ -45,7 +45,7 @@ Then update the `FROM` line and verify the build still passes.
 
 | Parameter       | Source                                        | Default            |
 | --------------- | --------------------------------------------- | ------------------ |
-| `VERSION`       | First arg, env var, or `latest` (auto-detect) | `0.12.2`           |
+| `VERSION`       | First arg, env var, or `latest` (auto-detect) | `0.12.3`           |
 | `OUTPUT_DIR`    | Second arg or env var                         | `.` (current dir)  |
 | Build type      | Hardcoded                                     | `RelWithDebInfo`   |
 | CMake generator | Upstream Makefile                             | Auto-detects Ninja |

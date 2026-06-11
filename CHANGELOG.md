@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Support for Neovim v0.12.3. See [upstream release](https://github.com/neovim/neovim/releases/tag/v0.12.3).
+
 - Package revision suffix support: tags now accept `vX.Y.Z-N` format (e.g. `v0.12.2-1`) for rebuilds of the same Neovim
   version. The release readiness gate, version extraction, and upstream release link all handle the suffix correctly.
 
