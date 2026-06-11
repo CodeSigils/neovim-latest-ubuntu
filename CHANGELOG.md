@@ -7,13 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **check-upstream** schedule changed from weekly to daily for faster awareness of new upstream releases.
+- **Version defaults** consolidated to `latest` throughout CI and build infrastructure — `build.sh` becomes the single
+  source of truth for default version. Containerfile `ENV VERSION` removed; `build.yml` hardcoded fallback removed.
+
+## [0.12.3] — 2026-06-11
+
 ### Added
 
-- Support for Neovim v0.12.3. See [upstream release](https://github.com/neovim/neovim/releases/tag/v0.12.3).
-
+- Support for Neovim v0.12.3. See
+  [upstream release](https://github.com/neovim/neovim/releases/tag/v0.12.3).
 - Package revision suffix support: tags now accept `vX.Y.Z-N` format (e.g. `v0.12.2-1`) for rebuilds of the same Neovim
   version. The release readiness gate, version extraction, and upstream release link all handle the suffix correctly.
-
 - Release readiness gate: added `scripts/check-release-readiness.sh` plus tests to verify release policy before tagging.
 - Nightly builds: new `.github/workflows/nightly.yml` runs daily at 06:00 UTC, building Neovim's `master` branch on both
   `x86_64` and `aarch64`. Artifacts are uploaded (no release page). `build.sh` now supports `VERSION=nightly`.
@@ -93,6 +100,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   remains only for the build-matrix/runner architecture label.
 - README release badge and SECURITY supported-version link now point directly to the latest release page instead of
   generic release indexes.
+- **Base image**: Containerfile now uses `ubuntu:26.04@sha256:f3d28607...` (Ubuntu 26.04 LTS Resolute Raccoon). The
+  build environment now runs on the current Ubuntu LTS.
+- **CI runners** remain `ubuntu-24.04` / `ubuntu-24.04-arm` (GitHub has not yet released `ubuntu-26.04` runners). The
+  container provides the actual build environment.
+- All documentation references updated from Ubuntu 24.04 to 26.04.
+- **Ubuntu version centralization**: Set `UBUNTU_VERSION` and `UBUNTU_CODENAME` as GitHub repo variables — single source
+  of truth for CI. Containerfile uses `ARG UBUNTU_VERSION` (configurable via `--build-arg`).
+- **CI runners**: x86_64 switched to `ubuntu-latest` (auto-rolls with GitHub's LTS); ARM64 remains `ubuntu-24.04-arm`.
+  Documentation uses "Ubuntu LTS" where version was just descriptive context, reducing stale-reference maintenance.
 
 ### Fixed
 
@@ -115,18 +131,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   `build.sh`/CPack behavior.
 - docs/reproducibility.md: corrected stale ARM filename explanation; the build matrix uses `aarch64`, while actual
   `.deb` filenames and Debian metadata use `arm64`.
-
-### Changed
-
-- **Base image**: Containerfile now uses `ubuntu:26.04@sha256:f3d28607...` (Ubuntu 26.04 LTS Resolute Raccoon). The
-  build environment now runs on the current Ubuntu LTS.
-- **CI runners** remain `ubuntu-24.04` / `ubuntu-24.04-arm` (GitHub has not yet released `ubuntu-26.04` runners). The
-  container provides the actual build environment.
-- All documentation references updated from Ubuntu 24.04 to 26.04.
-- **Ubuntu version centralization**: Set `UBUNTU_VERSION` and `UBUNTU_CODENAME` as GitHub repo variables — single source
-  of truth for CI. Containerfile uses `ARG UBUNTU_VERSION` (configurable via `--build-arg`).
-- **CI runners**: x86_64 switched to `ubuntu-latest` (auto-rolls with GitHub's LTS); ARM64 remains `ubuntu-24.04-arm`.
-  Documentation uses "Ubuntu LTS" where version was just descriptive context, reducing stale-reference maintenance.
 
 ## [0.12.2] — 2026-05-22
 

@@ -27,7 +27,6 @@
 /
 ├── AGENTS.md           ← This file — agent instructions and project knowledge
 ├── CHANGELOG.md        ← User-facing release history (Keep a Changelog format)
-├── notes.md            ← Agent scratchpad / task-level record (not user-facing)
 ├── .gitattributes      ← Git attribute configuration
 ├── .gitignore          ← Generated artifacts excluded from version control
 ├── .mailmap            ← Author canonicalization for GitHub contributor graph
@@ -89,9 +88,8 @@
 - **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Findings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
-- **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
-- **notes.md** serves as an agent scratchpad / task-level record (not user-facing).
-- **docs/reproducibility.md** is a Diataxis Explanation document covering how the pipeline achieves build reproducibility, guarantees and limitations, and cross-architecture considerations.
+|- **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
+|- **docs/reproducibility.md** is a Diataxis Explanation document covering how the pipeline achieves build reproducibility, guarantees and limitations, and cross-architecture considerations.
 - **Ubuntu 26.04-arm investigation pending** — GitHub has not yet released `ubuntu-26.04` or `ubuntu-26.04-arm` runner images. Track: https://github.com/actions/runner-images. When they arrive, update ARM runner labels from `ubuntu-24.04-arm` to `ubuntu-26.04-arm` (see docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption" for full checklist).
 
 ## Overview
@@ -143,7 +141,7 @@ Adopt these roles depending on the current phase:
 Research is conducted in parallel. Dispatch multiple sub-agents simultaneously to cover different angles:
 
 1. **Identify research areas** — decompose the topic into independent, non-overlapping subtopics.
-2. **Dispatch agents in parallel** — for each subtopic, launch a librarian agent (for external sources) or explore agent (for codebase) with a specific, focused prompt. See `notes.md` for example dispatches.
+2. **Dispatch agents in parallel** — for each subtopic, launch a librarian agent (for external sources) or explore agent (for codebase) with a specific, focused prompt.
 3. **Evaluate each source** against the criteria in §3.2.
 4. **Curate findings** into `docs/resources.md` (committed reference file with evaluation scores — see existing file for format).
 5. **Store raw research** in `docs/research/` (gitignored — volatile artifacts, not committed).
@@ -656,7 +654,7 @@ command that proves or disproves the claim.
 | C1 | Header (§ Status) | `build verified, pipeline operational` | `ls -1 build.sh Containerfile test.sh` — all 3 exist |
 | C2 | Current Status § | `Build verified` — all 7 checks pass | `manually: run test.sh in Podman` |
 | C3 | Current Status § | `Pipeline files tested and operational` | `bash -c 'test -x build.sh && test -x test.sh && echo OK'` |
-| C4 | Repository Layout | Tree matches actual committed files | `ls -1 build.sh Containerfile test.sh .github/workflows/build.yml docs/ AGENTS.md notes.md README.md LICENSE .gitignore 2>/dev/null \| head -10; echo "---"; for f in build.sh Containerfile test.sh .github/workflows/build.yml AGENTS.md notes.md README.md LICENSE .gitignore; do test -f "$f" && echo "OK: $f" || echo "MISSING: $f"; done; for d in docs docs/resources.md docs/build-plan.md; do test -e "$d" && echo "OK: $d" || echo "MISSING: $d"; done` — all entries should show OK |
+| C4 | Repository Layout | Tree matches actual committed files | `ls -1 build.sh Containerfile test.sh .github/workflows/build.yml docs/ AGENTS.md README.md LICENSE .gitignore 2>/dev/null \| head -10; echo "---"; for f in build.sh Containerfile test.sh .github/workflows/build.yml AGENTS.md README.md LICENSE .gitignore; do test -f "$f" && echo "OK: $f" || echo "MISSING: $f"; done; for d in docs docs/resources.md docs/build-plan.md; do test -e "$d" && echo "OK: $d" || echo "MISSING: $d"; done` — all entries should show OK |
 | C5 | §6.2 Verification Checklist | All 7 items checked `[x]` | `grep -c '\[x\]' AGENTS.md` — exit code 0 |
 | C6 | Decision Log | Last entry dated correctly, reflects current state | `tail -1 AGENTS.md \| grep -q "$(date +%Y-%m-%d)"` (note: last-edit date, not strict match) |
 | C7 | § Repository Layout | `[generated]` items (nvim-linux-*.deb, _CPack_Packages/) are gitignored | `test -f nvim-linux-x86_64.deb; deb_exist=$?; grep -q 'nvim-linux-\*' .gitignore; gitignored=$?; [ "$deb_exist" -eq 0 ] && [ "$gitignored" -eq 0 ] && echo "exists+gitignored" || echo "check needed"` |
@@ -772,7 +770,7 @@ When verification reveals a stale claim, follow this sequence exactly:
 │ 4. BUMP `Last updated` date at top                             │
 │ 5. ADD entry to Decision Log with date + what changed          │
 │ 6. RE-RUN §11.3 Pre-Action Gate to confirm fix                 │
-│ 7. RECORD in notes.md — one-line summary                       │
+│ 7. RECORD in Decision Log — one-line summary                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
