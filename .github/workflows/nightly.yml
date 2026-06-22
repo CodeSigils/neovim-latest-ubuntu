@@ -12,7 +12,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run shellcheck
         run: shellcheck build.sh test.sh
       - name: Run hadolint
@@ -33,7 +33,7 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build container image
         run: docker build -t neovim-builder -f Containerfile .
@@ -92,7 +92,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check for existing nightly failure issue
         id: check_issue
@@ -133,7 +133,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check for and close nightly failure issue
         env:
