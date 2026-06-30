@@ -32,8 +32,8 @@ so you can always download a fresh stable build from the Actions run page even b
 > Need the freshest stable build rather than the last tagged release? Open the latest successful
 > [`build.yml`](./.github/workflows/build.yml) run and download the workflow artifact for your architecture.
 
-That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, `view`, and
-`editor` commands.
+That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, and
+`view` commands.
 
 > For custom versions or reproducible builds, see [Compilation Instructions](#compilation-instructions).
 
@@ -65,7 +65,7 @@ Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all h
 | -------------------------- | ------------------------------------------------ |
 | `apt install neovim`       | Often lags behind latest release by months       |
 | Official AppImage          | No system-wide `vi`/`editor` symlink integration |
-| Snap (`snap install nvim`) | Sandboxing breaks file access, slow startup      |
+| Snap (`snap install nvim`) | Classic confinement (no sandbox), but slower startup than native .deb |
 | Build from source manually | No package manager tracking, no clean uninstall  |
 
 This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean

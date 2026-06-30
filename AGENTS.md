@@ -268,7 +268,7 @@ Ninja is the industry-recommended CMake generator — faster builds, automatic p
 **Output**: `build/nvim-linux-x86_64.deb` (or `...-arm64.deb` on ARM)
 
 **Maintainer scripts**:
-- `postinst` — registers Neovim via `update-alternatives` for `vi`, `vim`, `view`, `editor`
+- `postinst` — registers Neovim via `update-alternatives` for `vi`, `vim`, `view`
 - `prerm` — unregisters alternatives on package removal
 
 ##### 3.5.4 Packaging Decision
@@ -375,7 +375,7 @@ The approach must support future Neovim versions with minimal friction. Consider
 - [x] Smoke test: `nvim --headless +q` starts and exits cleanly
 - [x] Runtime health: `nvim --headless +checkhealth +q` runs without crash
 - [x] No missing shared library dependencies (`ldd` check)
-- [x] `update-alternatives` registers nvim for `vi`/`vim`/`editor`
+- [x] `update-alternatives` registers nvim for `vi`/`vim`/`view`
 - [x] Package uninstalls cleanly via `dpkg -r`
 
 ### 7. Documentation
