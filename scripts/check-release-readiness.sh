@@ -30,9 +30,11 @@ TAG="v${REQUESTED}"
 # BASE_VERSION="0.12.2" for upstream Neovim comparisons.
 if [[ "$REQUESTED" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
   BASE_VERSION="${BASH_REMATCH[1]}"
+  # shellcheck disable=SC2034 # PKG_REVISION reserved for future use (package metadata revision)
   PKG_REVISION="${BASH_REMATCH[2]}"
 else
   BASE_VERSION="$REQUESTED"
+  # shellcheck disable=SC2034 # PKG_REVISION reserved for future use (package metadata revision)
   PKG_REVISION=""
 fi
 BASE_TAG="v${BASE_VERSION}"

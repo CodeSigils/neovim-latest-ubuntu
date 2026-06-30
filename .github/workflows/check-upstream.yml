@@ -109,6 +109,21 @@ jobs:
             );
             fs.writeFileSync('test.sh', content);
 
+            // --- build.sh: update header comments ---
+            content = fs.readFileSync('build.sh', 'utf8');
+            content = content.replace(
+              /\(default: [\d.]+\)/,
+              `(default: ${version})`
+            );
+            content = content.replace(
+              /Build v[\d.]+ into current dir/,
+              `Build v${version} into current dir`
+            );
+            if (content === fs.readFileSync('build.sh', 'utf8')) {
+              core.warning('build.sh: no header comment pattern matched');
+            }
+            fs.writeFileSync('build.sh', content);
+
             // --- README.md: update example versions ---
             content = fs.readFileSync('README.md', 'utf8');
             content = content.replace(/Build Neovim [\d.]+/g, `Build Neovim ${version}`);

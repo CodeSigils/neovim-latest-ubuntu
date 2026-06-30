@@ -1,8 +1,7 @@
 # Build Plan — Neovim Latest deb Package
 
 **Document type:** Plan (design document — implemented and verified) **Status:** Implemented — verified 2026-05-22
-**Last updated:** 2026-05-26 (Drift cleanup: .mailmap in paths-ignore, workflow_dispatch row, lint checks expanded,
-reproducibility.md linked)
+**Last updated:** 2026-06-30 (Drift cleanup: stale doc dates, shellcheck suppression, build.sh header drift guard)
 
 ## 1. Approach
 
