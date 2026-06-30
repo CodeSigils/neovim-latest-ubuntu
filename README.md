@@ -12,7 +12,7 @@ Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
 A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. GitHub
 Releases are created only when version tags are pushed. The Monday scheduled build keeps a fresh stable package
-available as a workflow artifact on the Actions run page until the next tagged release is published, while
+available as a workflow artifact on the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) until the next tagged release is published, while
 [nightly builds](.github/workflows/nightly.yml) from Neovim's `master` branch run daily and are **artifacts-only**
 (download from the workflow run page, not from Releases).
 
@@ -27,7 +27,7 @@ sudo dpkg -i nvim-linux-x86_64.deb
 
 On ARM64 systems, use `nvim-linux-arm64.deb` instead. Releases are created automatically when a tag is pushed to the
 repository. A weekly scheduled build (Monday 06:00 UTC) also packages the latest stable Neovim as a workflow artifact,
-so you can always download a fresh stable build from the Actions run page even between tagged releases.
+so you can always download a fresh stable build from the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) even between tagged releases.
 
 > Need the freshest stable build rather than the last tagged release? Open the latest successful
 > [`build.yml`](./.github/workflows/build.yml) run and download the workflow artifact for your architecture.
