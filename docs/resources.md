@@ -1,7 +1,6 @@
 # Ubuntu Packaging Resources
 
-**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-06-30 (stale doc dates refreshed, shellcheck suppression, build.sh header drift guard) **Base distribution:**
-Ubuntu 26.04 LTS (Resolute Raccoon)
+**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-06-30 (stale doc dates refreshed, shellcheck suppression, build.sh header drift guard) **Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
 
 This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
 project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
