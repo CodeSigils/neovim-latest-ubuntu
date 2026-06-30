@@ -16,7 +16,7 @@
 **Document type:** Agent instructions (How-to Guide + Reference)
 **Status:** Active — CI verified, build & release pipeline operational
 **Audience:** AI agents working on this repository
-**Last updated:** 2026-06-11 (v0.12.3 release; version defaults consolidated to `latest`)
+**Last updated:** 2026-06-30 (doc accuracy fixes: update-alternatives claims, Snap sandboxing claim)
 **Staleness guard:** Run §11.3 Pre-Action Gate before relying on any claim — see §11
 
 ## Repository Layout
@@ -88,8 +88,8 @@
 - **Package-policy audit** — `build.yml` runs `lintian` per built `.deb` as a non-blocking Debian/Ubuntu package-policy audit. Findings are surfaced in CI logs without blocking this CPack-based convenience-package workflow.
 - **AGENTS.md** is the primary artifact. Keeping it in sync with reality is the top priority — see §11.
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
-|- **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
-|- **docs/reproducibility.md** is a Diataxis Explanation document covering how the pipeline achieves build reproducibility, guarantees and limitations, and cross-architecture considerations.
+- **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
+- **docs/reproducibility.md** is a Diataxis Explanation document covering how the pipeline achieves build reproducibility, guarantees and limitations, and cross-architecture considerations.
 - **Ubuntu 26.04-arm investigation pending** — GitHub has not yet released `ubuntu-26.04` or `ubuntu-26.04-arm` runner images. Track: https://github.com/actions/runner-images. When they arrive, update ARM runner labels from `ubuntu-24.04-arm` to `ubuntu-26.04-arm` (see docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption" for full checklist).
 
 ## Overview
@@ -631,10 +631,11 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 | 2026-05-25 | Release version policy documented | Releases track upstream Neovim tags exactly; existing tags are immutable; packaging suffix tags require explicit package-revision support before use. |
 | 2026-05-25 | Release readiness gate added | Added `scripts/check-release-readiness.sh` and tests; build workflow lint job now runs the release-readiness test suite. |
 | 2026-05-26 | Package revision suffix support | Tags now accept `vX.Y.Z-N` format for rebuilds. Release readiness gate, version extraction, and upstream link all handle the suffix. Former limitation removed. |
-| 2026-05-26 | Build paths-ignore extended + check-upstream fix + nightly cleanup | Added `staleness.yml`, `check-author.yml`, `nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, `.github/dependabot.yml` to Build's `paths-ignore` — editing these files no longer triggers the full 225s container build. Fixed nightly.yml runner labels (`ubuntu-24.04` → `ubuntu-latest`). Fixed `check-upstream.yml` version comparison to strip `-N` suffix. |
-| 2026-06-11 | check-upstream schedule: weekly → daily | Reduces detection lag for new upstream releases from 0–7 days to 0–24 hours. |
-| 2026-06-11 | v0.12.3 release | Tag v0.12.3 pushed; CI built + released x86_64 and ARM64 .deb packages. Build verified, all checks pass. |
-| 2026-06-11 | Version defaults consolidated to `latest` | Removed hardcoded `0.12.2` from `Containerfile` (`ENV VERSION` deleted) and `build.yml` (fallback → `latest`). `build.sh` is the single source of truth for the default version; CI fallback auto-detects current stable via GitHub API. Never out of date on version bumps. |
+|| 2026-05-26 | Build paths-ignore extended + check-upstream fix + nightly cleanup | Added `staleness.yml`, `check-author.yml`, `nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, `.github/dependabot.yml` to Build's `paths-ignore` — editing these files no longer triggers the full 225s container build. Fixed nightly.yml runner labels (`ubuntu-24.04` → `ubuntu-latest`). Fixed `check-upstream.yml` version comparison to strip `-N` suffix. |
+|| 2026-06-11 | check-upstream schedule: weekly → daily | Reduces detection lag for new upstream releases from 0–7 days to 0–24 hours. |
+|| 2026-06-11 | v0.12.3 release | Tag v0.12.3 pushed; CI built + released x86_64 and ARM64 .deb packages. Build verified, all checks pass. |
+|| 2026-06-11 | Version defaults consolidated to `latest` | Removed hardcoded `0.12.2` from `Containerfile` (`ENV VERSION` deleted) and `build.yml` (fallback → `latest`). `build.sh` is the single source of truth for the default version; CI fallback auto-detects current stable via GitHub API. Never out of date on version bumps. |
+|| 2026-06-30 | Documentation accuracy fixes | Corrected `update-alternatives` claims (upstream only registers `vi`/`vim`/`view`, not `editor`) and Snap confinement description (classic confinement, not sandboxed). Fixed orphaned `Base distribution:` reflow in docs/resources.md. Updated `Last updated` date, C5 verification command precision, and C1-C13→C1-C16 range in stale guard protocol. |
 
 ### 11. Staleness & Drift Guard
 
@@ -655,7 +656,7 @@ command that proves or disproves the claim.
 | C2 | Current Status § | `Build verified` — all 7 checks pass | `manually: run test.sh in Podman` |
 | C3 | Current Status § | `Pipeline files tested and operational` | `bash -c 'test -x build.sh && test -x test.sh && echo OK'` |
 | C4 | Repository Layout | Tree matches actual committed files | `ls -1 build.sh Containerfile test.sh .github/workflows/build.yml docs/ AGENTS.md README.md LICENSE .gitignore 2>/dev/null \| head -10; echo "---"; for f in build.sh Containerfile test.sh .github/workflows/build.yml AGENTS.md README.md LICENSE .gitignore; do test -f "$f" && echo "OK: $f" || echo "MISSING: $f"; done; for d in docs docs/resources.md docs/build-plan.md; do test -e "$d" && echo "OK: $d" || echo "MISSING: $d"; done` — all entries should show OK |
-| C5 | §6.2 Verification Checklist | All 7 items checked `[x]` | `grep -c '\[x\]' AGENTS.md` — exit code 0 |
+|| C5 | §6.2 Verification Checklist | All 7 items checked `[x]` | `bash -c 'unchecked=$(grep -cE "^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[ \]" AGENTS.md); checked=$(grep -cE "^[[:space:]]*([-*]|[0-9]+\.)[[:space:]]+\[x\]" AGENTS.md); [ "$unchecked" -eq 0 ] && [ "$checked" -eq 7 ]'` — exit code 0 |
 | C6 | Decision Log | Last entry dated correctly, reflects current state | `tail -1 AGENTS.md \| grep -q "$(date +%Y-%m-%d)"` (note: last-edit date, not strict match) |
 | C7 | § Repository Layout | `[generated]` items (nvim-linux-*.deb, _CPack_Packages/) are gitignored | `test -f nvim-linux-x86_64.deb; deb_exist=$?; grep -q 'nvim-linux-\*' .gitignore; gitignored=$?; [ "$deb_exist" -eq 0 ] && [ "$gitignored" -eq 0 ] && echo "exists+gitignored" || echo "check needed"` |
 | C8 | Header (§ Last updated) | Date matches today or last known edit date | `grep 'Last updated:' AGENTS.md` |
@@ -764,7 +765,7 @@ When verification reveals a stale claim, follow this sequence exactly:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ 1. IDENTIFY which claim(s) are stale (use inventory #C1..#C13) │
+│ 1. IDENTIFY which claim(s) are stale (use inventory #C1..#C16) │
 │ 2. VERIFY the correct state via `ls`, `test`, file contents    │
 │ 3. UPDATE the claim in AGENTS.md                               │
 │ 4. BUMP `Last updated` date at top                             │
