@@ -214,14 +214,14 @@ minutes of runner time per run.
 
 - **13 of 18 main-branch pushes (72%) were doc-only** and would now be skipped
 - **~130 minutes of runner time saved** in this window alone
-- **All other workflows** (staleness guard, author check, CodeQL) still run on doc-only pushes — they have no
+- **All other workflows** (author check, CodeQL) still run on doc-only pushes — they have no
   paths-ignore — to maintain CI integrity
 - **Doc-only PRs skip the build workflow** (PR trigger uses the same paths-ignore as branch pushes); code/workflow PRs
   still build
 - **Tag pushes always build** (path filters not evaluated for tags) — releases never skip
 
 **Verdict**: paths-ignore is highly effective for this project. The high doc-to-code ratio (~3:1) means ~3 of every 4
-main-branch pushes skip the 10-min build. The lightweight validation workflows (staleness, author, CodeQL) still
+main-branch pushes skip the 10-min build. The lightweight validation workflows (author, CodeQL) still
 validate doc-only changes in ~2 minutes total.
 
 ---

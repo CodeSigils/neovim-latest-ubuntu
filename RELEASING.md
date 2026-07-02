@@ -305,4 +305,3 @@ All pipeline files are in the repository:
 - [`test.sh`](./test.sh) — 7-check verification script
 - [`docs/build-plan.md`](./docs/build-plan.md) — technical pipeline details
 - [`.github/workflows/nightly.yml`](.github/workflows/nightly.yml) — daily nightly build
-- [`AGENTS.md`](./AGENTS.md) — project knowledge base and decision history
