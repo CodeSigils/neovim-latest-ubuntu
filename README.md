@@ -140,6 +140,11 @@ The container image (pinned to the current Ubuntu LTS in the Containerfile) incl
 `build.sh`. Use `VERSION=latest` to build the latest stable release (the CI workflow uses this for its weekly scheduled
 build). The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in the `output/` directory on your host.
 
+> The Ubuntu base image version, codename, and digest are sourced from repo-level variables
+> (`UBUNTU_VERSION`, `UBUNTU_CODENAME`, `UBUNTU_SHA256`). When upgrading to a new Ubuntu LTS,
+> update those three variables — all workflows and the Containerfile pick them up automatically.
+> See [Settings → Secrets and Variables → Actions → Variables](https://github.com/CodeSigils/neovim-latest-ubuntu/settings/variables/actions).
+
 ### Build Output
 
 The build produces `nvim-linux-x86_64.deb` (or `nvim-linux-arm64.deb` on ARM64) in the specified output directory. When
