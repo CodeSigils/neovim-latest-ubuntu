@@ -20,24 +20,15 @@ they don't affect correctness or functionality.
 
 ### 1. Pinned Base Image
 
-The `Containerfile` pins the base image to a specific SHA256 digest of the current Ubuntu LTS:
+The `Containerfile` pins the base image to a specific SHA256 digest of the current Ubuntu LTS, using a repo-level variable so the version and digest can be updated together:
 
 ```dockerfile
-FROM ubuntu:${UBUNTU_VERSION}@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+ARG UBUNTU_VERSION=26.04
+ARG UBUNTU_SHA256=f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
 ```
 
-This means every build — whether on a developer's workstation, a CI runner, or a different day — starts from the exact
-same operating system image with the exact same toolchain versions. The pinning digest is the multi-arch manifest list,
-so the same `Containerfile` selects the correct platform-specific image on both x86_64 and ARM64.
-
-**How to update**: When the base image needs a security refresh, run:
-
-```bash
-docker pull ubuntu:26.04
-docker inspect --format='{{index .RepoDigests 0}}' ubuntu:26.04
-```
-
-Then update the `FROM` line and verify the build still passes.
+The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced from repo-level variables (`vars.UBUNTU_VERSION`, `vars.UBUNTU_SHA256`, etc.) with fallbacks in the Containerfile. To switch to a new Ubuntu LTS, update all three variables in one place.
 
 ### 2. Parameterized Build Script
 

@@ -44,6 +44,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   UBUNTU_VERSION: ${{ vars.UBUNTU_VERSION || '26.04' }}
   UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME || 'Resolute Raccoon' }}
+  UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 || 'f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64' }}
 
 jobs:
   lint:
@@ -83,6 +84,7 @@ jobs:
           docker build -t neovim-builder
           --build-arg UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
           --build-arg UBUNTU_CODENAME="${{ env.UBUNTU_CODENAME }}"
+          --build-arg UBUNTU_SHA256=${{ env.UBUNTU_SHA256 }}
           -f Containerfile .
 
       - name: Build Neovim .deb

@@ -3,10 +3,12 @@
 # arch-specific image digest. Verify the pinned digest supports both amd64
 # and arm64 before pushing.
 ARG UBUNTU_VERSION=26.04
-FROM ubuntu:${UBUNTU_VERSION}@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+ARG UBUNTU_SHA256=f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
 
 ARG UBUNTU_VERSION
 ARG UBUNTU_CODENAME="Resolute Raccoon"
+ARG UBUNTU_SHA256
 LABEL description="Neovim build environment"
 LABEL ubuntu.version=${UBUNTU_VERSION}
 LABEL ubuntu.codename=${UBUNTU_CODENAME}
