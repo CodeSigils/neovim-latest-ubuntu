@@ -11,7 +11,7 @@ env:
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-24.04' }}
     permissions:
       contents: write          # for branch/PR creation
       pull-requests: write     # for creating PRs

@@ -14,7 +14,7 @@ env:
 jobs:
   check-attribution:
     name: Check Commit Authorship
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v7
         with:

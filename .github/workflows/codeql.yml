@@ -23,7 +23,7 @@ env:
 jobs:
   analyze:
     name: Analyze (GitHub Actions)
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-24.04' }}
     permissions:
       security-events: write
       packages: read

@@ -79,7 +79,7 @@
 
 - **Build verified** — Neovim v0.12.3 built and packaged inside a Podman container (Ubuntu LTS base image; see Containerfile for current version). All 7 verification checks pass: install, version match, smoke test (`--headless +q`), runtime health (`--headless +checkhealth +q`), `ldd` clean, `update-alternatives` registration, and clean uninstall.
 - **CI pipeline fixed** — Artifact verification was broken because `find -exit 0` is not a valid GNU findutils predicate. Replaced with `ls *.deb` glob check in both `build.sh` and `.github/workflows/build.yml`. The CI previously failed at every run regardless of build success.
-- **Test runs inside build container** — `.deb` verification (`test.sh`) runs via `docker run neovim-builder` to match the container's runtime libraries, not the host runner's. Fixes the glibc version skew between `ubuntu:26.04` container (libc6 2.43) and the `ubuntu-24.04` runner (libc6 2.39). See docs/reproducibility.md §"Verification runs inside the build container".
+- **Test runs inside build container** — `.deb` verification (`test.sh`) runs via `docker run neovim-builder` to match the container's runtime libraries, not the host runner's. Fixes the glibc version skew between `ubuntu:26.04` container (libc6 2.43) and the host runner (libc6 2.39 on the default `ubuntu-24.04-arm` runner, configurable via `vars.RUNNER_AARCH64`). See docs/reproducibility.md §"Verification runs inside the build container".
 - **No hardcoded version defaults in CI** — The `build.yml` workflow previously had a hardcoded `0.12.2` fallback that went stale on version bumps. Now uses `latest` (auto-detects current stable via GitHub API) as the default, so the workflow is always current. `Containerfile` also removed its hardcoded `ENV VERSION` — `build.sh` is the single source of truth for the default version.
 - **Pipeline files** — `build.sh`, `Containerfile`, and `test.sh` are tested and operational with explicit artifact path handling (`cpack -B $OUTPUT_DIR`).
 - **Containerfile** — installs build dependencies from committed manifest files plus CI-only extras (`sudo` needed by `test.sh` for `dpkg` operations), and forwards arguments properly to `build.sh`. Base image pinned via digest for reproducible builds; version configurable via `ARG UBUNTU_VERSION` (default: `26.04`).
@@ -90,7 +90,7 @@
 - **README.md** is a Diataxis how-to guide with first-screen value prop, comparison table (vs apt/AppImage/Snap), Quick Start (build from source), Download from Releases, Build from Source, Containerized Build, Compilation Details, Verification, and License.
 - **CHANGELOG.md** is user-facing release history following Keep a Changelog format.
 - **docs/reproducibility.md** is a Diataxis Explanation document covering how the pipeline achieves build reproducibility, guarantees and limitations, and cross-architecture considerations.
-- **Ubuntu 26.04-arm investigation pending** — GitHub has not yet released `ubuntu-26.04` or `ubuntu-26.04-arm` runner images. Track: https://github.com/actions/runner-images. When they arrive, update ARM runner labels from `ubuntu-24.04-arm` to `ubuntu-26.04-arm` (see docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption" for full checklist).
+- **Ubuntu 26.04-arm investigation pending** — GitHub has not yet released `ubuntu-26.04-arm` runner images. Track: https://github.com/actions/runner-images. When it arrives, update the repo-level variable `RUNNER_AARCH64` from `ubuntu-24.04-arm` to `ubuntu-26.04-arm` — all workflows pick it up without per-file changes (see docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption").
 
 ## Overview
 
@@ -426,7 +426,7 @@ release lifecycle:
 #### 8.2 Release Workflow (tag push)
 
 1. Push a tag matching `v*` (e.g. `git tag v0.13.0 && git push origin v0.13.0`)
-2. CI builds the Neovim `.deb` inside a container using `build.sh` for both `x86_64` (ubuntu-latest) and `aarch64` (ubuntu-24.04-arm) in parallel; the container targets Ubuntu 26.04 regardless of runner OS
+2. CI builds the Neovim `.deb` inside a container using `build.sh` for both `x86_64` (`${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}`) and `aarch64` (`${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}`) in parallel; the container targets Ubuntu 26.04 regardless of runner OS
 3. Each matrix job uploads its `.deb` + SHA256SUMS as an arch-specific artifact
 4. On success across all architectures, the `release` job downloads all artifacts and creates the Release with both `.deb` files and combined SHA256SUMS
 5. Users can install directly from the Release page:
@@ -460,7 +460,7 @@ release lifecycle:
 
 #### 8.4 CI Environment
 
-- Runner: `ubuntu-latest` (x86_64) and `ubuntu-24.04-arm` (ARM64) via GitHub Actions matrix; container targets Ubuntu 26.04
+- Runner: `${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}` (x86_64) and `${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}` (ARM64) via GitHub Actions matrix; container targets Ubuntu 26.04
 - Build container: the project's `Containerfile` (Podman-compatible, run via `docker` on GH Actions)
   - Uses multi-arch manifest list digest (`ubuntu:26.04@sha256:f3d28607...`) so the same `Containerfile` works on both architectures
 - The container image includes all build prerequisites and runs `build.sh` on startup
@@ -635,7 +635,8 @@ Committer: CodeSigils <toolsoftrade.web@gmail.com>
 || 2026-06-11 | check-upstream schedule: weekly → daily | Reduces detection lag for new upstream releases from 0–7 days to 0–24 hours. |
 || 2026-06-11 | v0.12.3 release | Tag v0.12.3 pushed; CI built + released x86_64 and ARM64 .deb packages. Build verified, all checks pass. |
 || 2026-06-11 | Version defaults consolidated to `latest` | Removed hardcoded `0.12.2` from `Containerfile` (`ENV VERSION` deleted) and `build.yml` (fallback → `latest`). `build.sh` is the single source of truth for the default version; CI fallback auto-detects current stable via GitHub API. Never out of date on version bumps. |
-|| 2026-06-30 | Documentation accuracy fixes | Corrected `update-alternatives` claims (upstream only registers `vi`/`vim`/`view`, not `editor`) and Snap confinement description (classic confinement, not sandboxed). Fixed orphaned `Base distribution:` reflow in docs/resources.md. Updated `Last updated` date, C5 verification command precision, and C1-C13→C1-C16 range in stale guard protocol. |
+||| 2026-06-30 | Documentation accuracy fixes | Corrected `update-alternatives` claims (upstream only registers `vi`/`vim`/`view`, not `editor`) and Snap confinement description (classic confinement, not sandboxed). Fixed orphaned `Base distribution:` reflow in docs/resources.md. Updated `Last updated` date, C5 verification command precision, and C1-C13→C1-C16 range in stale guard protocol. |
+||| 2026-07 | Runner labels externalized to repo-level variables | All 17 hardcoded `runs-on` labels across 7 workflow files replaced with `${{ vars.RUNNER_X86_64 || '...' }}` and `${{ vars.RUNNER_AARCH64 || '...' }}`. Updated AGENTS.md, docs/reproducibility.md. Set `RUNNER_X86_64=ubuntu-latest` and `RUNNER_AARCH64=ubuntu-24.04-arm` as repo variables. Nightly.yml now passes `--build-arg UBUNTU_VERSION`/`UBUNTU_CODENAME` for consistency with build.yml. Stale build.yml comment fixed. |
 
 ### 11. Staleness & Drift Guard
 
@@ -666,7 +667,7 @@ command that proves or disproves the claim.
 | C12 | §8.7, nightly.yml | Nightly workflow exists and is functional | `test -f .github/workflows/nightly.yml` — file exists |
 | C13 | §9.1, check-author.yml | Author attribution guard CI-enforced | `test -f .github/workflows/check-author.yml` — file exists |
 | C14 | §8.8, build.yml lint job | Workflow YAML files parse correctly | `python3 scripts/check-yaml-syntax.py` — exit code 0 |
-| C15 | Current Status §, docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption" | ubuntu-26.04-arm runner availability tracked for future migration | Manual check: visit https://github.com/actions/runner-images — if `ubuntu-26.04` listed, time to update ARM runner labels |
+| C15 | Current Status §, docs/reproducibility.md §"Future: ubuntu-26.04 runner adoption" | ubuntu-26.04-arm runner availability tracked for future migration | Manual check: visit https://github.com/actions/runner-images — if `ubuntu-26.04-arm` listed, time to update the repo-level `RUNNER_AARCH64` variable |
 | C16 | §8.3, §8.8, release readiness files | Release-readiness gate exists and tests pass | `test -x scripts/check-release-readiness.sh && python3 tests/test_release_readiness.py` — exit code 0 |
 
 #### 11.2 Drift-Prone Sections (highest risk)
@@ -682,7 +683,7 @@ significant action:
 6. **§8 Release Phase and RELEASING.md** — nightly docs drift if workflow changes
 7. **README badges** — nightly + CodeQL badges break if workflow names change
 8. **§9 Guardrails (Agent Attribution)** — CI enforcement patterns drift if workflow name/path changes
-9. **Investigation items (future runner adoption)** — ubuntu-26.04-arm pending in Current Status and docs/reproducibility.md — must be revisited when GitHub releases the runner
+9. **Investigation items (future runner adoption)** — ubuntu-26.04-arm pending in Current Status and docs/reproducibility.md — must be revisited to update the repo-level `RUNNER_AARCH64` variable when the runner is available
 
 #### 11.3 Pre-Action Gate (MANDATORY — run before any work)
 

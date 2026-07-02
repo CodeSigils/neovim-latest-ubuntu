@@ -137,16 +137,17 @@ If `test.sh` passes all checks, the build is reproducible.
 ## Cross-Architecture Considerations
 
 The CI runs on GitHub Actions runners with the build and test executed inside a reproducible `ubuntu:26.04` container.
-The runner OS does not need to match the target OS: x86_64 builds use `ubuntu-latest` runners; ARM64 uses
-`ubuntu-24.04-arm` (no `ubuntu-26.04-arm` runner is available yet). The container provides the actual build and test
-environment.
+The runner OS does not need to match the target OS: x86_64 runners are sourced from the repo-level variable
+`RUNNER_X86_64` (default: `ubuntu-latest`); ARM64 runners come from `RUNNER_AARCH64` (default:
+`ubuntu-24.04-arm`, as no `ubuntu-26.04-arm` runner is available yet). The container provides the actual
+build and test environment.
 
 The CI matrix builds on two architectures:
 
-| Architecture    | CI Runner                                                  | `.deb` filename         |
-| --------------- | ---------------------------------------------------------- | ----------------------- |
-| x86_64          | `ubuntu-latest`                                            | `nvim-linux-x86_64.deb` |
-| aarch64 / ARM64 | `ubuntu-24.04-arm` (target OS: Ubuntu 26.04 via container) | `nvim-linux-arm64.deb`  |
+| Architecture    | CI Runner (via repo variable)                          | `.deb` filename         |
+| --------------- | ------------------------------------------------------- | ----------------------- |
+| x86_64          | `${{ vars.RUNNER_X86_64 }}` (default `ubuntu-latest`)  | `nvim-linux-x86_64.deb` |
+| aarch64 / ARM64 | `${{ vars.RUNNER_AARCH64 }}` (default `ubuntu-24.04-arm`) | `nvim-linux-arm64.deb`  |
 
 The ARM runner/build matrix uses the `aarch64` architecture label, while the generated CPack `.deb` filename and Debian
 package metadata both use the Debian/Ubuntu architecture name `arm64`.
@@ -177,11 +178,13 @@ The CI workflow achieves this with:
 
 ### Future: ubuntu-26.04 runner adoption
 
-When GitHub releases `ubuntu-26.04` and `ubuntu-26.04-arm` runner images, update:
+When GitHub releases `ubuntu-26.04-arm` runner images, update:
 
-- `build.yml` / `nightly.yml`: change ARM64 runner from `ubuntu-24.04-arm` to `ubuntu-26.04-arm`
-- `build.yml`: `ubuntu-latest` will auto-roll to `ubuntu-26.04` once GitHub updates the alias
-- This file: update the runner table to remove the `(no ... runner is available yet)` notation
+1. Set the repo-level variable `RUNNER_AARCH64` to `ubuntu-26.04-arm` (Settings → Secrets and Variables → Actions → Variables).
+   All workflows pick it up immediately — no per-file changes needed.
+2. `ubuntu-latest` will auto-roll to `ubuntu-26.04` once GitHub updates the alias; no action required unless
+   you want to pin explicitly (set `RUNNER_X86_64` to `ubuntu-26.04`).
+3. This file: update the runner table to remove the `(no ... runner is available yet)` notation.
 
 Monitor: https://github.com/actions/runner-images
 
