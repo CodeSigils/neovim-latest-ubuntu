@@ -1,6 +1,6 @@
 # Ubuntu Packaging Resources
 
-**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-06-30 (stale doc dates refreshed, shellcheck suppression, build.sh header drift guard) **Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
+**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-07 **Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
 
 This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
 project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
@@ -116,9 +116,9 @@ container. Key characteristics relevant to .deb packaging:
 - usrmerge (merged `/usr`) is complete in 26.04 — `/lib` and `/usr/lib` are the same filesystem. CPack and dpkg handle
   this transparently.
 - GCC 15 ABI is backward-compatible; `libgcc-s1 (>= 3.3)` still covers all modern GCC versions.
-- Lintian runs on the GitHub Actions runner (currently ubuntu-24.04), not inside the build container. This is acceptable
+- Lintian runs on the GitHub Actions runner (currently `${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}`, mapped to ubuntu-26.04), not inside the build container. This is acceptable
   for advisory/audit purposes. To get 26.04-accurate lintian results, run lintian inside the container.
-- The container digest is pinned via SHA256 for reproducibility; refresh per docs/reproducibility.md.
+- The container digest is pinned via SHA256 (repo-level variable `UBUNTU_SHA256`) for reproducibility; update the variable when the base image needs refreshing (see docs/reproducibility.md).
 
 ---
 
@@ -243,7 +243,7 @@ validate doc-only changes in ~2 minutes total.
 
 ### Key best practices for this project
 
-1. **Use `security-extended` over `security-and-quality` for the `actions` language** — The `actions` language (GitHub Actions YAML workflows) is a relatively small analysis surface (~1000 lines across 6 workflow files). `security-and-quality` adds code-quality queries that generate noise on workflow files without meaningful security signal. `security-extended` catches all relevant security vulnerabilities with fewer false positives.
+1. **Use `security-extended` over `security-and-quality` for the `actions` language** — The `actions` language (GitHub Actions YAML workflows) is a relatively small analysis surface (~800 lines across 5 workflow files). `security-and-quality` adds code-quality queries that generate noise on workflow files without meaningful security signal. `security-extended` catches all relevant security vulnerabilities with fewer false positives.
 
 2. **paths-ignore must NOT exclude workflow files** — CodeQL's purpose is to analyze workflow file changes for security issues. Excluding `.github/workflows/*.yml` from CodeQL's paths-ignore defeats its purpose. Build.yml's paths-ignore excludes workflow files to save build minutes; CodeQL's should only exclude doc/metadata files. Independent trigger lists serve different purposes.
 
