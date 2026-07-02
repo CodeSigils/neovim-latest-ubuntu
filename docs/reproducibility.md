@@ -1,6 +1,6 @@
 # Reproducibility — Neovim Latest deb Package
 
-**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-06-30
+**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-07
 
 ## What "Reproducible" Means Here
 
@@ -82,7 +82,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.3 inside the pinned base image image
+- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.3 inside the pinned base image
   will produce packages that pass identical verification checks and behave identically at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
@@ -152,7 +152,7 @@ for the target ISA.
 Test verification (`test.sh`) runs **inside the same container** that built the `.deb`, not on the host runner. This is
 intentional: the container's runtime libraries match the build environment's. If the `.deb` declares `libc6 >= 2.43`
 (from Ubuntu 26.04), the test environment has exactly that version. Without this pattern, runner-side testing would fail
-because the runner (ubuntu-24.04) has an older glibc (2.39) that can't satisfy the package's dependencies.
+because the x86_64 runner (ubuntu-26.04 via `vars.RUNNER_X86_64`) and ARM64 runner (`vars.RUNNER_AARCH64`, default `ubuntu-24.04-arm`) may have a different glibc than the container's target (2.43).
 
 The CI workflow achieves this with:
 
