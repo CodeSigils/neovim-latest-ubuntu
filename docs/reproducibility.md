@@ -11,6 +11,8 @@ This project produces a `.deb` package from Neovim source code. **Reproducibilit
 
 This is **functional reproducibility** — not byte-for-byte binary reproducibility. Two builds with the same inputs will
 not produce identical SHA256 hashes, but they will produce packages that install, run, and behave identically.
+(These correspond to the "reproducible behavior" rather than "reproducible build" variants discussed by the
+[Reproducible Builds project](https://reproducible-builds.org/).)
 
 **Why not byte-for-byte?** Neovim's upstream CPack configuration embeds build timestamps into the package metadata. The
 compiler may also produce slightly different machine code based on host CPU features. These differences are benign —
@@ -68,6 +70,8 @@ Every built `.deb` passes the same seven checks before it's considered valid:
 7. **Cleanup**: `dpkg -r Neovim` removes the package cleanly
 
 The same test suite runs on every build, regardless of architecture or trigger.
+
+`test.sh` auto-detects the expected Neovim version from the `.deb`'s control file via `dpkg-deb -f` when no version argument is supplied — see `test.sh` lines 27–34. This means the verification gate adapts automatically to whatever version was built, eliminating a manual synchronization point.
 
 ### 5. Explicit Artifact Handling
 
