@@ -56,6 +56,7 @@ All `.deb` artifacts are built inside a **containerised, immutable build environ
 | **Release readiness gate** | Upstream tag exists, tag not already released, git state clean, local validation passes | Before every tag push | Yes |
 | **Author attribution guard** | All commits authored by canonical human maintainer identity; no AI-agent trailers | Every push | Yes |
 | **Build matrix** | x86_64 + aarch64 both must pass; release is blocked if either fails | Every build | Yes |
+| **Repository label guard** | Required labels (`dependencies`, `github-actions`, `new-release`, `nightly`) exist on the repo | Every build | Yes |
 
 ## Distribution & Package Policy
 

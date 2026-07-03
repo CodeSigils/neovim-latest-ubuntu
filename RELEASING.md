@@ -85,7 +85,7 @@ Watch the run at https://github.com/CodeSigils/neovim-latest-ubuntu/actions
 
 The pipeline runs in parallel for **x86_64** and **ARM64**:
 
-1. **Lint** — `shellcheck` on `build.sh`/`test.sh`, `hadolint` on `Containerfile`, YAML syntax validation. If lint
+1. **Lint** — dependency-consistency check, required-label validation, `shellcheck` on all scripts, `hadolint` on `Containerfile`, YAML syntax validation, release readiness tests. If lint
    fails, the build is blocked.
 2. **Build** — Container image builds from the Ubuntu LTS base image, then `build.sh` clones Neovim at the tagged
    version, builds through its upstream Makefile wrapper (CMake + Ninja), and packages with CPack into a `.deb`.
@@ -264,12 +264,15 @@ You push tag v0.13.0
     ↓
 GitHub Actions triggers build.yml
     ↓
-╔═══════════════════════════════════════════╗
-║  Lint job                                 ║
-║  ├─ shellcheck build.sh test.sh           ║
-║  ├─ hadolint Containerfile                ║
-║  └─ Python YAML validation                ║
-╚═══════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════╗
+║  Lint job                                             ║
+║  ├─ shellcheck build.sh test.sh scripts/*.sh           ║
+║  ├─ check-dependencies.py (dep consistency)            ║
+║  ├─ check-labels.py (required repo labels)             ║
+║  ├─ hadolint Containerfile                             ║
+║  ├─ YAML syntax validation                             ║
+║  └─ python3 -m unittest discover (release gate)        ║
+╚═══════════════════════════════════════════════════════╝
     ↓
 ╔═══════════════════════════════════════════╗
 ║  Build job (matrix: x86_64 + aarch64)     ║

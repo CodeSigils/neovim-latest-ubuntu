@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
 - Release body template: Release notes now use a curated static body with install, integrity-check, upstream release
   notes, and `:help news` links.
-- Nightly build documentation: added Nightly Builds section to `RELEASING.md` and §8.7 to `AGENTS.md` covering triggers,
+- Nightly build documentation: added Nightly Builds section to `RELEASING.md` covering triggers,
   artifact download, and key differences from stable releases.
 - Dependency source-of-truth manifests: added `deps/ubuntu-build-deps.txt` for manual host prerequisites and
   `deps/ubuntu-ci-extra-deps.txt` for CI/container-only extras.
@@ -158,7 +158,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Containerfile missing `sudo` — required by `test.sh` for `dpkg` operations.
 - `.gitignore` wildcard `nvim-linux64.deb` expanded to `nvim-linux-*.deb` (covers generated `.deb` artifacts for both
   x86_64 and ARM64 builds).
-- AGENTS.md stale claims (build artifact name, layout status, inline script examples).
+- Stale repository guidance claims (build artifact name, layout status, inline script examples).
 - CI artifact verification used invalid `find -exit 0` predicate (not a valid GNU findutils option). Replaced with `ls`
   glob check in `build.sh` and CI workflow. Every CI run previously failed at the verify step regardless of build
   success.
