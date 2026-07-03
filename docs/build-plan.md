@@ -14,7 +14,7 @@ Not using:
   are needed.
 - Hybrid CPack+debhelper (Approach C) — unnecessary complexity at this scope.
 
-This pipeline mirrors Neovim's own release CI: clone the tag, configure with CMake + Ninja, build with `RelWithDebInfo`, then package via CPack using `build/CPackConfig.cmake` as described in [Neovim's release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml).
+This pipeline adapts Neovim's upstream CPack and CMake infrastructure: clone the tag, build via the upstream Makefile wrapper (`make CMAKE_BUILD_TYPE=RelWithDebInfo`), then package as `.deb` using the CPack config that ships with every Neovim release. Upstream's own [release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml) uses the same CMake toolchain and CPack machinery, though it switched from DEB to TGZ in PR #22773.
 
 ## 2. Prerequisites
 
@@ -134,10 +134,10 @@ Container image: currently `ubuntu:26.04` (see Containerfile for current version
 > Build: Neovim v0.12.3, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64
 > via CI).
 
-**Alignment with Debian/Ubuntu best practices:** Maintainer scripts (`postinst`, `prerm`), dependency declarations via
-`CPACK_DEBIAN_PACKAGE_SHLIBDEPS`, and `update-alternatives` registration follow the principles outlined in the [Debian
-Developer's Reference §6](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) and
-[Debian Policy Manual](https://www.debian.org/doc/debian-policy/) for local convenience packages.
+**Alignment with Debian/Ubuntu best practices:** Dependency declarations via `CPACK_DEBIAN_PACKAGE_SHLIBDEPS` and
+`update-alternatives` registration (via upstream Neovim's `postinst`/`prerm` scripts inherited from `cmake.packaging/`)
+follow the principles outlined in the [Debian Developer's Reference §6](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html)
+and [Debian Policy Manual](https://www.debian.org/doc/debian-policy/) for local convenience packages.
 
 ### 4.3 Test Script (for automation)
 

@@ -95,7 +95,7 @@ All resources below have been evaluated against five criteria:
 6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health,
    dependency, alternatives, and uninstall checks.
 
-In this repository, `cmake/packaging/postinst`, `cmake/packaging/prerm`, and `scripts/test.sh` are written with these specific best practices in mind.
+In this repository, `scripts/test.sh` implements these test and verification best practices. Neovim's upstream maintainer scripts (`postinst`/`prerm` inherited from `cmake.packaging/` during clone) handle `update-alternatives` registration and removal per policy.
 
 ### Ubuntu 26.04 (Resolute Raccoon) packaging notes
 
