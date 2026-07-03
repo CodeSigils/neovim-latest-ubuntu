@@ -95,7 +95,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 | ----------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
 | SHA256 hash differs                       | CPack embedded timestamps, compiler timestamps                                 | None — functional equivalence unaffected     |
 | Binary size varies slightly               | Compiler optimisations, linker alignment                                       | None — difference is typically bytes         |
-| Bundled dep versions pinned at clone time | `git clone --depth 1` fetches current dep tree from Neovim's pinned submodules | Low — Neovim pins exact dep revisions        |
+| Bundled dep versions pinned at clone time | Dep version configs (Build*.cmake in `cmake.deps/`) are cloned with the source; actual downloads happen via CMake ExternalProject during build | Low — Neovim pins exact dep revisions        |
 | Host CPU instruction set                  | Compiler auto-detects microarchitecture                                        | Low — Neovim targets baseline x86_64/ARM64v8 |
 
 ### Degraded Reproducibility Outside the Container
@@ -152,7 +152,7 @@ for the target ISA.
 Test verification (`test.sh`) runs **inside the same container** that built the `.deb`, not on the host runner. This is
 intentional: the container's runtime libraries match the build environment's. If the `.deb` declares `libc6 >= 2.43`
 (from Ubuntu 26.04), the test environment has exactly that version. Without this pattern, runner-side testing would fail
-because the x86_64 runner (ubuntu-26.04 via `vars.RUNNER_X86_64`) and ARM64 runner (`vars.RUNNER_AARCH64`, default `ubuntu-24.04-arm`) may have a different glibc than the container's target (2.43).
+because the x86_64 runner (`vars.RUNNER_X86_64`, default `ubuntu-latest`) and ARM64 runner (`vars.RUNNER_AARCH64`, default `ubuntu-24.04-arm`) may have a different glibc than the container's target (2.43).
 
 The CI workflow achieves this with:
 
