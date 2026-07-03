@@ -176,7 +176,7 @@ Each build is verified against these checks:
 
 | #   | Check          | Description                                                        |
 | --- | -------------- | ------------------------------------------------------------------ |
-| 1   | Install        | `dpkg -i` installs cleanly with `update-alternatives` registration |
+| 1   | Install        | `dpkg -i` installs cleanly with automatic dependency resolution    |
 | 2   | Version        | `nvim --version` reports the expected release version              |
 | 3   | Smoke test     | `nvim --headless +q` starts and exits cleanly                      |
 | 4   | Runtime health | `nvim --headless +checkhealth +q` runs without crash               |
