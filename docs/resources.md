@@ -54,6 +54,7 @@ All resources below have been evaluated against five criteria:
 - **CPack:** `cpack --config build/CPackConfig.cmake`
 - **Release trigger:** tag push, scheduled nightly, or manual dispatch in upstream automation
 - **History:** `.deb` files were removed from main upstream releases in PR #22773 to reduce maintenance burden
+- **Build command alignment:** This project mirrors the upstream `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cpack` pattern described in release.yml.
 
 ---
 
@@ -94,6 +95,8 @@ All resources below have been evaluated against five criteria:
 6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health,
    dependency, alternatives, and uninstall checks.
 
+In this repository, `cmake/packaging/postinst`, `cmake/packaging/prerm`, and `scripts/test.sh` are written with these specific best practices in mind.
+
 ### Ubuntu 26.04 (Resolute Raccoon) packaging notes
 
 Target distribution is Ubuntu 26.04 LTS (Resolute Raccoon), with build and test running inside a pinned `ubuntu:26.04`
@@ -108,6 +111,8 @@ container. Key characteristics relevant to .deb packaging:
 | lintian       | 2.117–2.118  | Updated usrmerge policy checks                                        |
 | Python        | 3.13         | Default interpreter; may affect build-time scripts                    |
 | OpenSSL       | 3.x          | System TLS library                                                    |
+
+_Versions as of 26.04 GA; see [Ubuntu release notes](https://discourse.ubuntu.com/t/resolute-raccoon-release-notes/) for updated toolchain details._
 
 **Packaging toolchain notes:**
 
@@ -167,6 +172,8 @@ set(CPACK_PACKAGE_VERSION "1.0.0")
 # Must be at the end
 include(CPack)
 ```
+
+_Upstream Neovim's CPack config in `cmake.packaging/CMakeLists.txt` uses these same mechanisms (`CPACK_DEBIAN_PACKAGE_SHLIBDEPS`, maintainer scripts, versioning); this project builds on that pattern rather than reinventing packaging metadata._
 
 ---
 
