@@ -32,7 +32,7 @@ Use it to answer two questions quickly:
 1. **Upstream alignment**
    - Neovim is built from upstream source tags.
    - Packaging uses upstream CMake/CPack flow, not a custom `debian/` packaging tree.
-   - This repository does not patch or fork Neovim packaging logic beyond wrapping and automating it.
+   - This repository does not replace or fork Neovim packaging logic; it wraps and automates the upstream flow.
 
 2. **Ubuntu distro boundary**
    - Ubuntu builds do not mix Debian sid or other Debian suites into apt sources.
