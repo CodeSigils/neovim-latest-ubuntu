@@ -7,7 +7,7 @@
 [![CodeQL](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml)
 [![Nightly](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml)
 
-Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu and Linux Mint — no snaps, no
+Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu 26.04-based systems — no snaps, no
 Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
 A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. GitHub
@@ -100,9 +100,10 @@ sudo apt install ninja-build gettext cmake curl git build-essential
 [cmake]: https://cmake.org/
 
 > The CI/container image installs the same manual build list plus extra automation packages from
-> [`deps/ubuntu-ci-extra-deps.txt`](./deps/ubuntu-ci-extra-deps.txt) (`ca-certificates`, `file`, `lua5.1`, `sudo`) for
-> HTTPS fetches, packaging inspection, and `test.sh` execution. `scripts/check-dependencies.py` enforces that README,
-> dependency manifests, Containerfile, and the build workflow stay aligned.
+> [`deps/ubuntu-ci-extra-deps.txt`](./deps/ubuntu-ci-extra-deps.txt) (`ca-certificates`, `file`, `lintian`, `lua5.1`,
+> `sudo`) for HTTPS fetches, packaging inspection, package-policy audit, and `test.sh` execution.
+> `scripts/check-dependencies.py` enforces that README, dependency manifests, Containerfile, and the build workflow stay
+> aligned.
 
 ### Manual Build
 
@@ -176,7 +177,7 @@ Each build is verified against these checks:
 
 | #   | Check          | Description                                                        |
 | --- | -------------- | ------------------------------------------------------------------ |
-| 1   | Install        | `dpkg -i` installs cleanly with automatic dependency resolution    |
+| 1   | Install        | `dpkg -i` installs cleanly; `test.sh` attempts `apt-get install -f` if dependencies are missing |
 | 2   | Version        | `nvim --version` reports the expected release version              |
 | 3   | Smoke test     | `nvim --headless +q` starts and exits cleanly                      |
 | 4   | Runtime health | `nvim --headless +checkhealth +q` runs without crash               |

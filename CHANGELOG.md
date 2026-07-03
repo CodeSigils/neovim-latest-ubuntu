@@ -7,8 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Workflow label validation (`scripts/check-labels.py`) to catch missing labels used by release and nightly automation.
+- Cross-workflow policy tests for label validation and check-upstream/check-author compatibility.
+
 ### Changed
 
+- Author attribution guard now allows `github-actions[bot]` only on `auto/update-v*` upstream-version PR branches.
+- `lintian` is installed in the pinned target container instead of being installed during each package-policy audit step.
 - **check-upstream** schedule changed from weekly to daily for faster awareness of new upstream releases.
 - **Version defaults** consolidated to `latest` throughout CI and build infrastructure — `build.sh` becomes the single
   source of truth for default version. Containerfile `ENV VERSION` removed; `build.yml` hardcoded fallback removed.
@@ -39,16 +46,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   parallel. Releases attach both `.deb` files with a combined `SHA256SUMS`.
 - Release body template: Release notes now use a curated static body with install, integrity-check, upstream release
   notes, and `:help news` links.
-- Staleness guard CI enforcement: new `.github/workflows/staleness.yml` runs the AGENTS.md §11.3 pre-action gate and
-  §11.5 offline drift scan on every push/PR to `main`. Drift (missing files, leaked artifacts, stale dates, missing
-  docs) fails CI.
 - Nightly build documentation: added Nightly Builds section to `RELEASING.md` and §8.7 to `AGENTS.md` covering triggers,
   artifact download, and key differences from stable releases.
-- Anti-drift hardening: added C11 (RELEASING.md covers nightly) and C12 (nightly.yml exists) to AGENTS.md claim
-  inventory. Pre-action gate, offline drift scan, and CI all enforce these new claims.
 - Dependency source-of-truth manifests: added `deps/ubuntu-build-deps.txt` for manual host prerequisites and
   `deps/ubuntu-ci-extra-deps.txt` for CI/container-only extras.
-- Dependency consistency check: added `scripts/check-dependencies.py` and wired it into build and staleness CI so README
+- Dependency consistency check: added `scripts/check-dependencies.py` and wired it into build CI so README
   prerequisites, dependency manifests, Containerfile wiring, and build/test script expectations stay aligned.
 - Non-blocking `lintian` package-policy audit in the build workflow so Debian/Ubuntu packaging findings are visible
   without blocking CPack convenience-package builds.
@@ -63,9 +65,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   comment to reflect that `ubuntu-latest` now maps to ubuntu-26.04.
 - Nightly build now runs hadolint and shellcheck in a lint job before building (catches Containerfile/bash issues
   early).
-- Build workflow `paths-ignore` extended: `.github/workflows/staleness.yml`, `.github/workflows/check-author.yml`,
-  `.github/workflows/nightly.yml`, `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, and
-  `.github/dependabot.yml` changes no longer trigger the full container build.
+- Build workflow `paths-ignore` extended: `.github/workflows/check-author.yml`, `.github/workflows/nightly.yml`,
+  `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, and `.github/dependabot.yml` changes no longer trigger the
+  full container build.
 - Build workflow lintian audit now loops over all `.deb` files instead of auditing only the first one alphabetically.
   Aligned with Debian Developer's Reference §6 best practices.
 - `check-upstream.yml` version comparison now strips `-N` revision suffix before comparing against our tags — prevents
@@ -77,8 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - ARM builds now enforce pass requirement: `continue-on-error: true` removed. Both architectures must succeed for a
   release to proceed.
 - Containerfile optimization: `COPY --chmod=755` eliminates separate `RUN chmod` layer; combined `ENV` lines.
-- AGENTS.md repository layout tree expanded: added `.gitattributes` and all workflow files (`build.yml`,
-  `check-author.yml`, `check-upstream.yml`, `codeql.yml`, `nightly.yml`, `staleness.yml`).
+- Repository layout documentation expanded for `.gitattributes` and workflow files.
 - docs/resources.md: replaced dead Baeldung (403) and LinuxVox (520) URLs with working alternatives.
 - RELEASING.md: added Nightly Builds section with manual trigger and artifact download instructions.
 - README.md: corrected ARM DEB artifact naming guidance; updated build environment from "Debian clang" to "Ubuntu gcc"
@@ -114,8 +115,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Release page upstream resource links: replaced a broken Neovim changelog URL and XML news URL with the upstream
   release notes page and HTML `:help news` page.
-- Documentation audit: corrected stale release-template, runner-label, AGENTS.md authorship, and reproducibility
-  snippets.
+- Documentation audit: corrected stale release-template, runner-label, authorship, and reproducibility snippets.
 - PR trigger efficiency: doc-only pull requests now skip the expensive build workflow using the same path filters as
   doc-only pushes. Verified with temporary PR #10; non-build checks still ran and passed.
 - docs/reproducibility.md: corrected verification checklist count from "six" to "seven" checks.
@@ -123,7 +123,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   reference from 22.04 to 24.04, build.sh parameters from one variable to two (VERSION + OUTPUT_DIR).
 - docs/resources.md: corrected attribution from `code-of-hephaestus/neovim-builds` to `reaper8055/neovim-builds`.
 - .mailmap: added agent identity mappings for Claude, ChatGPT, and Copilot — all canonicalised to maintainer identity.
-- AGENTS.md: various stale claim fixes and added agent attribution guard (CI-enforced `check-author.yml`).
+- Added agent attribution guard (CI-enforced `check-author.yml`).
 - README.md manual build example: added missing `git` prerequisite to match the documented `git clone` flow.
 - docs/build-plan.md: corrected remaining ARM artifact reference to match the actual release asset name,
   `nvim-linux-arm64.deb`.
@@ -140,8 +140,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   (verification script).
 - GitHub Actions CI workflow (`.github/workflows/build.yml`) — triggers on tag push `v*`, main push, and manual
   dispatch.
-- AGENTS.md — project knowledge base with research findings, agent instructions, build documentation, stale-drift guard,
-  and decision log.
 - CHANGELOG.md — this file, user-facing release history.
 - `RELEASING.md` — release process guide for maintainers (tag push, manual dispatch, local build, troubleshooting).
 - Lint job (shellcheck + hadolint) in CI — runs before build, blocks on failures.

@@ -2,5 +2,6 @@
 # These support HTTPS fetches, packaging verification, and test.sh execution.
 ca-certificates
 file
+lintian
 lua5.1
 sudo

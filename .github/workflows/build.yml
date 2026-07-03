@@ -51,12 +51,16 @@ jobs:
       - uses: actions/checkout@v7
       - name: Run dependency consistency check
         run: python3 scripts/check-dependencies.py
+      - name: Validate workflow labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check-labels.py
       - name: Run shellcheck
-        run: shellcheck build.sh test.sh
+        run: shellcheck build.sh test.sh scripts/*.sh
       - name: Validate YAML workflow syntax
         run: python3 scripts/check-yaml-syntax.py
       - name: Run release readiness tests
-        run: python3 tests/test_release_readiness.py
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Run hadolint
         uses: hadolint/hadolint-action@v3.3.0
         with:
@@ -148,12 +152,8 @@ jobs:
             -v "$PWD/output:/output:ro" \
             neovim-builder \
             bash -c '
-              if ! apt-get update; then
-                echo "Failed to update package indexes before lintian audit." >&2
-                exit 1
-              fi
-              if ! apt-get install -y --no-install-recommends lintian; then
-                echo "Failed to install lintian before package-policy audit." >&2
+              if ! command -v lintian >/dev/null 2>&1; then
+                echo "lintian is missing from the target container." >&2
                 exit 1
               fi
               for deb in /output/*.deb; do

@@ -10,6 +10,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CANONICAL_AUTHOR_NAME: CodeSigils
   CANONICAL_AUTHOR_EMAIL: toolsoftrade.web@gmail.com
+  CHECKED_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   check-attribution:
@@ -71,6 +72,21 @@ jobs:
             if [ "$author_name" = "dependabot[bot]" ] || [ "$committer_name" = "dependabot[bot]" ]; then
               echo " Skipping Dependabot commit — bot identity allowed"
               continue
+            fi
+
+            # check-upstream creates auto/update-v* PR branches with the
+            # GitHub Actions bot identity. Keep that exception narrow so bot
+            # commits cannot land directly on main or unrelated branches.
+            if [ "$CHECKED_BRANCH" = "${CHECKED_BRANCH#auto/update-v}" ]; then
+              auto_update_branch=false
+            else
+              auto_update_branch=true
+            fi
+            if [ "$auto_update_branch" = "true" ]; then
+              if [ "$author_name" = "github-actions[bot]" ] && [ "$committer_name" = "github-actions[bot]" ]; then
+                echo " Skipping check-upstream auto-update commit on auto/update-v* branch"
+                continue
+              fi
             fi
 
             # Skip GitHub web UI/CLI merges — when merging via GitHub (web UI
