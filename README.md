@@ -213,3 +213,4 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
 - **[CHANGELOG.md](./CHANGELOG.md)** — Release history (user-facing)
 - **[RELEASING.md](./RELEASING.md)** — Release process guide for maintainers
+- **[SECURITY.md](./SECURITY.md)** — Security policy, scanners, distribution boundaries
