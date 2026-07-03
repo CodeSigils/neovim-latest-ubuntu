@@ -14,6 +14,8 @@ Not using:
   are needed.
 - Hybrid CPack+debhelper (Approach C) — unnecessary complexity at this scope.
 
+This pipeline mirrors Neovim's own release CI: clone the tag, configure with CMake + Ninja, build with `RelWithDebInfo`, then package via CPack using `build/CPackConfig.cmake` as described in [Neovim's release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml).
+
 ## 2. Prerequisites
 
 ### 2.1 Build Dependencies
@@ -44,6 +46,9 @@ files, Containerfile wiring, and build/test script expectations drift apart.
 `CPACK_DEBIAN_PACKAGE_SHLIBDEPS TRUE` in the upstream config uses `dpkg-shlibdeps` to auto-detect shared library
 dependencies. The resulting `.deb` will declare depends on the specific `libc6`, `libgcc-s1`, etc. versions found at
 build time.
+
+> **LTS targeting:** Runtime deps (e.g., `libc6 (>= 2.43)`) reflect the Ubuntu 26.04 toolchain; packages are
+> intentionally not compatible with older Ubuntu releases. This is expected and correct for a native LTS package.
 
 ## 3. Build Pipeline
 
@@ -110,6 +115,9 @@ VERSION=latest ./build.sh           # Auto-detect latest stable
 All verification occurs in a **Podman container** matching the target OS. This ensures reproducibility and isolates from
 host system state.
 
+Podman provides rootless, daemonless containerization on Linux, which reduces host attack surface compared to running
+builds directly on the host or using a rootful daemon.
+
 Container image: currently `ubuntu:26.04` (see Containerfile for current version).
 
 ### 4.2 Verification Checklist
@@ -125,6 +133,11 @@ Container image: currently `ubuntu:26.04` (see Containerfile for current version
 > All checks passed on 2026-05-22 inside a Podman `ubuntu:26.04` container (Containerfile defines the current version).
 > Build: Neovim v0.12.3, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64
 > via CI).
+
+**Alignment with Debian/Ubuntu best practices:** Maintainer scripts (`postinst`, `prerm`), dependency declarations via
+`CPACK_DEBIAN_PACKAGE_SHLIBDEPS`, and `update-alternatives` registration follow the principles outlined in the [Debian
+Developer's Reference §6](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) and
+[Debian Policy Manual](https://www.debian.org/doc/debian-policy/) for local convenience packages.
 
 ### 4.3 Test Script (for automation)
 
@@ -146,7 +159,7 @@ The GitHub Actions workflow uses **explicit artifact paths** to ensure determini
 | **Build execution**             | `docker run --rm -e VERSION=x.y.z -v "$PWD/output:/output" neovim-builder`                                                                                                                                                                                                                                                                                                                        |
 | **Artifact path**               | `/output` mounted to `output/` on host                                                                                                                                                                                                                                                                                                                                                            |
 | **Architecture matrix**         | `x86_64` on `${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}` + `aarch64` on `${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}` (both must pass; target OS Ubuntu 26.04 via container; test runs inside the container to match runtime deps) |
-| **Lint**                        | 5 checks: `check-dependencies.py` (dep consistency), `shellcheck build.sh test.sh`, `check-yaml-syntax.py` (YAML validation), `tests/test_release_readiness.py` (release gate), `hadolint/hadolint-action@v3.3.0` (Containerfile lint)                                                                                                                                                            |
+| **Lint**                        | 5 checks: `check-dependencies.py` (dep consistency), `shellcheck build.sh test.sh`, `check-yaml-syntax.py` (YAML validation), `tests/test_release_readiness.py` (release gate), `hadolint/hadolint-action@v3.3.0` (Containerfile lint — enforces Dockerfile/Containerfile best practices and catches security and efficiency issues in the build image definition) |
 | **Verification**                | `ls output/*.deb` before upload (fail-fast) per arch                                                                                                                                                                                                                                                                                                                                              |
 | **Checksums**                   | `sha256sum *.deb > SHA256SUMS` after verification (per arch)                                                                                                                                                                                                                                                                                                                                      |
 | **Package-policy audit**        | Non-blocking `lintian` run per built `.deb` so Debian/Ubuntu policy findings are visible without blocking CPack convenience packages                                                                                                                                                                                                                                                              |
