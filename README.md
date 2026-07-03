@@ -208,6 +208,7 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 
 ## Documentation
 
+- **[docs/architecture.md](./docs/architecture.md)** — Architectural invariants and code map (read this first)
 - **[docs/build-plan.md](./docs/build-plan.md)** — Build pipeline details, test strategy, versioning approach
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
