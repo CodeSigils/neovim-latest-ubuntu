@@ -113,11 +113,8 @@ VERSION=latest ./build.sh           # Auto-detect latest stable
 
 ### 4.1 Container Testing
 
-All verification occurs in a **Podman container** matching the target OS. This ensures reproducibility and isolates from
-host system state.
-
-Podman provides rootless, daemonless containerization on Linux, which reduces host attack surface compared to running
-builds directly on the host or using a rootful daemon.
+All verification occurs inside the **pinned container image** matching the target OS. This ensures reproducibility and
+isolates from host system state.
 
 Container image: currently `ubuntu:26.04` (see Containerfile for current version).
 
@@ -131,7 +128,7 @@ Container image: currently `ubuntu:26.04` (see Containerfile for current version
 - [x] `update-alternatives` registers (check `vi --version` points to nvim)
 - [x] Package uninstalls cleanly: `dpkg -r Neovim`
 
-> All checks passed on 2026-05-22 inside a Podman `ubuntu:26.04` container (Containerfile defines the current version).
+> All checks passed on 2026-05-22 inside the pinned `ubuntu:26.04` container (Containerfile defines the current version).
 > Build: Neovim v0.12.3, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64
 > via CI).
 
@@ -191,11 +188,22 @@ CMake/CPack config changes upstream.
 | File                          | Purpose                                                                | Status                                                              |
 | ----------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `build.sh`                    | Parameterised build script (§3.5)                                      | Done                                                                |
-| `Containerfile`               | Podman image for reproducible builds                                   | Done — updated for explicit arg passing & cpack output dir          |
+| `Containerfile`               | Container image for reproducible builds                                | Done — updated for explicit arg passing & cpack output dir          |
 | `test.sh`                     | Verification script (§4.3)                                             | Done                                                                |
-| `.github/workflows/build.yml` | CI automation (tag/main/dispatch triggers, doc-only pushes skip build) | Done — explicit paths, fail-fast checks, paths-ignore for doc files |
+| `.github/workflows/build.yml` | Main CI pipeline: lint, build, test, release                           | Done — explicit paths, fail-fast checks, paths-ignore for doc files |
+| `.github/workflows/nightly.yml` | Daily nightly builds from Neovim master                              | Done                                                                |
+| `.github/workflows/check-upstream.yml` | Auto-detects new upstream Neovim releases and creates version-bump PRs | Done                                                        |
+| `.github/workflows/codeql.yml` | CodeQL security scanning for workflow YAML                             | Done                                                                |
+| `.github/workflows/check-author.yml` | Author attribution guard — enforces canonical human authorship     | Done                                                                |
+| `.github/dependabot.yml`      | Automated GitHub Actions dependency updates                            | Done                                                                |
+| `deps/ubuntu-build-deps.txt`  | Build prerequisite manifest (manual host builds)                       | Done                                                                |
+| `deps/ubuntu-ci-extra-deps.txt` | CI/container extra package manifest                                 | Done                                                                |
+| `scripts/check-dependencies.py` | Dependency consistency enforcement across docs and manifests          | Done                                                              |
+| `scripts/check-labels.py`     | Required repository label validation                                   | Done                                                                |
+| `scripts/check-yaml-syntax.py` | YAML workflow syntax validation                                       | Done                                                              |
+| `docs/architecture.md`        | Architectural invariants and code map (invariants)                     | Done                                                                |
 
-> **Build run**: All files tested successfully inside Podman on 2026-05-22. **CI verification**: Workflow tested —
+> **Build run**: All files tested successfully inside the pinned container on 2026-05-22. **CI verification**: Workflow tested —
 > container builds, build.sh executes, artifacts generated and uploaded, Release creation succeeds. **Containerfile
 > updates**: Added `COPY --chmod=755` for build-neovim (eliminates separate RUN layer); CMD now passes VERSION and
 > OUTPUT_DIR args. **CI workflow updates**: Explicit `-v "$PWD/output:/output"` mount; artifact verification step added;
@@ -211,8 +219,9 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 1. **Tag push** (`git tag v0.13.0 && git push origin v0.13.0`) → CI builds matrix (x86_64 + aarch64) → release job
    aggregates artifacts
 2. **Main push** (non-doc changes) → CI builds matrix; doc/metadata/workflow-only pushes (`*.md`, `LICENSE`, `docs/**`,
-   `.mailmap`, `.gitignore`, `.gitattributes`, `.githooks/**`, `.github/dependabot.yml`, `nightly.yml`,
-   `check-author.yml`, `codeql.yml`) skip the pipeline (each skipped workflow runs independently)
+   `.gitattributes`, `.gitignore`, `.githooks/**`, `.github/dependabot.yml`, `.github/workflows/nightly.yml`,
+   `.github/workflows/check-author.yml`, `.github/workflows/codeql.yml`, `.mailmap`) skip the pipeline (each skipped workflow
+   runs independently)
 3. **Artifacts** → both `.deb` files (`nvim-linux-x86_64.deb` + `nvim-linux-arm64.deb`) uploaded as release assets with
    combined SHA256SUMS
 4. **Users** → download the correct `.deb` for their architecture from Releases page and install via `dpkg -i`
@@ -231,7 +240,7 @@ VERSION=latest ./build.sh  # auto-fetches latest stable tag
 
 Output is written to the current directory or `$OUTPUT_DIR`.
 
-## 8. Reference
+## 9. Reference
 
 - **[docs/resources.md](./resources.md)** — Curated resource evaluations
 - **[README.md](../README.md)** — How-to guide (Build from Source section)
