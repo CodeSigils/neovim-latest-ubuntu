@@ -265,38 +265,38 @@ You push tag v0.13.0
 GitHub Actions triggers build.yml
     ↓
 ╔═══════════════════════════════════════════════════════╗
-║  Lint job                                             ║
-║  ├─ shellcheck build.sh test.sh scripts/*.sh           ║
-║  ├─ check-dependencies.py (dep consistency)            ║
-║  ├─ check-labels.py (required repo labels)             ║
-║  ├─ hadolint Containerfile                             ║
-║  ├─ YAML syntax validation                             ║
-║  └─ python3 -m unittest discover (release gate)        ║
+║ Lint job                                              ║
+║ ├─ shellcheck build.sh test.sh scripts/*.sh           ║
+║ ├─ check-dependencies.py (dep consistency)            ║
+║ ├─ check-labels.py (required repo labels)             ║
+║ ├─ hadolint Containerfile                             ║
+║ ├─ YAML syntax validation                             ║
+║ └─ python3 -m unittest discover (release gate)        ║
 ╚═══════════════════════════════════════════════════════╝
     ↓
-╔═══════════════════════════════════════════╗
-║  Build job (matrix: x86_64 + aarch64)     ║
-║                                           ║
-║  Each matrix entry:                       ║
-║  ├─ docker build → neovim-builder         ║
-║  ├─ docker run (VERSION=0.13.0):          ║
-║  │    1. git clone --branch v0.13.0       ║
-║  │    2. make (CMake + Ninja)             ║
-║  │    3. cpack -G DEB → .deb              ║
-║  ├─ Verify artifact exists                ║
-║  ├─ sha256sum > SHA256SUMS                ║
-║  ├─ test.sh (7 checks)                    ║
-║  ├─ lintian audit (non-blocking)          ║
-║  └─ Upload arch-specific artifacts        ║
-╚═══════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════╗
+║ Build job (matrix: x86_64 + aarch64)                  ║
+║                                                       ║
+║ Each matrix entry:                                    ║
+║ ├─ docker build → neovim-builder                      ║
+║ ├─ docker run (VERSION=0.13.0):                       ║
+║ │    1. git clone --branch v0.13.0                    ║
+║ │    2. make (CMake + Ninja)                          ║
+║ │    3. cpack -G DEB → .deb                           ║
+║ ├─ Verify artifact exists                             ║
+║ ├─ sha256sum > SHA256SUMS                             ║
+║ ├─ test.sh (7 checks)                                 ║
+║ ├─ lintian audit (non-blocking)                       ║
+║ └─ Upload arch-specific artifacts                     ║
+╚═══════════════════════════════════════════════════════╝
     ↓
-╔═══════════════════════════════════════════╗
-║  Release job (tag pushes only)            ║
-║  ├─ Download all arch artifacts            ║
-║  ├─ Regenerate combined SHA256SUMS         ║
-║  ├─ Attest build provenance               ║
-║  └─ softprops/action-gh-release            ║
-╚═══════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════╗
+║ Release job (tag pushes only)                         ║
+║ ├─ Download all arch artifacts                        ║
+║ ├─ Regenerate combined SHA256SUMS                     ║
+║ ├─ Attest build provenance                            ║
+║ └─ softprops/action-gh-release                        ║
+╚═══════════════════════════════════════════════════════╝
     ↓
 Users download from Releases page
 ```
