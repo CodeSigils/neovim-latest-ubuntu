@@ -143,17 +143,32 @@ jobs:
 
       - name: Run lintian package-policy audit
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends lintian
           set +e
-          for deb in output/*.deb; do
-            echo "Running non-blocking lintian audit: $deb"
-            lintian "$deb"
-            lintian_status=$?
-            if [ "$lintian_status" -ne 0 ]; then
-              echo "lintian reported package-policy findings for $deb (exit $lintian_status); continuing because this is an advisory audit for a CPack convenience package."
-            fi
-          done
+          docker run --rm \
+            -v "$PWD/output:/output:ro" \
+            neovim-builder \
+            bash -c '
+              if ! apt-get update; then
+                echo "Failed to update package indexes before lintian audit." >&2
+                exit 1
+              fi
+              if ! apt-get install -y --no-install-recommends lintian; then
+                echo "Failed to install lintian before package-policy audit." >&2
+                exit 1
+              fi
+              for deb in /output/*.deb; do
+                echo "Running non-blocking lintian audit inside target container: $deb"
+                lintian "$deb"
+                lintian_status=$?
+                if [ "$lintian_status" -ne 0 ]; then
+                  echo "lintian reported package-policy findings for $deb (exit $lintian_status); continuing because this is an advisory audit for a CPack convenience package."
+                fi
+              done
+            '
+          lintian_container_status=$?
+          if [ "$lintian_container_status" -ne 0 ]; then
+            echo "lintian container audit exited $lintian_container_status; continuing because this audit is advisory."
+          fi
           set -e
 
       - name: Upload artifacts

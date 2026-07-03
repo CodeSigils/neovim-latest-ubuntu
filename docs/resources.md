@@ -50,11 +50,12 @@ All resources below have been evaluated against five criteria:
 
 - **Build on:** `ubuntu-22.04` and `ubuntu-22.04-arm` in upstream release automation
 - **Build type:** nightly uses `RelWithDebInfo`; stable uses `Release`
-- **Build command:** `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`, then `cmake --build build --target package`
+- **Upstream build command:** `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`, then `cmake --build build --target package`
 - **CPack:** `cpack --config build/CPackConfig.cmake`
 - **Release trigger:** tag push, scheduled nightly, or manual dispatch in upstream automation
 - **History:** `.deb` files were removed from main upstream releases in PR #22773 to reduce maintenance burden
-- **Build command alignment:** This project mirrors the upstream `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cpack` pattern described in release.yml.
+- **Project alignment:** This repository uses the same upstream CMake/CPack packaging path, but currently builds via the
+  upstream Makefile wrapper with `CMAKE_BUILD_TYPE=RelWithDebInfo`.
 
 ---
 
@@ -121,8 +122,8 @@ _Versions as of 26.04 GA; see [Ubuntu release notes](https://discourse.ubuntu.co
 - usrmerge (merged `/usr`) is complete in 26.04 — `/lib` and `/usr/lib` are the same filesystem. CPack and dpkg handle
   this transparently.
 - GCC 15 ABI is backward-compatible; `libgcc-s1 (>= 3.3)` still covers all modern GCC versions.
-- Lintian runs on the GitHub Actions runner (currently `${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}`, mapped to ubuntu-26.04), not inside the build container. This is acceptable
-  for advisory/audit purposes. To get 26.04-accurate lintian results, run lintian inside the container.
+- Lintian runs inside the same pinned Ubuntu 26.04 target container that built and tested the `.deb`, so advisory package
+  policy findings reflect the target distribution rather than the host runner image.
 - The container digest is pinned via SHA256 (repo-level variable `UBUNTU_SHA256`) for reproducibility; update the variable when the base image needs refreshing (see docs/reproducibility.md).
 
 ---
