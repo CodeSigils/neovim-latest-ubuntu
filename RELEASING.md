@@ -115,26 +115,6 @@ Once CI finishes:
   nvim --version
   ```
 
-### 5. Update the changelog
-
-Add an entry to [`CHANGELOG.md`](./CHANGELOG.md):
-
-```markdown
-## [0.13.0] — 2026-XX-YY
-
-### Added
-
-- Built and packaged Neovim v0.13.0 as `.deb`.
-```
-
-Commit and push:
-
-```bash
-git add CHANGELOG.md
-git commit -m "docs: add CHANGELOG entry for v0.13.0"
-git push origin main
-```
-
 ---
 
 ## Build a specific version (manual dispatch)

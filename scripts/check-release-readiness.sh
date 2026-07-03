@@ -148,14 +148,6 @@ else
   add_blocker "build.sh missing"
 fi
 
-if [[ -f CHANGELOG.md ]]; then
-  if ! grep -Eq "(${REQUESTED}|${TAG}|${BASE_VERSION}|${BASE_TAG})" CHANGELOG.md; then
-    add_blocker "CHANGELOG.md does not mention ${REQUESTED}/${TAG} (or base ${BASE_VERSION})"
-  fi
-else
-  add_blocker "CHANGELOG.md missing"
-fi
-
 if [[ -f scripts/check-dependencies.py ]]; then
   run_check "dependency consistency" python3 scripts/check-dependencies.py
 else

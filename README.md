@@ -213,6 +213,5 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 - **[docs/build-plan.md](./docs/build-plan.md)** — Build pipeline details, test strategy, versioning approach
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
-- **[CHANGELOG.md](./CHANGELOG.md)** — Release history (user-facing)
 - **[RELEASING.md](./RELEASING.md)** — Release process guide for maintainers
 - **[SECURITY.md](./SECURITY.md)** — Security policy, scanners, distribution boundaries

@@ -60,7 +60,6 @@ class ReleaseReadinessTests(unittest.TestCase):
         write_executable(work / "scripts" / "check-dependencies.py", "#!/usr/bin/env python3\nprint('deps ok')\n")
         write_executable(work / "scripts" / "check-yaml-syntax.py", "#!/usr/bin/env python3\nprint('yaml ok')\n")
         shutil.copy2(SCRIPT, work / "scripts" / "check-release-readiness.sh")
-        (work / "CHANGELOG.md").write_text(f"# Changelog\n\n## [Unreleased]\n\n- Support for Neovim v{version}.\n")
 
         run("git add .", work, check=True)
         run("git commit -m init", work, check=True)
