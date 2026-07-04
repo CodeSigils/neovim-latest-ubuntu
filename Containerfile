@@ -9,9 +9,10 @@ FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
 ARG UBUNTU_VERSION
 ARG UBUNTU_CODENAME="Resolute Raccoon"
 ARG UBUNTU_SHA256
+ARG DEBIAN_FRONTEND=noninteractive
 LABEL description="Neovim build environment"
-LABEL ubuntu.version=${UBUNTU_VERSION}
-LABEL ubuntu.codename=${UBUNTU_CODENAME}
+LABEL ubuntu.version="${UBUNTU_VERSION}"
+LABEL ubuntu.codename="${UBUNTU_CODENAME}"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
