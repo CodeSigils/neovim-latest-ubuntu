@@ -27,10 +27,11 @@ Reports are acknowledged within 72 hours. You should receive a timeline for revi
 
 ## Build Pipeline Security
 
-All `.deb` artifacts are built inside a **containerised, immutable build environment**:
+All `.deb` artifacts are built inside a **containerised, pinned build environment**:
 
-- **Pinned base image** — `Containerfile` uses a specific Ubuntu LTS image pinned via SHA256 digest (stored as a
-  repo-level variable `UBUNTU_SHA256`). Every build starts from the exact same filesystem.
+- **Pinned base image** — `Containerfile` uses a specific Ubuntu LTS image pinned via SHA256 digest, with repo-level
+  variables able to override `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` in CI. This pins the base image;
+  apt-installed packages are still resolved from Ubuntu repositories at image-build time.
 - **Parameterised version** — `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` are governed by repo-level
   variables, not hardcoded or user-supplied at runtime.
 - **Container isolation** — compilation and packaging run inside `docker build` then `docker run`. The host runner
@@ -48,12 +49,12 @@ All `.deb` artifacts are built inside a **containerised, immutable build environ
 | Guard | What it checks | Frequency | Blocks build? |
 |---|---|---|---|
 | **Dependabot** | Keeps GitHub Actions dependencies at latest patch | Weekly | No (creates PR) |
-| **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Every push + weekly | Yes |
-| **Shellcheck** | `build.sh` and `test.sh` — POSIX shell correctness, quoting, error handling | Every build | Yes |
+| **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, PRs, and weekly | Yes |
+| **Shellcheck** | Shell correctness, quoting, error handling (`build.sh`, `test.sh`, and stable-build `scripts/*.sh`) | Every build | Yes |
 | **Hadolint** | `Containerfile` — Dockerfile anti-patterns, layer hygiene | Every build | Yes |
 | **YAML syntax validation** | All `.github/workflows/*.yml` parse correctly | Every build | Yes |
 | **Dependency consistency** | README, manifest files, Containerfile, and scripts agree on prerequisites | Every build | Yes |
-| **Release readiness gate** | Upstream tag exists, tag not already released, git state clean, local validation passes | Before every tag push | Yes |
+| **Release readiness gate** | Upstream tag exists, tag not already released, git state clean, local validation passes | Manual preflight before tag push | No (outside CI) |
 | **Author attribution guard** | All commits authored by canonical human maintainer identity; no AI-agent trailers | Every push | Yes |
 | **Build matrix** | x86_64 + aarch64 both must pass; release is blocked if either fails | Every build | Yes |
 | **Repository label guard** | Required labels (`dependencies`, `github-actions`, `new-release`, `nightly`) exist on the repo | Every build | Yes |
@@ -83,6 +84,6 @@ The full build pipeline is defined in this repository and readable by anyone:
 - `test.sh` — 7-check verification
 - `.github/workflows/build.yml` — CI/CD orchestration
 
-Every dependency (CMake, Ninja, gettext, curl, git, GCC) is installed from the pinned Ubuntu LTS base image — not
-downloaded from ad-hoc sources. Neovim source is cloned from the official GitHub repository at a specific tag or
-`master` branch.
+Build dependencies (CMake, Ninja, gettext, curl, git, GCC) are installed from the configured Ubuntu LTS apt
+repositories inside the pinned base image — not downloaded from ad-hoc sources. Neovim source is cloned from the
+official GitHub repository at a specific tag or `master` branch.
