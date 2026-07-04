@@ -8,6 +8,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  RELEASE_NOTIFY_USER: CodeSigils
 
 jobs:
   check:
@@ -149,7 +150,9 @@ jobs:
           VERSION="${{ steps.upstream.outputs.version }}"
           gh pr create \
             --title "Update default Neovim version to v${VERSION}" \
-            --body "## Version bump to Neovim v${VERSION}
+            --body "@${{ env.RELEASE_NOTIFY_USER }} upstream Neovim v${VERSION} is available.
+
+            ## Version bump to Neovim v${VERSION}
 
             This auto-generated PR updates the repository for the new Neovim release.
 
@@ -170,15 +173,45 @@ jobs:
             --head "$BRANCH" \
             --base main
 
-      - name: Create issue (fallback, PR already exists)
-        if: |
-          steps.compare.outputs.result == 'new' &&
-          steps.existing-pr.outputs.exists == 'true'
+      - name: Create or update release notification issue
+        if: steps.compare.outputs.result == 'new'
         uses: actions/github-script@v9
         with:
           script: |
             const upstream = '${{ steps.upstream.outputs.tag }}';
             const version = '${{ steps.upstream.outputs.version }}';
+            const branch = '${{ steps.existing-pr.outputs.branch }}';
+            const mention = '@${{ env.RELEASE_NOTIFY_USER }}';
+
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: context.repo.owner + ':' + branch
+            });
+            const pr = pulls[0];
+            const prLine = pr
+              ? '- **Auto-update PR**: #' + pr.number + ' (' + pr.html_url + ')\n'
+              : '- **Auto-update PR**: not found; check the workflow run\n';
+
+            const prBody = pr?.body || '';
+            if (pr && !prBody.includes(mention)) {
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                body: mention + ' upstream Neovim ' + upstream + ' is available.\n\n' + prBody
+              });
+            }
+
+            const body = mention + ' upstream Neovim ' + upstream + ' is available.\n\n'
+              + '## New Neovim release detected\n\n'
+              + '- **Upstream**: [' + upstream + '](https://github.com/neovim/neovim/releases/tag/' + upstream + ')\n'
+              + '- **Last built**: ' + ('${{ steps.ours.outputs.tag }}' || '(none yet)') + '\n'
+              + prLine + '\n'
+              + '### To ship\n\n'
+              + '```\n# Review and merge the auto-update PR, then:\ngit tag ' + upstream + '\ngit push origin ' + upstream + '\n```\n\n'
+              + '### Or test locally\n\n```bash\nVERSION=' + version + ' ./build.sh\n```';
 
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -186,9 +219,15 @@ jobs:
               state: 'open',
               labels: 'new-release'
             });
-            const exists = issues.some(issue => issue.title.includes(upstream));
-            if (exists) {
-              core.notice('Issue already exists for ' + upstream + ' — skipping');
+            const existing = issues.find(issue => issue.title.includes(upstream));
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+              core.notice('Updated release notification issue #' + existing.number + ' for ' + upstream);
               return;
             }
 
@@ -196,12 +235,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: 'New upstream Neovim release: ' + upstream,
-              body: '## New Neovim release detected\n\n'
-                + '- **Upstream**: [' + upstream + '](https://github.com/neovim/neovim/releases/tag/' + upstream + ')\n'
-                + '- **Last built**: ' + ('${{ steps.ours.outputs.tag }}' || '(none yet)') + '\n\n'
-                + 'A PR branch already exists, but the PR may need manual review.\n\n'
-                + '### To ship\n\n'
-                + '```\n# Review the auto-update PR, then:\ngit tag ' + upstream + '\ngit push origin ' + upstream + '\n```\n\n'
-                + '### Or test locally\n\n```bash\nVERSION=' + version + ' ./build.sh\n```',
+              body,
               labels: ['new-release']
             });
