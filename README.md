@@ -3,14 +3,14 @@
 [![Build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub Releases](https://img.shields.io/github/v/release/CodeSigils/neovim-latest-ubuntu?display_name=tag&sort=semver)](https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest)
-[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg?logo=dependabot)](https://github.com/CodeSigils/neovim-latest-ubuntu/network/updates)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-brightgreen.svg?logo=dependabot)](./.github/dependabot.yml)
 [![CodeQL](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/codeql.yml)
 [![Nightly](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml/badge.svg)](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml)
 
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu 26.04-based systems — no snaps, no
 Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
-A [weekly CI build](.github/workflows/build.yml) automatically fetches and packages the latest Neovim release. GitHub
+A [weekly CI build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) automatically fetches and packages the latest Neovim release. GitHub
 Releases are created only when version tags are pushed. The Monday scheduled build keeps a fresh stable package
 available as a workflow artifact on the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) until the next tagged release is published, while
 [nightly builds](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml) from Neovim's `master` branch run daily and are **artifacts-only**
@@ -30,7 +30,7 @@ repository. A weekly scheduled build (Monday 06:00 UTC) also packages the latest
 so you can always download a fresh stable build from the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) even between tagged releases.
 
 > Need the freshest stable build rather than the last tagged release? Open the latest successful
-> [`build.yml`](./.github/workflows/build.yml) run and download the workflow artifact for your architecture.
+> [`build.yml`](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) run and download the workflow artifact for your architecture.
 
 That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, and
 `view` commands.
@@ -145,7 +145,8 @@ build). The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in the
 > (`UBUNTU_VERSION`, `UBUNTU_CODENAME`, `UBUNTU_SHA256`). When upgrading to a new Ubuntu LTS,
 > update those three variables — all workflows and the Containerfile pick them up automatically.
 > Fork? Don't worry — every expression has a hardcoded fallback, so CI works without creating any variables.
-> See [Settings → Secrets and Variables → Actions → Variables](https://github.com/CodeSigils/neovim-latest-ubuntu/settings/variables/actions).
+> Configure them in the repo under Settings → Secrets and variables → Actions → Variables; see
+> [GitHub Actions variables](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables).
 
 ### Build Output
 
