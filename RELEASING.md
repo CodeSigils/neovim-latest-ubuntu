@@ -7,11 +7,11 @@ a one-command tag push (the happy path) to local container builds for testing.
 
 | Method          | Trigger                     | Creates Release? | Use when                         |
 | --------------- | --------------------------- | ---------------- | -------------------------------- |
-| Tag push        | `git push origin v0.13.0`   | Yes              | Official stable release          |
+| Tag push        | `git push origin vX.Y.Z`    | Yes              | Official stable release          |
 | Manual dispatch | Actions tab → Run workflow  | No               | RC, pre-release, or ad-hoc build |
 | Schedule        | Weekly cron (Mon 06:00 UTC) | No               | Latest stable, automated         |
 | Nightly         | Daily cron (06:00 UTC)      | No               | Track master branch              |
-| Local build     | `./build.sh 0.13.0`         | —                | Testing, unreleased versions     |
+| Local build     | `./build.sh X.Y.Z`          | —                | Testing, unreleased versions     |
 
 > **Tag pushes are the only trigger that creates a GitHub Release.** All other methods upload `.deb` artifacts to the
 > workflow run page instead.
@@ -24,9 +24,9 @@ The standard release flow. Push a tag and let CI do the rest.
 
 ### Release version policy
 
-This project currently tracks upstream Neovim stable versions exactly. Use the same tag as upstream, for example
-`v0.13.0`, and create a GitHub Release only when that upstream release exists and this repository has not already
-released the same tag.
+For a first build of an upstream stable version, this project uses the same tag as upstream, for example `vX.Y.Z`.
+Create a GitHub Release only when that upstream release exists and this repository has not already released the same
+tag. For packaging-only rebuilds of an already-built upstream version, use the package revision suffix described below.
 
 Before tagging, check both upstream and this repository:
 
@@ -45,7 +45,7 @@ Do not reuse an existing tag. Published tags and Releases are treated as immutab
 
 Tags now support two formats:
 
-- `vX.Y.Z` — exact upstream Neovim version (e.g., `v0.13.0`) for a first-time build.
+- `vX.Y.Z` — exact upstream Neovim version for a first-time build.
 - `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim version (packaging fix, base
   image update, etc.). The revision number `N` resets per version.
 
@@ -55,7 +55,7 @@ extracted for upstream comparison and source checkout, while the full tag is use
 Run the read-only readiness gate before tagging:
 
 ```bash
-scripts/check-release-readiness.sh 0.13.0
+scripts/check-release-readiness.sh X.Y.Z
 ```
 
 Only tag when it prints `READY`.
@@ -67,14 +67,13 @@ curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
   | grep '"tag_name":' | head -1
 ```
 
-Or visit [neovim/neovim/releases](https://github.com/neovim/neovim/releases) and look for the latest stable tag (e.g.
-`v0.13.0`).
+Or visit [neovim/neovim/releases](https://github.com/neovim/neovim/releases) and look for the latest stable tag.
 
 ### 2. Tag and push
 
 ```bash
-git tag v0.13.0
-git push origin v0.13.0
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 That's it. Pushing the tag triggers the CI pipeline.
@@ -119,11 +118,12 @@ Once CI finishes:
 
 ## Build a specific version (manual dispatch)
 
-Use the Actions tab to build any version — including release candidates like `v0.14.0-rc1` — without creating a tag.
+Use the Actions tab to build an upstream Neovim release tag version without creating a tag in this repository. Enter the
+version without the leading `v`; for example, enter `0.14.0-rc1` for an upstream tag named `v0.14.0-rc1`.
 
 1. Go to https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml
 2. Click **Run workflow**
-3. Enter the version (e.g. `0.14.0-rc1`)
+3. Enter the version without `v` (e.g. `0.14.0-rc1`)
 4. Click **Run workflow**
 
 CI builds that version and uploads the `.deb` as a workflow artifact. No Release will be created — use this for testing.
@@ -201,7 +201,7 @@ The verify step checks `output/*.deb`. Possible causes:
 
 ### Tag push didn't trigger CI
 
-Tags must match the `v*` pattern. Use `git tag v0.13.0`, not `0.13.0` or `neovim-0.13.0`.
+Tags must match the `v*` pattern. Use `git tag vX.Y.Z`, not `X.Y.Z` or `neovim-X.Y.Z`.
 
 ### Build succeeded but no release created
 
@@ -223,8 +223,8 @@ sudo apt-mark unhold neovim
 
 The CI determines the version with this priority chain:
 
-1. **Manual dispatch input** — from the Actions tab
-2. **Git tag** — extracted from the pushed tag (`v` prefix stripped)
+1. **Manual dispatch input** — from the Actions tab, without a leading `v`
+2. **Git tag** — extracted from the pushed tag (`v` prefix and package revision suffix stripped)
 3. **Default** — `latest` (auto-detects current stable via GitHub API; no hardcoded version to go stale)
 
 The schedule trigger and bare workflow_dispatch both resolve to the default (`latest`).
@@ -240,7 +240,7 @@ You need write access to the repository. If using a personal access token, ensur
 ## Pipeline overview
 
 ```text
-You push tag v0.13.0
+You push tag vX.Y.Z
     ↓
 GitHub Actions triggers build.yml
     ↓
@@ -259,8 +259,8 @@ GitHub Actions triggers build.yml
 ║                                                       ║
 ║ Each matrix entry:                                    ║
 ║ ├─ docker build → neovim-builder                      ║
-║ ├─ docker run (VERSION=0.13.0):                       ║
-║ │    1. git clone --branch v0.13.0                    ║
+║ ├─ docker run (VERSION=X.Y.Z):                        ║
+║ │    1. git clone --branch vX.Y.Z                     ║
 ║ │    2. make (CMake + Ninja)                          ║
 ║ │    3. cpack -G DEB → .deb                           ║
 ║ ├─ Verify artifact exists                             ║
