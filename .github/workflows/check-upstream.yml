@@ -10,6 +10,9 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   RELEASE_NOTIFY_USER: CodeSigils
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-24.04' }}
@@ -18,17 +21,21 @@ jobs:
       pull-requests: write     # for creating PRs
       issues: write            # fallback: filing issues
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
 
       - name: Get latest upstream Neovim release
         id: upstream
         run: |
-          RESPONSE=$(curl -sL https://api.github.com/repos/neovim/neovim/releases/latest)
+          RESPONSE=$(curl -fsSL --max-time 20 https://api.github.com/repos/neovim/neovim/releases/latest)
           TAG=$(echo "$RESPONSE" | jq -r '.tag_name // empty')
           if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
             echo "error=No release data from GitHub API" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! echo "$TAG" | grep -Eq '^v[0-9]+[.][0-9]+[.][0-9]+$'; then
+            echo "error=Unexpected upstream release tag format: $TAG" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
@@ -76,7 +83,7 @@ jobs:
         if: |
           steps.compare.outputs.result == 'new' &&
           steps.existing-pr.outputs.exists != 'true'
-        uses: actions/github-script@v9
+        uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         with:
           script: |
             const version = '${{ steps.upstream.outputs.version }}';
@@ -175,7 +182,7 @@ jobs:
 
       - name: Create or update release notification issue
         if: steps.compare.outputs.result == 'new'
-        uses: actions/github-script@v9
+        uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         with:
           script: |
             const upstream = '${{ steps.upstream.outputs.tag }}';

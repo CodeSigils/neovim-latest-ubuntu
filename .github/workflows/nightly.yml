@@ -11,15 +11,18 @@ env:
   UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME || 'Resolute Raccoon' }}
   UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 || 'f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64' }}
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Run shellcheck
         run: shellcheck build.sh test.sh
       - name: Run hadolint
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
         with:
           dockerfile: Containerfile
 
@@ -36,7 +39,7 @@ jobs:
             runner: ${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Build container image
         run: >
@@ -87,7 +90,7 @@ jobs:
             bash /tmp/test.sh "/output/$DEB_NAME"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: nvim-nightly-deb-${{ matrix.arch }}
           path: |
@@ -102,7 +105,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Check for existing nightly failure issue
         id: check_issue
@@ -143,7 +146,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Check for and close nightly failure issue
         env:

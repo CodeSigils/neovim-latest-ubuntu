@@ -44,11 +44,14 @@ env:
   UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME || 'Resolute Raccoon' }}
   UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 || 'f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64' }}
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Run dependency consistency check
         run: python3 scripts/check-dependencies.py
       - name: Validate workflow labels
@@ -62,7 +65,7 @@ jobs:
       - name: Run release readiness tests
         run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Run hadolint
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
         with:
           dockerfile: Containerfile
 
@@ -79,7 +82,7 @@ jobs:
             runner: ${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Build container image
         run: >
@@ -172,7 +175,7 @@ jobs:
           set -e
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: nvim-linux-deb-${{ matrix.arch }}
           path: |
@@ -188,7 +191,7 @@ jobs:
       id-token: write         # for actions/attest (OIDC → Sigstore)
       attestations: write     # for actions/attest (store attestations)
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: nvim-linux-deb-*
           merge-multiple: true
@@ -210,12 +213,12 @@ jobs:
           cat SHA256SUMS
 
       - name: Attest build provenance
-        uses: actions/attest@v4
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
         with:
           subject-path: '*.deb'
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@7c4723f7a335432393329f8f1c564994ce50185d # v3
         with:
           body: |
             Neovim ${{ github.ref_name }} packaged as a `.deb` for Ubuntu ${{ env.UBUNTU_VERSION }} LTS (${{ env.UBUNTU_CODENAME }})-based systems.
