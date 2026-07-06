@@ -241,43 +241,40 @@ You need write access to the repository. If using a personal access token, ensur
 
 ```text
 You push tag vX.Y.Z
-    ↓
-GitHub Actions triggers build.yml
-    ↓
-╔═══════════════════════════════════════════════════════╗
-║ Lint job                                              ║
-║ ├─ shellcheck build.sh test.sh scripts/*.sh           ║
-║ ├─ check-dependencies.py (dep consistency)            ║
-║ ├─ check-labels.py (required repo labels)             ║
-║ ├─ hadolint Containerfile                             ║
-║ ├─ YAML syntax validation                             ║
-║ └─ python3 -m unittest discover (release gate)        ║
-╚═══════════════════════════════════════════════════════╝
-    ↓
-╔═══════════════════════════════════════════════════════╗
-║ Build job (matrix: x86_64 + aarch64)                  ║
-║                                                       ║
-║ Each matrix entry:                                    ║
-║ ├─ docker build → neovim-builder                      ║
-║ ├─ docker run (VERSION=X.Y.Z):                        ║
-║ │    1. git clone --branch vX.Y.Z                     ║
-║ │    2. make (CMake + Ninja)                          ║
-║ │    3. cpack -G DEB → .deb                           ║
-║ ├─ Verify artifact exists                             ║
-║ ├─ sha256sum > SHA256SUMS                             ║
-║ ├─ test.sh (7 checks)                                 ║
-║ ├─ lintian audit (non-blocking)                       ║
-║ └─ Upload arch-specific artifacts                     ║
-╚═══════════════════════════════════════════════════════╝
-    ↓
-╔═══════════════════════════════════════════════════════╗
-║ Release job (tag pushes only)                         ║
-║ ├─ Download all arch artifacts                        ║
-║ ├─ Regenerate combined SHA256SUMS                     ║
-║ ├─ Attest build provenance                            ║
-║ └─ softprops/action-gh-release                        ║
-╚═══════════════════════════════════════════════════════╝
-    ↓
+    |
+    v
+[ Lint job ]
+  - shellcheck build.sh test.sh scripts/*.sh
+  - check-dependencies.py (dep consistency)
+  - check-labels.py (required repo labels)
+  - hadolint Containerfile
+  - YAML syntax validation
+  - python3 -m unittest discover (release gate)
+    |
+    v
+[ Build job (matrix: x86_64 + aarch64) ]
+
+  Each matrix entry:
+  - docker build -> neovim-builder
+  - docker run (VERSION=X.Y.Z):
+      1. git clone --branch vX.Y.Z
+      2. make (CMake + Ninja)
+      3. cpack -G DEB -> .deb
+  - Verify artifact exists
+  - sha256sum > SHA256SUMS
+  - test.sh (7 checks)
+  - lintian audit (non-blocking)
+  - Upload arch-specific artifacts
+    |
+    v
+[ Release job (tag pushes only) ]
+  - Download all arch artifacts
+  - Determine upstream tag for release notes link
+  - Regenerate combined SHA256SUMS
+  - Attest build provenance
+  - softprops/action-gh-release
+    |
+    v
 Users download from Releases page
 ```
 
