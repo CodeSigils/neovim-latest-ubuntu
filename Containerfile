@@ -18,7 +18,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY deps/ /tmp/deps/
 
-# hadolint ignore=DL3008
+# hadolint ignore=DL3008  # base image pinned by SHA256 digest, so individual apt pinning is redundant
 RUN apt-get update \
     && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-build-deps.txt | xargs -r apt-get install -y --no-install-recommends \
     && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-ci-extra-deps.txt | xargs -r apt-get install -y --no-install-recommends \
