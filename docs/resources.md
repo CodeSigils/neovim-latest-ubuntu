@@ -232,6 +232,11 @@ minutes of runner time per run.
 main-branch pushes skip the 10-min build. The lightweight validation workflows (author, CodeQL) still
 validate doc-only changes in ~2 minutes total.
 
+**Dependabot actor gate**: Dependabot PRs (SHA pin updates only) also skip the `build` job via
+`if: github.actor != 'dependabot[bot]'` in `build.yml`. The `lint` job still runs on Dependabot PRs
+to catch YAML/label issues. This saves ~5 min per Dependabot PR — the pin update is validated by the
+SHA itself, not by rebuilding the package.
+
 ---
 
 ## Category 6: CodeQL / code scanning
