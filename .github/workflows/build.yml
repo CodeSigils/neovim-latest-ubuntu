@@ -70,6 +70,7 @@ jobs:
           dockerfile: Containerfile
 
   build:
+    if: github.actor != 'dependabot[bot]'
     needs: lint
     strategy:
       fail-fast: false

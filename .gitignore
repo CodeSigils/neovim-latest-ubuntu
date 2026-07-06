@@ -104,6 +104,7 @@ notes.txt
 
 # Python generated files
 __pycache__/
+.pytest_cache/
 *.py[cod]
 
 # Project generated artifacts
