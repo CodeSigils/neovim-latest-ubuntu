@@ -2,8 +2,8 @@ name: Check Upstream Release
 
 on:
   schedule:
-    # Daily 06:30 UTC — catches upstream releases within ~24h
-    - cron: '30 6 * * *'
+    # Every 4 hours — catches upstream releases within ~4h
+    - cron: '30 */4 * * *'
   workflow_dispatch:
 
 env:
