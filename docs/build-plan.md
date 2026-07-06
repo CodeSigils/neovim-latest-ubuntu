@@ -56,7 +56,7 @@ build time.
 ### 3.1 Clone
 
 ```bash
-VERSION="0.12.3"   # parameterised — change for future releases
+VERSION="0.12.4"   # parameterised — change for future releases
 git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim
 cd neovim
 ```
@@ -103,8 +103,8 @@ See [`build.sh`](../build.sh) for the actual implementation. Key features:
 - **Error handling**: checks for missing `.deb` in output, empty version
 
 ```bash
-# Examples (matched to build.sh v0.12.3+)
-./build.sh                          # Build default (0.12.3)
+# Examples (matched to build.sh v0.12.4+)
+./build.sh                          # Build default (0.12.4)
 ./build.sh 0.13.0 ./out             # Build specific version
 VERSION=latest ./build.sh           # Auto-detect latest stable
 ```
@@ -176,7 +176,7 @@ release aggregation.
 
 | Parameter        | Value                                                                                            | Notes                          |
 | ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ |
-| `VERSION`        | `0.12.3` (default)                                                                               | Git tag — `v${VERSION}`        |
+| `VERSION`        | `0.12.4` (default)                                                                               | Git tag — `v${VERSION}`        |
 | Output name      | `nvim-linux-{arch}.deb`                                                                          | From upstream CPack config     |
 | Script parameter | `VERSION` as first arg or env var (`OUTPUT_DIR` is container-managed in CI/local container runs) | Future-proof for version bumps |
 
@@ -233,7 +233,7 @@ The project has a GitHub Actions workflow (`.github/workflows/build.yml`) that a
 For testing or offline distribution:
 
 ```bash
-./build.sh                 # builds default version (0.12.3)
+./build.sh                 # builds default version (0.12.4)
 ./build.sh 0.14.0          # builds specific version
 VERSION=latest ./build.sh  # auto-fetches latest stable tag
 ```

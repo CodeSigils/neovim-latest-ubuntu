@@ -107,7 +107,7 @@ jobs:
             VERSION="$VERSION_FROM_INPUT"
           elif [ -n "$VERSION_FROM_REF" ]; then
             VERSION="${VERSION_FROM_REF#v}"
-            VERSION="${VERSION%%-*}"  # Strip package revision suffix (e.g. 0.12.3-1 → 0.12.3)
+            VERSION="${VERSION%%-*}"  # Strip package revision suffix (e.g. 0.12.4-1 → 0.12.4)
           else
             VERSION="latest"
           fi
