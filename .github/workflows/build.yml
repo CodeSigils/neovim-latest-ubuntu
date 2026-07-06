@@ -107,7 +107,7 @@ jobs:
             VERSION="$VERSION_FROM_INPUT"
           elif [ -n "$VERSION_FROM_REF" ]; then
             VERSION="${VERSION_FROM_REF#v}"
-            VERSION="${VERSION%%-*}"  # Strip package revision suffix (e.g. 0.12.4-1 → 0.12.4)
+            VERSION="${VERSION%%-*}"  # Strip package revision suffix (e.g. X.Y.Z-N → X.Y.Z)
           else
             VERSION="latest"
           fi
@@ -204,7 +204,7 @@ jobs:
         id: version
         run: |
           TAG="${{ github.ref_name }}"
-          # Strip package revision suffix (e.g. v0.12.2-1 → v0.12.2)
+          # Strip package revision suffix (e.g. vX.Y.Z-N → vX.Y.Z)
           UPSTREAM_TAG="${TAG%%-*}"
           echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
 

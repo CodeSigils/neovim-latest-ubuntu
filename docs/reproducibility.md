@@ -38,7 +38,7 @@ The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced 
 
 | Parameter       | Source                                        | Default            |
 | --------------- | --------------------------------------------- | ------------------ |
-| `VERSION`       | First arg, env var, or `latest` (auto-detect) | `0.12.4`           |
+| `VERSION`       | First arg, env var, or `latest` (auto-detect) | `latest` (resolves at build time) |
 | `OUTPUT_DIR`    | Second arg or env var                         | `.` (current dir)  |
 | Build type      | Hardcoded                                     | `RelWithDebInfo`   |
 | CMake generator | Upstream Makefile                             | Auto-detects Ninja |
@@ -118,10 +118,10 @@ To verify that your build matches the canonical output:
 ```bash
 # 1. Build inside the pinned container
 docker build -t neovim-builder -f Containerfile .
-docker run --rm -e VERSION=0.12.4 -v "$PWD/output:/output" neovim-builder
+docker run --rm -e VERSION=latest -v "$PWD/output:/output" neovim-builder
 
-# 2. Run test.sh on the result
-./test.sh output/nvim-linux-x86_64.deb 0.12.4
+# 2. Run test.sh on the result (auto-detects version from the .deb)
+./test.sh output/nvim-linux-x86_64.deb
 
 # 3. Compare checksum style (not exact values — timestamps differ)
 sha256sum output/*.deb
