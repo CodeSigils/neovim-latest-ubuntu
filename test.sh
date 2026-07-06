@@ -76,7 +76,7 @@ check "nvim --headless +checkhealth runs without crash" timeout 30 nvim --headle
 echo ""
 echo "--- Library Dependencies ---"
 check "ldd reports no unresolved dependencies" \
-  bash -c "! ldd \"\$(which nvim)\" 2>/dev/null | grep -qi 'not found'"
+  bash -c "! ldd \"\$(command -v nvim)\" 2>/dev/null | grep -qi 'not found'"
 
 # Step 5: Verify update-alternatives
 echo ""
