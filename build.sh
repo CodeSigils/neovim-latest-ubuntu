@@ -2,11 +2,11 @@
 # build.sh — Build Neovim from source and package as .deb
 #
 # Usage: ./build.sh [VERSION] [OUTPUT_DIR]
-#   VERSION     Neovim release tag (default: 0.12.4)
+#   VERSION     Neovim release tag (default: see VERSION= fallback below)
 #   OUTPUT_DIR  Where to place the built .deb (default: .)
 #
 # Examples:
-#   ./build.sh                          # Build v0.12.4 into current dir
+#   ./build.sh                          # Build default version into current dir
 #   ./build.sh 0.13.0 ./out             # Build v0.13.0 into ./out
 #   ./build.sh nightly ./dist           # Build latest nightly
 

@@ -98,7 +98,7 @@ jobs:
             run('git config user.email "github-actions[bot]@users.noreply.github.com"');
             run(`git checkout -b ${branch} origin/main`);
 
-            // --- build.sh: update default VERSION ---
+            // --- build.sh: update default VERSION parameter ---
             let content = fs.readFileSync('build.sh', 'utf8');
             content = content.replace(
               /VERSION="\$\{1:-\$\{VERSION:-[\d.]+}}"/,
@@ -108,36 +108,6 @@ jobs:
               core.warning('build.sh: no version pattern matched');
             }
             fs.writeFileSync('build.sh', content);
-
-            // --- test.sh: update default comment ---
-            content = fs.readFileSync('test.sh', 'utf8');
-            content = content.replace(
-              /default: [\d.]+\)/,
-              `default: ${version})`
-            );
-            fs.writeFileSync('test.sh', content);
-
-            // --- build.sh: update header comments ---
-            content = fs.readFileSync('build.sh', 'utf8');
-            content = content.replace(
-              /\(default: [\d.]+\)/,
-              `(default: ${version})`
-            );
-            content = content.replace(
-              /Build v[\d.]+ into current dir/,
-              `Build v${version} into current dir`
-            );
-            if (content === fs.readFileSync('build.sh', 'utf8')) {
-              core.warning('build.sh: no header comment pattern matched');
-            }
-            fs.writeFileSync('build.sh', content);
-
-            // --- README.md: update example versions ---
-            content = fs.readFileSync('README.md', 'utf8');
-            content = content.replace(/Build Neovim [\d.]+/g, `Build Neovim ${version}`);
-            content = content.replace(/defaults to `[\d.]+`/g, "defaults to `" + version + "`");
-            content = content.replace(/`0\.12\.2`/g, "`" + version + "`");
-            fs.writeFileSync('README.md', content);
 
             // Commit and push
             run('git add -A');
@@ -164,8 +134,7 @@ jobs:
             This auto-generated PR updates the repository for the new Neovim release.
 
             ### Changes
-            - Update default version in \`build.sh\` and \`test.sh\`
-            - Update version examples in \`README.md\`
+            - Update default version in \`build.sh\`
             - Update documentation references
 
             ### After merging
