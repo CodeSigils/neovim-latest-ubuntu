@@ -218,7 +218,7 @@ jobs:
           subject-path: '*.deb'
 
       - name: Create Release
-        uses: softprops/action-gh-release@7c4723f7a335432393329f8f1c564994ce50185d # v3
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
         with:
           body: |
             Neovim ${{ github.ref_name }} packaged as a `.deb` for Ubuntu ${{ env.UBUNTU_VERSION }} LTS (${{ env.UBUNTU_CODENAME }})-based systems.
