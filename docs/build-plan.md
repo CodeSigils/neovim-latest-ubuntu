@@ -126,7 +126,7 @@ Container image: currently `ubuntu:26.04` (see Containerfile for current version
 - [x] Runtime health: `nvim --headless +checkhealth +q` runs without crash
 - [x] No missing shared library dependencies: `ldd $(which nvim)`
 - [x] `update-alternatives` registers (check `vi --version` points to nvim)
-- [x] Package uninstalls cleanly: `dpkg -r Neovim`
+- [x] Package uninstalls cleanly: `dpkg -r "$(dpkg-deb -f <deb-file> Package)"`
 
 > All checks passed on 2026-05-22 inside the pinned `ubuntu:26.04` container (Containerfile defines the current version).
 > Build: Neovim v0.12.3, `CMAKE_BUILD_TYPE=RelWithDebInfo`, output `nvim-linux-x86_64.deb` (20MB, also verified on ARM64
@@ -141,7 +141,7 @@ and [Debian Policy Manual](https://www.debian.org/doc/debian-policy/) for local 
 
 See [`test.sh`](../test.sh) for the actual implementation. Key features:
 
-- **Auto-detection**: version extracted from `.deb` via `dpkg-deb -f` when not provided
+- **Auto-detection**: package name and version extracted from `.deb` via `dpkg-deb -f`
 - **Check framework**: `check()` function wraps each test with PASS/FAIL tracking
 - **Dependency handling**: auto-runs `apt-get install -f` if `dpkg` reports missing deps
 - **Realpath**: resolves absolute path before install

@@ -23,6 +23,12 @@ if [[ ! -f "$DEB" ]]; then
   exit 1
 fi
 
+PACKAGE_NAME="$(dpkg-deb -f "$DEB" Package 2>/dev/null || true)"
+if [[ -z "$PACKAGE_NAME" ]]; then
+  echo "[FAIL] Could not extract package name from .deb"
+  exit 1
+fi
+
 # Auto-detect version from .deb control file if not provided
 if [[ -z "$EXPECTED_VERSION" ]]; then
   EXPECTED_VERSION="$(dpkg-deb -f "$DEB" Version 2>/dev/null || true)"
@@ -46,6 +52,7 @@ check() {
 
 echo "==> Testing Neovim .deb package"
 echo "    Package: $DEB"
+echo "    Debian package name: ${PACKAGE_NAME}"
 echo "    Expected version: v${EXPECTED_VERSION}"
 echo ""
 
@@ -87,7 +94,7 @@ check "update-alternatives registers nvim for vi" \
 # Step 6: Cleanup
 echo ""
 echo "--- Cleanup ---"
-check "dpkg -r Neovim succeeds" sudo dpkg -r Neovim
+check "dpkg -r ${PACKAGE_NAME} succeeds" sudo dpkg -r "$PACKAGE_NAME"
 
 # Summary
 echo ""

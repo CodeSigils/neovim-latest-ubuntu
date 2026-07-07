@@ -67,11 +67,11 @@ Every built `.deb` passes the same seven checks before it's considered valid:
 4. **Runtime health**: `nvim --headless +checkhealth +q` runs without crash
 5. **Library deps**: `ldd` shows no unresolved shared libraries
 6. **Alternatives**: `update-alternatives` registers nvim for `vi`
-7. **Cleanup**: `dpkg -r Neovim` removes the package cleanly
+7. **Cleanup**: `dpkg -r "$(dpkg-deb -f <deb-file> Package)"` removes the package cleanly
 
 The same test suite runs on every build, regardless of architecture or trigger.
 
-`test.sh` auto-detects the expected Neovim version from the `.deb`'s control file via `dpkg-deb -f` when no version argument is supplied — see `test.sh` lines 27–34. This means the verification gate adapts automatically to whatever version was built, eliminating a manual synchronization point.
+`test.sh` reads the package name from the `.deb` control file before cleanup and auto-detects the expected Neovim version from the same metadata when no version argument is supplied. This means the verification gate adapts automatically to whatever version was built, eliminating manual synchronization points.
 
 ### 5. Explicit Artifact Handling
 

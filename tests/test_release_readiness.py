@@ -46,6 +46,8 @@ class ReleaseReadinessTests(unittest.TestCase):
         run("git init -b main", work, check=True)
         run("git config user.name CodeSigils", work, check=True)
         run("git config user.email toolsoftrade.web@gmail.com", work, check=True)
+        run("git config commit.gpgsign false", work, check=True)
+        run("git config tag.gpgsign false", work, check=True)
 
         (work / "scripts").mkdir()
         write_executable(
