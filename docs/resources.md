@@ -260,7 +260,7 @@ SHA itself, not by rebuilding the package.
 
 2. **paths-ignore must NOT exclude workflow files** — CodeQL's purpose is to analyze workflow file changes for security issues. Excluding `.github/workflows/*.yml` from CodeQL's paths-ignore defeats its purpose. Build.yml's paths-ignore excludes workflow files to save build minutes; CodeQL's should only exclude doc/metadata files. Independent trigger lists serve different purposes.
 
-3. **Pin to major version, not SHA** — Reference `github/codeql-action/init@v4` and `github/codeql-action/analyze@v4` (not a commit SHA). Dependabot will keep the major-version tag updated. This ensures bug fixes and new query definitions are picked up automatically.
+3. **Pin actions by full SHA with version comments** — Reference `github/codeql-action/init` and `github/codeql-action/analyze` by immutable commit SHA, with the intended major version kept in an adjacent comment. Dependabot updates the pinned SHAs through GitHub Actions dependency PRs, preserving both supply-chain integrity and update visibility.
 
 4. **Use `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true`** — GitHub Actions is migrating from Node 20 to Node 24. Setting this env var opt-in to the Node 24 runtime now, avoiding breakage when the default switches.
 

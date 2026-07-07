@@ -69,10 +69,23 @@ class ReleaseReadinessTests(unittest.TestCase):
         run("git push -u origin main", work, check=True)
         return work
 
-    def make_fake_bin(self, tmp_path: Path, *, upstream: str = "v1.2.3", release_exists: bool = False) -> Path:
+    def make_fake_bin(
+        self,
+        tmp_path: Path,
+        *,
+        upstream: str = "v1.2.3",
+        release_exists: bool = False,
+        variables: str | None = None,
+    ) -> Path:
         """Create mock curl/gh binaries that return controlled test responses."""
         fake = tmp_path / "bin"
         fake.mkdir()
+        if variables is None:
+            variables = (
+                "UBUNTU_VERSION\\t26.04\\n"
+                "UBUNTU_CODENAME\\tResolute Raccoon\\n"
+                "UBUNTU_SHA256\\tf3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64\\n"
+            )
         write_executable(
             fake / "curl",
             f"""
@@ -90,7 +103,7 @@ class ReleaseReadinessTests(unittest.TestCase):
               "auth status") exit 0 ;;
               # Mock fixture — values are placeholders, not assertions.
             # The script only checks that these variables EXIST, not their values.
-            "variable list") printf 'UBUNTU_VERSION\\t26.04\\nUBUNTU_CODENAME\\tResolute Raccoon\\n'; exit 0 ;;
+            "variable list") printf '{variables}'; exit 0 ;;
               "release view") {release_view_exit} ;;
               *) printf 'unexpected gh call: %s\\n' "$*" >&2; exit 1 ;;
             esac
@@ -150,6 +163,23 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertIn("READY: safe to publish v1.2.3-1", result.stdout)
         self.assertIn("git tag v1.2.3-1", result.stdout)
         self.assertIn("git push origin v1.2.3-1", result.stdout)
+
+    def test_missing_ubuntu_sha_variable_blocks_release(self) -> None:
+        """The gate should require the pinned Ubuntu image digest variable."""
+        with tempfile.TemporaryDirectory() as raw:
+            tmp_path = Path(raw)
+            repo = self.make_repo(tmp_path)
+            fake = self.make_fake_bin(
+                tmp_path,
+                variables="UBUNTU_VERSION\\t26.04\\nUBUNTU_CODENAME\\tResolute Raccoon\\n",
+            )
+            env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
+
+            result = run(["bash", "scripts/check-release-readiness.sh", "1.2.3"], repo, env=env)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("NOT READY", result.stdout)
+        self.assertIn("GitHub repo variable missing: UBUNTU_SHA256", result.stdout)
 
 
 if __name__ == "__main__":

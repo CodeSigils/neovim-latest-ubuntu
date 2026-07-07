@@ -31,4 +31,4 @@ ENV OUTPUT_DIR=/output
 WORKDIR /tmp/build
 
 # hadolint ignore=DL3025
-CMD build-neovim "${VERSION}" "${OUTPUT_DIR}"
+CMD build-neovim "${VERSION:-}" "${OUTPUT_DIR:-/output}"

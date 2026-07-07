@@ -125,6 +125,9 @@ if command_exists gh; then
   if ! grep -q '^UBUNTU_CODENAME[[:space:]]' <<<"$vars"; then
     add_blocker "GitHub repo variable missing: UBUNTU_CODENAME"
   fi
+  if ! grep -q '^UBUNTU_SHA256[[:space:]]' <<<"$vars"; then
+    add_blocker "GitHub repo variable missing: UBUNTU_SHA256"
+  fi
 fi
 
 if command_exists curl && command_exists python3; then

@@ -32,8 +32,8 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 - **Pinned base image** — `Containerfile` uses a specific Ubuntu LTS image pinned via SHA256 digest, with repo-level
   variables able to override `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` in CI. This pins the base image;
   apt-installed packages are still resolved from Ubuntu repositories at image-build time.
-- **Parameterised version** — `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` are governed by repo-level
-  variables, not hardcoded or user-supplied at runtime.
+- **Parameterised base image** — `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` are governed by repo-level
+  variables in CI, with public hardcoded fallbacks for fork compatibility.
 - **Container isolation** — compilation and packaging run inside `docker build` then `docker run`. The host runner
   never executes untrusted code directly.
 - **Verification inside the container** — `test.sh` runs inside the same container that built the `.deb`, ensuring

@@ -36,13 +36,13 @@ The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced 
 
 `build.sh` accepts two variables: the Neovim version and output directory. Everything else is deterministic:
 
-| Parameter       | Source                                        | Default            |
-| --------------- | --------------------------------------------- | ------------------ |
-| `VERSION`       | First arg, env var, or `latest` (auto-detect) | `latest` (resolves at build time) |
-| `OUTPUT_DIR`    | Second arg or env var                         | `.` (current dir)  |
-| Build type      | Hardcoded                                     | `RelWithDebInfo`   |
-| CMake generator | Upstream Makefile                             | Auto-detects Ninja |
-| CPack config    | Upstream `cmake.packaging/CMakeLists.txt`     | Ships with Neovim  |
+| Parameter       | Source                                    | Default                             |
+| --------------- | ----------------------------------------- | ----------------------------------- |
+| `VERSION`       | First arg or env var; `latest` auto-detects current stable | `0.12.4` in `build.sh`; CI schedule/manual-empty uses `latest` |
+| `OUTPUT_DIR`    | Second arg or env var                     | `.` in `build.sh`; `/output` in the container |
+| Build type      | Hardcoded                                 | `RelWithDebInfo`                    |
+| CMake generator | Upstream Makefile                         | Auto-detects Ninja                  |
+| CPack config    | Upstream `cmake.packaging/CMakeLists.txt` | Ships with Neovim                   |
 
 Building inside the container eliminates host-specific variation: all build prerequisites (ninja, cmake, gettext, curl,
 gcc) are the versions that ship with the pinned Ubuntu image.
@@ -86,7 +86,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of Neovim v0.12.3 inside the pinned base image
+- **Same version + same base image = same behavior**: Two builds of the same Neovim version inside the pinned base image
   will produce packages that pass identical verification checks and behave identically at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
