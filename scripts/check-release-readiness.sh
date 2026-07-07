@@ -141,7 +141,7 @@ if command_exists curl && command_exists python3; then
 fi
 
 if [[ -f build.sh ]]; then
-  default_version="$(sed -n 's/^VERSION="${1:-${VERSION:-\([^}]*\)}}"$/\1/p' build.sh | head -1)"
+  default_version="$(sed -n 's/^[[:space:]]*VERSION="${1:-${VERSION:-\([^}]*\)}}"$/\1/p' build.sh)"
   if [[ -z "$default_version" ]]; then
     add_warning "Could not parse build.sh default version; verify manually"
   elif [[ "$default_version" != "$BASE_VERSION" ]]; then
