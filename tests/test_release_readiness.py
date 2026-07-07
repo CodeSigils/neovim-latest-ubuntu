@@ -181,6 +181,21 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertIn("NOT READY", result.stdout)
         self.assertIn("GitHub repo variable missing: UBUNTU_SHA256", result.stdout)
 
+    def test_build_sh_default_version_mismatch_warns_only(self) -> None:
+        """Tag releases should not be blocked by build.sh's convenience default."""
+        with tempfile.TemporaryDirectory() as raw:
+            tmp_path = Path(raw)
+            repo = self.make_repo(tmp_path, version="1.2.2")
+            fake = self.make_fake_bin(tmp_path, upstream="v1.2.3")
+            env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
+
+            result = run(["bash", "scripts/check-release-readiness.sh", "1.2.3"], repo, env=env)
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("WARNINGS:", result.stdout)
+        self.assertIn("build.sh default version is 1.2.2, requested release base is 1.2.3", result.stdout)
+        self.assertIn("READY: safe to publish v1.2.3", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

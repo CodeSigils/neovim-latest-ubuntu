@@ -145,7 +145,7 @@ if [[ -f build.sh ]]; then
   if [[ -z "$default_version" ]]; then
     add_warning "Could not parse build.sh default version; verify manually"
   elif [[ "$default_version" != "$BASE_VERSION" ]]; then
-    add_blocker "build.sh default version is ${default_version}, expected ${BASE_VERSION}"
+    add_warning "build.sh default version is ${default_version}, requested release base is ${BASE_VERSION}"
   fi
 else
   add_blocker "build.sh missing"
