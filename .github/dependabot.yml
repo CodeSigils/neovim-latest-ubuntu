@@ -14,6 +14,10 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action/*"
     commit-message:
       prefix: "chore"
       include: "scope"
