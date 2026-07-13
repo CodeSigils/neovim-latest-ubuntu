@@ -12,7 +12,7 @@ Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
 A [weekly CI build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) automatically fetches and packages the latest Neovim release. GitHub
 Releases are created only when version tags are pushed. The Monday scheduled build keeps a fresh stable package
-available as a workflow artifact on the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) until the next tagged release is published, while
+available as a workflow artifact on the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) (retained for 7 days, refreshed every Monday), while
 [nightly builds](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml) from Neovim's `master` branch run daily and are **artifacts-only**
 (download from the workflow run page, not from Releases).
 
