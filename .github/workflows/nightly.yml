@@ -19,6 +19,12 @@ jobs:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Run dependency consistency check
+        run: python3 scripts/check-dependencies.py
+      - name: Validate workflow labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check-labels.py
       - name: Run shellcheck
         run: shellcheck build.sh test.sh
       - name: Run hadolint
