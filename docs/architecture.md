@@ -21,6 +21,7 @@ Use it to answer two questions quickly:
 - `test.sh` — verifies install, runtime, alternatives registration, and clean removal.
 - `.github/workflows/build.yml` — main CI pipeline: lint, build, test, package-policy audit, release.
 - `.github/workflows/nightly.yml` — daily nightly builds from Neovim master.
+- `.github/workflows/docs-consistency.yml` — lightweight dependency-documentation consistency gate.
 - `.github/workflows/check-upstream.yml` — auto-detects new upstream Neovim releases and creates version-bump PRs.
 - `.github/workflows/codeql.yml`, `check-author.yml` — security scanning and repo guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.

@@ -43,6 +43,37 @@ class WorkflowPolicyTests(unittest.TestCase):
         for label in flattened:
             self.assertIn(f'"{label}"', label_script)
 
+    def test_readme_dependency_contract_has_lightweight_ci(self) -> None:
+        """README dependency edits should be checked without running package builds."""
+        docs_path = REPO / ".github/workflows/docs-consistency.yml"
+        docs = yaml.safe_load(docs_path.read_text())
+        triggers = docs.get("on", docs.get(True))
+        required_paths = {
+            "README.md",
+            "deps/**",
+            "Containerfile",
+            "build.sh",
+            "test.sh",
+            "scripts/check-dependencies.py",
+            ".github/workflows/docs-consistency.yml",
+        }
+
+        for event in ("push", "pull_request"):
+            self.assertTrue(required_paths <= set(triggers[event]["paths"]))
+
+        steps = docs["jobs"]["dependency-consistency"]["steps"]
+        runs = [step.get("run") for step in steps if "run" in step]
+        self.assertEqual(runs, ["python3 scripts/check-dependencies.py"])
+        self.assertEqual(docs["permissions"], {"contents": "read"})
+
+        build = yaml.safe_load((REPO / ".github/workflows/build.yml").read_text())
+        build_triggers = build.get("on", build.get(True))
+        for event in ("push", "pull_request"):
+            self.assertIn(
+                ".github/workflows/docs-consistency.yml",
+                build_triggers[event]["paths-ignore"],
+            )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
