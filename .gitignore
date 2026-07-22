@@ -5,6 +5,8 @@
 [._]s[a-rt-v][a-z]
 [._]ss[a-gi-z]
 [._]sw[a-p]
+*.swp
+*.swo
 
 # Session
 Session.vim
@@ -51,9 +53,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# linux
-*~
-
 # temporary files which can be created if a process still has a handle open of a deleted file
 .fuse_hidden*
 
@@ -92,22 +91,45 @@ $RECYCLE.BIN/
 *.lnk
 notes.txt
 
-# Windows shortcuts
-*.lnk
+# Local environment and secret files (keep shareable templates)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Editor, cache, and temporary files
+.vscode/
+.idea/
+.cache/
+tmp/
+.tmp/
+*.log
+
+# Agent runtime data (user-local, not repo config)
+.agents/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.hermes/
+.opencode/
+.open-mem/
+.omo/
+*.omo
 
 # open-mem: Auto-generated folder context files.
 # Uncomment to exclude from version control (recommended for large projects):
 # **/AGENTS.md
-*.omo
-.omo
-.open-mem
-
 # Python generated files
 __pycache__/
 .pytest_cache/
+.ruff_cache/
 *.py[cod]
+.venv/
+venv/
 
 # Project generated artifacts
 docs/research/
+/output/
 nvim-linux-*.deb
 _CPack_Packages/
