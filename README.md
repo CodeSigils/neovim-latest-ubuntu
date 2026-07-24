@@ -57,6 +57,20 @@ sudo apt-mark hold neovim
 sudo apt-mark unhold neovim
 ```
 
+## Why This Project?
+
+Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
+
+| Approach                   | Drawback                                         |
+| -------------------------- | ------------------------------------------------ |
+| `apt install neovim`       | Often lags behind latest release by months       |
+| Official AppImage          | No system-wide `vi`/`editor` symlink integration |
+| Snap (`snap install nvim`) | Classic confinement (no sandbox), but slower startup than native .deb |
+| Build from source manually | No package manager tracking, no clean uninstall  |
+
+This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean
+uninstall, dependency tracking.
+
 ## Wallpapers
 
 The [`wallpapers/`](./wallpapers/) directory contains AI-generated desktop wallpapers themed around this project
@@ -77,20 +91,6 @@ git clone --depth 1 --sparse https://github.com/CodeSigils/neovim-latest-ubuntu.
 cd neovim-latest-ubuntu
 git sparse-checkout set --no-cone '/*' '!wallpapers/'
 ```
-
-## Why This Project?
-
-Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
-
-| Approach                   | Drawback                                         |
-| -------------------------- | ------------------------------------------------ |
-| `apt install neovim`       | Often lags behind latest release by months       |
-| Official AppImage          | No system-wide `vi`/`editor` symlink integration |
-| Snap (`snap install nvim`) | Classic confinement (no sandbox), but slower startup than native .deb |
-| Build from source manually | No package manager tracking, no clean uninstall  |
-
-This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean
-uninstall, dependency tracking.
 
 ## Compilation Instructions
 
