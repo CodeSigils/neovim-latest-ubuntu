@@ -60,7 +60,7 @@ sudo apt-mark unhold neovim
 ## Wallpapers
 
 The [`wallpapers/`](./wallpapers/) directory contains AI-generated desktop wallpapers themed around this project
-(Neovim branding, Ubuntu Resolute Raccoon). They are a fun extra bundled with the repo — **they are not required
+**Neovim and Ubuntu themed**. They are a fun extra bundled with the repo — **they are not required
 for building or using Neovim** and do not affect the `.deb` package in any way. You can remove the folder after
 cloning if you don't need them.
 
