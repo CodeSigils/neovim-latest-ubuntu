@@ -10,7 +10,9 @@
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu 26.04-based systems — no snaps, no
 Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
-A [weekly CI build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) automatically fetches and packages the latest Neovim release. GitHub
+A [weekly CI build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) automatically fetches and packages the latest Neovim release. A
+[daily upstream check](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/check-upstream.yml) monitors Neovim releases and auto-creates a PR when a new
+version is available — merge the PR to build the latest release. GitHub
 Releases are created only when version tags are pushed. The Monday scheduled build keeps a fresh stable package
 available as a workflow artifact on the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) (retained for 7 days, refreshed every Monday), while
 [nightly builds](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml) from Neovim's `master` branch run daily and are **artifacts-only**
