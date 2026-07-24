@@ -57,6 +57,27 @@ sudo apt-mark hold neovim
 sudo apt-mark unhold neovim
 ```
 
+## Wallpapers
+
+The [`wallpapers/`](./wallpapers/) directory contains AI-generated desktop wallpapers themed around this project
+(Neovim branding, Ubuntu Resolute Raccoon). They are a fun extra bundled with the repo — **they are not required
+for building or using Neovim** and do not affect the `.deb` package in any way. You can remove the folder after
+cloning if you don't need them.
+
+If you don't want them taking up space after cloning, simply remove the directory:
+
+```bash
+rm -rf wallpapers/
+```
+
+To exclude them when cloning:
+
+```bash
+git clone --depth 1 --sparse https://github.com/CodeSigils/neovim-latest-ubuntu.git
+cd neovim-latest-ubuntu
+git sparse-checkout set --no-cone '/*' '!wallpapers/'
+```
+
 ## Why This Project?
 
 Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
