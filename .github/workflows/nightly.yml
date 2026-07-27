@@ -18,7 +18,7 @@ jobs:
   lint:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Run dependency consistency check
         run: python3 scripts/check-dependencies.py
       - name: Validate workflow labels
@@ -45,7 +45,7 @@ jobs:
             runner: ${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Build container image
         run: >
@@ -111,7 +111,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check for existing nightly failure issue
         id: check_issue
@@ -152,7 +152,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check for and close nightly failure issue
         env:
