@@ -47,7 +47,8 @@ Tags now support two formats:
 
 - `vX.Y.Z` — exact upstream Neovim version for a first-time build.
 - `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim version (packaging fix, base
-  image update, etc.). The revision number `N` resets per version.
+  image update, etc.). The revision number `N` resets per version and is propagated to the Debian package `Version`
+  field, so package managers recognize the rebuild as newer than `X.Y.Z`.
 
 The release readiness gate and CI workflow both handle the revision suffix correctly: the base Neovim version is
 extracted for upstream comparison and source checkout, while the full tag is used for the GitHub Release.
@@ -88,7 +89,8 @@ The pipeline runs in parallel for **x86_64** and **ARM64**:
    fails, the build is blocked.
 2. **Build** — Container image builds from the Ubuntu LTS base image, then `build.sh` clones Neovim at the tagged
    version, builds through its upstream Makefile wrapper (CMake + Ninja), and packages with CPack into a `.deb`.
-3. **Verify** — Checks the `.deb` exists, generates `SHA256SUMS`, runs the full 7-check test suite, and performs a
+3. **Verify** — Checks the expected architecture-specific `.deb` exists, generates `SHA256SUMS`, runs the full 8-check
+   test suite, and performs a
    non-blocking `lintian` package-policy audit.
 4. **Release** — Aggregates both architecture artifacts, regenerates a combined `SHA256SUMS`, attests provenance, and
    creates a GitHub Release with all assets attached.
@@ -184,7 +186,7 @@ input needed).
 | ----------------- | -------------------------------------------- |
 | **Branch**        | Neovim `master`                              |
 | **Build type**    | `RelWithDebInfo` (optimised with debug info) |
-| **Verification**  | Same 7-check suite as stable releases        |
+| **Verification**  | Same runtime verification as stable releases |
 | **Architectures** | x86_64 + ARM64 (both must pass)              |
 
 ---
@@ -224,7 +226,8 @@ sudo apt-mark unhold neovim
 The CI determines the version with this priority chain:
 
 1. **Manual dispatch input** — from the Actions tab, without a leading `v`
-2. **Git tag** — extracted from the pushed tag (`v` prefix and package revision suffix stripped)
+2. **Git tag** — source version extracted from the pushed tag; an optional package revision suffix is passed separately
+   to CPack and retained in Debian package metadata
 3. **Default** — `latest` (auto-detects current stable via GitHub API; no hardcoded version to go stale)
 
 The schedule trigger and bare workflow_dispatch both resolve to the default (`latest`).
@@ -262,7 +265,7 @@ You push tag vX.Y.Z
       3. cpack -G DEB -> .deb
   - Verify artifact exists
   - sha256sum > SHA256SUMS
-  - test.sh (7 checks)
+  - test.sh (8 checks, including independent package/runtime version verification)
   - lintian audit (non-blocking)
   - Upload arch-specific artifacts
     |
@@ -282,6 +285,6 @@ All pipeline files are in the repository:
 
 - [`build.sh`](./build.sh) — parameterised build script
 - [`Containerfile`](./Containerfile) — build environment definition
-- [`test.sh`](./test.sh) — 7-check verification script
+- [`test.sh`](./test.sh) — 8-check verification script
 - [`docs/build-plan.md`](./docs/build-plan.md) — technical pipeline details
 - [`.github/workflows/nightly.yml`](.github/workflows/nightly.yml) — daily nightly build

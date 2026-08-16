@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # test.sh — Verify a built Neovim .deb package
 #
-# Usage: ./test.sh <deb-file> [EXPECTED_VERSION]
-#   deb-file         Path to the .deb package to test
-#   EXPECTED_VERSION Neovim version to verify (default: auto-detect from .deb)
+# Usage: ./test.sh <deb-file> [EXPECTED_VERSION] [EXPECTED_PACKAGE_VERSION]
+#   deb-file                 Path to the .deb package to test
+#   EXPECTED_VERSION         Neovim runtime version to verify
+#   EXPECTED_PACKAGE_VERSION Debian package version to verify
 #
 # Runs all checks and reports results at the end.
 
@@ -11,6 +12,7 @@ set -euo pipefail
 
 DEB="${1:-}"
 EXPECTED_VERSION="${2:-}"
+EXPECTED_PACKAGE_VERSION="${3:-}"
 FAILED=0
 
 if [[ -z "$DEB" || "$1" == "--help" || "$1" == "-h" ]]; then
@@ -29,14 +31,19 @@ if [[ -z "$PACKAGE_NAME" ]]; then
   exit 1
 fi
 
+ACTUAL_PACKAGE_VERSION="$(dpkg-deb -f "$DEB" Version 2>/dev/null || true)"
+if [[ -z "$ACTUAL_PACKAGE_VERSION" ]]; then
+  echo "[FAIL] Could not extract Debian package version from .deb"
+  exit 1
+fi
+
 # Auto-detect version from .deb control file if not provided
 if [[ -z "$EXPECTED_VERSION" ]]; then
-  EXPECTED_VERSION="$(dpkg-deb -f "$DEB" Version 2>/dev/null || true)"
-  if [[ -z "$EXPECTED_VERSION" ]]; then
-    echo "[FAIL] Could not extract version from .deb and no version argument given"
-    exit 1
-  fi
+  EXPECTED_VERSION="${ACTUAL_PACKAGE_VERSION%%-*}"
   echo "    (version auto-detected from .deb: ${EXPECTED_VERSION})"
+fi
+if [[ -z "$EXPECTED_PACKAGE_VERSION" ]]; then
+  EXPECTED_PACKAGE_VERSION="$ACTUAL_PACKAGE_VERSION"
 fi
 
 check() {
@@ -54,6 +61,7 @@ echo "==> Testing Neovim .deb package"
 echo "    Package: $DEB"
 echo "    Debian package name: ${PACKAGE_NAME}"
 echo "    Expected version: v${EXPECTED_VERSION}"
+echo "    Expected package version: ${EXPECTED_PACKAGE_VERSION}"
 echo ""
 
 # Step 1: Install
@@ -70,8 +78,10 @@ fi
 # Step 2: Verify version
 echo ""
 echo "--- Version Check ---"
+check "Debian package version is ${EXPECTED_PACKAGE_VERSION}" \
+  test "$ACTUAL_PACKAGE_VERSION" = "$EXPECTED_PACKAGE_VERSION"
 check "nvim --version matches v${EXPECTED_VERSION}" \
-  bash -c "nvim --version | grep -q 'NVIM v${EXPECTED_VERSION}'"
+  grep -Fq "NVIM v${EXPECTED_VERSION}" < <(nvim --version | head -1)
 
 # Step 3: Runtime smoke test
 echo ""

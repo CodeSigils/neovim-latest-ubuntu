@@ -202,14 +202,19 @@ Each build is verified against these checks:
 | #   | Check          | Description                                                        |
 | --- | -------------- | ------------------------------------------------------------------ |
 | 1   | Install        | `dpkg -i` installs cleanly; `test.sh` attempts `apt-get install -f` if dependencies are missing |
-| 2   | Version        | `nvim --version` reports the expected release version              |
-| 3   | Smoke test     | `nvim --headless +q` starts and exits cleanly                      |
-| 4   | Runtime health | `nvim --headless +checkhealth +q` runs without crash               |
-| 5   | Dependencies   | `ldd` shows no unresolved shared library dependencies              |
-| 6   | Alternatives   | `update-alternatives --display vi` shows nvim registered           |
-| 7   | Uninstall      | `dpkg -r` removes cleanly and unregisters alternatives             |
+| 2   | Package version | Debian metadata reports the expected package version              |
+| 3   | Runtime version | `nvim --version` reports the expected release version              |
+| 4   | Smoke test     | `nvim --headless +q` starts and exits cleanly                      |
+| 5   | Runtime health | `nvim --headless +checkhealth +q` runs without crash               |
+| 6   | Dependencies   | `ldd` shows no unresolved shared library dependencies              |
+| 7   | Alternatives   | `update-alternatives --display vi` shows nvim registered           |
+| 8   | Uninstall      | `dpkg -r` removes cleanly and unregisters alternatives             |
 
 These checks are automated in [`test.sh`](./test.sh).
+
+For tagged CI builds, the requested source and Debian package versions are passed to `test.sh` independently of the
+generated package metadata. Package rebuild tags such as `v0.12.4-1` therefore verify Neovim `0.12.4` while requiring
+the Debian package version to be `0.12.4-1`.
 
 ## License
 

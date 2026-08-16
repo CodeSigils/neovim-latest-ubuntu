@@ -59,19 +59,22 @@ depend on accidental shell behavior.
 
 ### 4. Verification Checklist (test.sh)
 
-Every built `.deb` passes the same seven checks before it's considered valid:
+Every stable `.deb` passes the same eight checks before it's considered valid:
 
 1. **Install**: `dpkg -i` succeeds (auto-fixes dependencies if needed)
-2. **Version match**: `nvim --version` reports the expected Neovim version
-3. **Smoke test**: `nvim --headless +q` starts and exits cleanly
-4. **Runtime health**: `nvim --headless +checkhealth +q` runs without crash
-5. **Library deps**: `ldd` shows no unresolved shared libraries
-6. **Alternatives**: `update-alternatives` registers nvim for `vi`
-7. **Cleanup**: `dpkg -r "$(dpkg-deb -f <deb-file> Package)"` removes the package cleanly
+2. **Package version**: Debian metadata matches the independently resolved package version
+3. **Runtime version**: `nvim --version` reports the independently resolved source version
+4. **Smoke test**: `nvim --headless +q` starts and exits cleanly
+5. **Runtime health**: `nvim --headless +checkhealth +q` runs without crash
+6. **Library deps**: `ldd` shows no unresolved shared libraries
+7. **Alternatives**: `update-alternatives` registers nvim for `vi`
+8. **Cleanup**: `dpkg -r "$(dpkg-deb -f <deb-file> Package)"` removes the package cleanly
 
 The same test suite runs on every build, regardless of architecture or trigger.
 
-`test.sh` reads the package name from the `.deb` control file before cleanup and auto-detects the expected Neovim version from the same metadata when no version argument is supplied. This means the verification gate adapts automatically to whatever version was built, eliminating manual synchronization points.
+CI passes source and package expectations recorded by `build.sh` before inspecting the generated package. This prevents
+a consistently mislabeled artifact from validating itself. For ad-hoc local use, `test.sh` can still infer the expected
+version from package metadata when explicit expectations are omitted.
 
 ### 5. Explicit Artifact Handling
 
@@ -79,7 +82,8 @@ The pipeline never relies on implicit paths or auto-detected locations:
 
 - `cpack -B /output` writes the `.deb` to an explicit directory
 - CI mounts `/output` from the container to `$PWD/output/` on the host
-- `ls output/*.deb` verifies the artifact exists before any downstream step
+- CI requires exactly the expected architecture-specific package and verifies its Debian `Architecture` field before
+  any downstream step
 - `sha256sum *.deb > SHA256SUMS` generates checksums at two points: per-arch during build, and combined during release
 
 ## Reproducibility Guarantees
@@ -163,12 +167,14 @@ The CI workflow achieves this with:
 ```yaml
 - name: Test .deb package
   run: |
-    DEB_NAME=$(basename "$(ls output/*.deb | head -1)")
+    DEB_NAME="${{ matrix.deb_file }}"
     docker run --rm \
       -v "$PWD/test.sh:/tmp/test.sh:ro" \
       -v "$PWD/output:/output:ro" \
       neovim-builder \
-      bash /tmp/test.sh "/output/$DEB_NAME"
+      bash /tmp/test.sh "/output/$DEB_NAME" \
+        "$(cat output/EXPECTED_SOURCE_VERSION)" \
+        "$(cat output/EXPECTED_PACKAGE_VERSION)"
 ```
 
 ### Future: ubuntu-26.04 runner adoption

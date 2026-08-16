@@ -74,6 +74,69 @@ class WorkflowPolicyTests(unittest.TestCase):
                 build_triggers[event]["paths-ignore"],
             )
 
+    def test_release_requires_the_complete_successful_build_matrix(self) -> None:
+        """A failed architecture must never produce a partial GitHub Release."""
+        build = yaml.safe_load((REPO / ".github/workflows/build.yml").read_text())
+        release = build["jobs"]["release"]
+        release_condition = release["if"]
+        runs = "\n".join(
+            step.get("run", "") for step in release["steps"] if "run" in step
+        )
+
+        self.assertIn("needs.build.result == 'success'", release_condition)
+        self.assertNotIn("!cancelled()", release_condition)
+        self.assertIn("nvim-linux-x86_64.deb", runs)
+        self.assertIn("nvim-linux-arm64.deb", runs)
+        self.assertIn("Architecture", runs)
+
+    def test_build_matrix_enforces_expected_artifact_identity(self) -> None:
+        """Each runner must emit exactly the package for its declared architecture."""
+        build = yaml.safe_load((REPO / ".github/workflows/build.yml").read_text())
+        matrix = build["jobs"]["build"]["strategy"]["matrix"]["include"]
+
+        self.assertEqual(
+            matrix,
+            [
+                {
+                    "arch": "x86_64",
+                    "runner": "${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}",
+                    "deb_arch": "amd64",
+                    "deb_file": "nvim-linux-x86_64.deb",
+                },
+                {
+                    "arch": "aarch64",
+                    "runner": "${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}",
+                    "deb_arch": "arm64",
+                    "deb_file": "nvim-linux-arm64.deb",
+                },
+            ],
+        )
+        nightly = yaml.safe_load(
+            (REPO / ".github/workflows/nightly.yml").read_text()
+        )
+        self.assertEqual(
+            nightly["jobs"]["build"]["strategy"]["matrix"]["include"], matrix
+        )
+
+    def test_stable_ci_uses_independent_version_expectations(self) -> None:
+        """Generated package metadata must not be its own CI oracle."""
+        workflow = (REPO / ".github/workflows/build.yml").read_text()
+        build_script = (REPO / "build.sh").read_text()
+        test_script = (REPO / "test.sh").read_text()
+
+        self.assertIn("EXPECTED_SOURCE_VERSION", build_script)
+        self.assertIn("EXPECTED_PACKAGE_VERSION", build_script)
+        self.assertIn("CPACK_DEBIAN_PACKAGE_RELEASE", build_script)
+        self.assertIn("$(cat output/EXPECTED_SOURCE_VERSION)", workflow)
+        self.assertIn("$(cat output/EXPECTED_PACKAGE_VERSION)", workflow)
+        self.assertIn("grep -Fq", test_script)
+
+    def test_dependabot_does_not_have_an_unsafe_auto_merge_workflow(self) -> None:
+        """Without a universal required gate, dependency PRs stay manual."""
+        self.assertFalse(
+            (REPO / ".github/workflows/dependabot-auto-merge.yml").exists()
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

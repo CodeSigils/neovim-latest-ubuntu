@@ -34,11 +34,13 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
   apt-installed packages are still resolved from Ubuntu repositories at image-build time.
 - **Parameterised base image** — `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` are governed by repo-level
   variables in CI, with public hardcoded fallbacks for fork compatibility.
-- **Container isolation** — compilation and packaging run inside `docker build` then `docker run`. The host runner
-  never executes untrusted code directly.
+- **Container isolation** — compilation and packaging run inside `docker build` then `docker run`, limiting their access
+  to the hosted runner. Repository lint and orchestration scripts still execute on the host runner with read-only
+  repository permissions.
 - **Verification inside the container** — `test.sh` runs inside the same container that built the `.deb`, ensuring
-  runtime library versions match the build environment. The 7-check test suite covers install, version match, smoke
-  test, runtime health, library dependencies, `update-alternatives` registration, and clean uninstall.
+  runtime library versions match the build environment. The 8-check test suite covers install, package and runtime
+  version matches, smoke test, runtime health, library dependencies, `update-alternatives` registration, and clean
+  uninstall.
 - **Integrity attestation** — every release publishes `SHA256SUMS` alongside the `.deb`. Build provenance is attested
   via `actions/attest` (Sigstore-backed OIDC).
 - **Non-blocking lintian audit** — Debian package policy checks run on every build. Findings are logged but do not
@@ -48,7 +50,7 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 
 | Guard | What it checks | Frequency | Blocks build? |
 |---|---|---|---|
-| **Dependabot** | Keeps GitHub Actions dependencies at latest patch | Weekly | No (creates PR) |
+| **Dependabot** | Keeps GitHub Actions dependencies current; PRs require human review and merge | Weekly | No (creates PR) |
 | **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, PRs, and weekly | Yes |
 | **Shellcheck** | Shell correctness, quoting, error handling (`build.sh`, `test.sh`, and stable-build `scripts/*.sh`) | Every build | Yes |
 | **Hadolint** | `Containerfile` — Dockerfile anti-patterns, layer hygiene | Every build | Yes |
@@ -81,7 +83,7 @@ The full build pipeline is defined in this repository and readable by anyone:
 
 - `build.sh` — parameterised build script
 - `Containerfile` — reproducible build environment
-- `test.sh` — 7-check verification
+- `test.sh` — 8-check verification
 - `.github/workflows/build.yml` — CI/CD orchestration
 
 Build dependencies (CMake, Ninja, gettext, curl, git, GCC) are installed from the configured Ubuntu LTS apt
