@@ -38,7 +38,7 @@ The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced 
 
 | Parameter       | Source                                    | Default                             |
 | --------------- | ----------------------------------------- | ----------------------------------- |
-| `VERSION`       | First arg or env var; `latest` auto-detects current stable | `0.12.4` in `build.sh`; CI schedule/manual-empty uses `latest` |
+| `VERSION`       | First arg or env var; `latest` auto-detects current stable | Fallback defined only in `build.sh`; CI schedule/manual-empty uses `latest` |
 | `OUTPUT_DIR`    | Second arg or env var                     | `.` in `build.sh`; `/output` in the container |
 | Build type      | Hardcoded                                 | `RelWithDebInfo`                    |
 | CMake generator | Upstream Makefile                         | Auto-detects Ninja                  |
@@ -195,5 +195,5 @@ Monitor: https://github.com/actions/runner-images
 - [`build.sh`](../build.sh) — Parameterized build script
 - [`test.sh`](../test.sh) — Verification checklist
 - [`.github/workflows/build.yml`](../.github/workflows/build.yml) — CI pipeline
-- [`docs/build-plan.md`](build-plan.md) — Build pipeline architecture and design decisions
+- [`docs/architecture.md`](architecture.md) — Architectural invariants and design rationale
 - [Reproducible Builds project](https://reproducible-builds.org/) — Industry best practices

@@ -2,12 +2,12 @@
 
 **Document type:** Architecture (invariants and code map)
 **Status:** Implemented
-**Last updated:** 2026-07
+**Last updated:** 2026-08
 
 ## Purpose
 
-This file is a short architectural checklist for the repository. It does not repeat the procedural detail from
-`docs/build-plan.md` or `docs/reproducibility.md`.
+This file is a short architectural checklist for the repository. It records durable design decisions without repeating
+procedural details from the workflows, scripts, or `docs/reproducibility.md`.
 
 Use it to answer two questions quickly:
 
@@ -25,7 +25,7 @@ Use it to answer two questions quickly:
 - `.github/workflows/check-upstream.yml` — auto-detects new upstream Neovim releases and creates version-bump PRs.
 - `.github/workflows/codeql.yml`, `check-author.yml` — security scanning and repo guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
-- `docs/` — design and explanation documents (`build-plan.md`, `reproducibility.md`, `resources.md`).
+- `docs/` — architecture, reproducibility, and curated reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.
 
 ## Architectural invariants
@@ -72,6 +72,27 @@ Use it to answer two questions quickly:
     - This repository is a convenience packaging pipeline for Ubuntu-targeted Neovim `.deb` releases.
     - It is not a Debian archive package, not a PPA replacement, and not a universal Linux packaging solution.
 
+## Design rationale
+
+### Upstream CPack instead of a Debian packaging tree
+
+Neovim ships and maintains CMake/CPack packaging configuration with its source. Reusing it keeps this project aligned
+with upstream and avoids maintaining a parallel `debian/` tree or a CPack/debhelper hybrid. A full Debian packaging
+layout should be reconsidered only if the project expands into an apt repository or distribution archive.
+
+### Verification inside the target container
+
+The generated package can require newer runtime libraries than the GitHub-hosted runner provides. Installing and
+testing inside the same pinned Ubuntu container used for compilation verifies the package against its actual target
+environment and prevents host-runner library skew. The host remains useful for orchestration, linting, and artifact
+storage; it is not the canonical runtime-test environment.
+
+### Advisory lintian policy
+
+`lintian` findings remain visible because they can reveal real packaging defects, but they are advisory because this is
+an upstream CPack convenience package rather than a Debian archive submission. Concrete findings may be promoted to
+blocking checks when the project can enforce them without suppressing unrelated upstream-policy noise.
+
 ## When to update this file
 
 Update this file only when an architectural invariant changes, for example:
@@ -83,6 +104,6 @@ Update this file only when an architectural invariant changes, for example:
 
 For implementation details, see:
 
-- `docs/build-plan.md`
-- `docs/reproducibility.md`
-- `docs/resources.md`
+- [`docs/reproducibility.md`](reproducibility.md)
+- [`docs/resources.md`](resources.md)
+- [`RELEASING.md`](../RELEASING.md)

@@ -5,21 +5,29 @@ on:
     branches: [main]
     paths:
       - 'README.md'
+      - 'RELEASING.md'
+      - 'SECURITY.md'
+      - 'docs/**'
       - 'deps/**'
       - 'Containerfile'
       - 'build.sh'
       - 'test.sh'
       - 'scripts/check-dependencies.py'
+      - 'tests/test_workflow_policy.py'
       - '.github/workflows/docs-consistency.yml'
   pull_request:
     branches: [main]
     paths:
       - 'README.md'
+      - 'RELEASING.md'
+      - 'SECURITY.md'
+      - 'docs/**'
       - 'deps/**'
       - 'Containerfile'
       - 'build.sh'
       - 'test.sh'
       - 'scripts/check-dependencies.py'
+      - 'tests/test_workflow_policy.py'
       - '.github/workflows/docs-consistency.yml'
   workflow_dispatch:
 
@@ -33,3 +41,5 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Check documented dependencies
         run: python3 scripts/check-dependencies.py
+      - name: Check documentation policy contracts
+        run: python3 -m unittest tests.test_workflow_policy

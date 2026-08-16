@@ -50,11 +50,15 @@ class WorkflowPolicyTests(unittest.TestCase):
         triggers = docs.get("on", docs.get(True))
         required_paths = {
             "README.md",
+            "RELEASING.md",
+            "SECURITY.md",
+            "docs/**",
             "deps/**",
             "Containerfile",
             "build.sh",
             "test.sh",
             "scripts/check-dependencies.py",
+            "tests/test_workflow_policy.py",
             ".github/workflows/docs-consistency.yml",
         }
 
@@ -63,7 +67,13 @@ class WorkflowPolicyTests(unittest.TestCase):
 
         steps = docs["jobs"]["dependency-consistency"]["steps"]
         runs = [step.get("run") for step in steps if "run" in step]
-        self.assertEqual(runs, ["python3 scripts/check-dependencies.py"])
+        self.assertEqual(
+            runs,
+            [
+                "python3 scripts/check-dependencies.py",
+                "python3 -m unittest tests.test_workflow_policy",
+            ],
+        )
         self.assertEqual(docs["permissions"], {"contents": "read"})
 
         build = yaml.safe_load((REPO / ".github/workflows/build.yml").read_text())
@@ -135,6 +145,36 @@ class WorkflowPolicyTests(unittest.TestCase):
         """Without a universal required gate, dependency PRs stay manual."""
         self.assertFalse(
             (REPO / ".github/workflows/dependabot-auto-merge.yml").exists()
+        )
+
+    def test_documentation_avoids_known_drift_sources(self) -> None:
+        """Implemented plans, stale counts, and volatile snapshots stay out of docs."""
+        documentation = [
+            REPO / "README.md",
+            REPO / "RELEASING.md",
+            REPO / "SECURITY.md",
+            *(REPO / "docs").glob("*.md"),
+        ]
+        combined = "\n".join(path.read_text() for path in documentation)
+
+        self.assertFalse((REPO / "docs/build-plan.md").exists())
+        self.assertNotIn("build-plan.md", combined)
+        self.assertIn("8-point automated test suite", (REPO / "README.md").read_text())
+        self.assertNotIn("7-point automated test suite", combined)
+
+        resources = (REPO / "docs/resources.md").read_text()
+        for stale_snapshot in (
+            "13 of 18",
+            "130 minutes",
+            "first ~48 hours",
+            "~5 min per Dependabot PR",
+        ):
+            self.assertNotIn(stale_snapshot, resources)
+
+        reproducibility = (REPO / "docs/reproducibility.md").read_text()
+        self.assertNotRegex(
+            reproducibility,
+            r"`VERSION`.*`[0-9]+[.][0-9]+[.][0-9]+` in `build[.]sh`",
         )
 
 

@@ -213,8 +213,8 @@ Each build is verified against these checks:
 These checks are automated in [`test.sh`](./test.sh).
 
 For tagged CI builds, the requested source and Debian package versions are passed to `test.sh` independently of the
-generated package metadata. Package rebuild tags such as `v0.12.4-1` therefore verify Neovim `0.12.4` while requiring
-the Debian package version to be `0.12.4-1`.
+generated package metadata. Package rebuild tags such as `vX.Y.Z-1` therefore verify Neovim `X.Y.Z` while requiring
+the Debian package version to be `X.Y.Z-1`.
 
 ## License
 
@@ -234,12 +234,11 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 | **Build system** | Ninja (auto-detected by Neovim's Makefile)                                                    |
 | **Dependencies** | Bundled and statically linked (libuv, LuaJIT, tree-sitter, utf8proc, unibilium)               |
 | **CI/CD**        | GitHub Actions with container reproducibility                                                 |
-| **Verification** | 7-point automated test suite (install, version, smoke, health, deps, alternatives, uninstall) |
+| **Verification** | 8-point automated test suite (install, package/runtime versions, smoke, health, deps, alternatives, uninstall) |
 
 ## Documentation
 
 - **[docs/architecture.md](./docs/architecture.md)** — Architectural invariants and code map (read this first)
-- **[docs/build-plan.md](./docs/build-plan.md)** — Build pipeline details, test strategy, versioning approach
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
 - **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
 - **[RELEASING.md](./RELEASING.md)** — Release process guide for maintainers

@@ -1,6 +1,6 @@
 # Ubuntu Packaging Resources
 
-**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-07 **Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
+**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-08 **Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
 
 This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
 project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
@@ -212,30 +212,14 @@ _Upstream Neovim's CPack config in `cmake.packaging/CMakeLists.txt` uses these s
 4. **Branch and path filters compound** — If you define both `branches`/`branches-ignore` and `paths`/`paths-ignore`,
    the workflow runs only when BOTH filters are satisfied.
 
-### CI cycle efficiency analysis
+### CI efficiency policy
 
-**Before paths-ignore**: Every push to `main` triggered full lint + build matrix (x86_64 + aarch64), consuming ~10
-minutes of runner time per run.
-
-**After paths-ignore**: Doc-only pushes (`*.md`, `LICENSE`, `docs/**`) skip the build pipeline. In the project's first
-~48 hours of active development:
-
-- **13 of 18 main-branch pushes (72%) were doc-only** and would now be skipped
-- **~130 minutes of runner time saved** in this window alone
-- **All other workflows** (author check, CodeQL) still run on doc-only pushes — they have no
-  paths-ignore — to maintain CI integrity
-- **Doc-only PRs skip the build workflow** (PR trigger uses the same paths-ignore as branch pushes); code/workflow PRs
-  still build
-- **Tag pushes always build** (path filters not evaluated for tags) — releases never skip
-
-**Verdict**: paths-ignore is highly effective for this project. The high doc-to-code ratio (~3:1) means ~3 of every 4
-main-branch pushes skip the 10-min build. The lightweight validation workflows (author, CodeQL) still
-validate doc-only changes in ~2 minutes total.
-
-**Dependabot actor gate**: Dependabot PRs (SHA pin updates only) also skip the `build` job via
-`if: github.actor != 'dependabot[bot]'` in `build.yml`. The `lint` job still runs on Dependabot PRs
-to catch YAML/label issues. This saves ~5 min per Dependabot PR — the pin update is validated by the
-SHA itself, not by rebuilding the package.
+- Documentation-only changes use lightweight validation rather than the package build matrix.
+- Tag pushes always build because GitHub does not apply path filters to tag events.
+- Dependabot PRs run lint but skip package compilation; dependency updates remain manually reviewed.
+- Exact filters, runner selection, and job conditions belong in the workflow files, which are the source of truth.
+- Historical run counts and timing estimates are intentionally omitted because repository activity and runner
+  performance change over time.
 
 ---
 
@@ -256,7 +240,8 @@ SHA itself, not by rebuilding the package.
 
 ### Key best practices for this project
 
-1. **Use `security-extended` over `security-and-quality` for the `actions` language** — The `actions` language (GitHub Actions YAML workflows) is a relatively small analysis surface (~800 lines across 5 workflow files). `security-and-quality` adds code-quality queries that generate noise on workflow files without meaningful security signal. `security-extended` catches all relevant security vulnerabilities with fewer false positives.
+1. **Use `security-extended` over `security-and-quality` for the `actions` language** — The workflow analysis surface is
+   small, and the quality suite adds noise without meaningful security signal for this repository.
 
 2. **paths-ignore must NOT exclude workflow files** — CodeQL's purpose is to analyze workflow file changes for security issues. Excluding `.github/workflows/*.yml` from CodeQL's paths-ignore defeats its purpose. Build.yml's paths-ignore excludes workflow files to save build minutes; CodeQL's should only exclude doc/metadata files. Independent trigger lists serve different purposes.
 
@@ -268,9 +253,11 @@ SHA itself, not by rebuilding the package.
 
 6. **Use `permissions:` explicitly** — CodeQL needs `security-events: write` to upload results and `contents: read` to checkout code. Setting these explicitly follows least-privilege and avoids issues with GITHUB_TOKEN defaults changing.
 
-7. **Single-language job for `actions`** — The `actions` language is analyzed alone (not in a matrix with C/C++ or other languages). This keeps the job fast (~54s) and avoids unnecessary build steps. The `actions` query pack doesn't require compilation.
+7. **Single-language job for `actions`** — The `actions` language is analyzed alone rather than in a compiled-language
+   matrix. The query pack does not require compilation.
 
-8. **No CLI caching for the `actions` language** — For the `actions` language (~1000 lines across 6 YAML files), the CodeQL CLI download is fast enough (a few seconds) that a caching step adds complexity with negligible benefit. The real savings come from paths-ignore skipping doc-only pushes entirely.
+8. **No CLI caching for the `actions` language** — Caching adds complexity with negligible benefit for this small
+   workflow-only analysis surface.
 
 9. **Dependency caching is for compiled languages** — CodeQL dependency caching (https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-codeql-code-scanning-for-compiled-languages#about-dependency-caching-for-codeql) applies to compiled languages like C/C++, Java, Go, Rust, and Swift — not to the `actions` language. If this project adds C/C++ CodeQL analysis in the future, consider caching Go module dependencies or other build artifacts.
 

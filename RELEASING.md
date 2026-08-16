@@ -46,7 +46,7 @@ Do not reuse an existing tag. Published tags and Releases are treated as immutab
 Tags now support two formats:
 
 - `vX.Y.Z` — exact upstream Neovim version for a first-time build.
-- `vX.Y.Z-N` — package revision suffix (e.g., `v0.12.2-1`) for rebuilds of the same Neovim version (packaging fix, base
+- `vX.Y.Z-N` — package revision suffix (e.g., `vX.Y.Z-1`) for rebuilds of the same Neovim version (packaging fix, base
   image update, etc.). The revision number `N` resets per version and is propagated to the Debian package `Version`
   field, so package managers recognize the rebuild as newer than `X.Y.Z`.
 
@@ -286,5 +286,5 @@ All pipeline files are in the repository:
 - [`build.sh`](./build.sh) — parameterised build script
 - [`Containerfile`](./Containerfile) — build environment definition
 - [`test.sh`](./test.sh) — 8-check verification script
-- [`docs/build-plan.md`](./docs/build-plan.md) — technical pipeline details
+- [`docs/architecture.md`](./docs/architecture.md) — architectural invariants and design rationale
 - [`.github/workflows/nightly.yml`](.github/workflows/nightly.yml) — daily nightly build
