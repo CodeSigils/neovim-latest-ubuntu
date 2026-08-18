@@ -26,14 +26,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/check-labels.py
       - name: Run shellcheck
-        run: shellcheck build.sh test.sh
+        run: shellcheck build.sh test.sh scripts/*.sh
+      - name: Validate YAML workflow syntax
+        run: python3 scripts/check-yaml-syntax.py
+      - name: Run release readiness tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Run hadolint
         uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
         with:
           dockerfile: Containerfile
 
   build:
+    if: github.actor != 'dependabot[bot]'
     needs: lint
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
