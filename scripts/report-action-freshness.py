@@ -18,7 +18,7 @@ PINNED = re.compile(
 
 def latest_sha(repo: str, major: str, token: str) -> str:
     request = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}/commits/{major}",
+        f"https://api.github.com/repos/{repo}/tags?per_page=100",
         headers={
             "Accept": "application/vnd.github+json",
             "User-Agent": "neovim-latest-ubuntu-action-freshness",
@@ -26,7 +26,13 @@ def latest_sha(repo: str, major: str, token: str) -> str:
         },
     )
     with urllib.request.urlopen(request, timeout=20) as response:
-        return json.load(response)["sha"]
+        tags = json.load(response)
+    prefix = f"v{major}."
+    candidates = [tag for tag in tags if tag.get("name", "").startswith(prefix)]
+    if not candidates:
+        raise ValueError(f"no tag found for major v{major}")
+    candidates.sort(key=lambda tag: tag["name"], reverse=True)
+    return candidates[0]["commit"]["sha"]
 
 
 def main() -> int:
