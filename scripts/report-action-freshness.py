@@ -17,22 +17,34 @@ PINNED = re.compile(
 
 
 def latest_sha(repo: str, major: str, token: str) -> str:
-    request = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}/tags?per_page=100",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "neovim-latest-ubuntu-action-freshness",
-            **({"Authorization": f"Bearer {token}"} if token else {}),
-        },
-    )
-    with urllib.request.urlopen(request, timeout=20) as response:
-        tags = json.load(response)
-    prefix = f"v{major}."
-    candidates = [tag for tag in tags if tag.get("name", "").startswith(prefix)]
+    """Return the SHA for the highest semantic tag in the requested major line."""
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "neovim-latest-ubuntu-action-freshness",
+        **({"Authorization": f"Bearer {token}"} if token else {}),
+    }
+    candidates: list[tuple[tuple[int, int, int], str]] = []
+    for page in range(1, 21):
+        request = urllib.request.Request(
+            f"https://api.github.com/repos/{repo}/tags?per_page=100&page={page}",
+            headers=headers,
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:
+            tags = json.load(response)
+        if not tags:
+            break
+        for tag in tags:
+            name = tag.get("name", "")
+            match = re.fullmatch(
+                rf"v{re.escape(major)}\.(\d+)(?:\.(\d+))?(?:[-+].*)?", name
+            )
+            if match:
+                minor = int(match.group(1))
+                patch = int(match.group(2) or 0)
+                candidates.append(((int(major), minor, patch), tag["commit"]["sha"]))
     if not candidates:
         raise ValueError(f"no tag found for major v{major}")
-    candidates.sort(key=lambda tag: tag["name"], reverse=True)
-    return candidates[0]["commit"]["sha"]
+    return max(candidates, key=lambda item: item[0])[1]
 
 
 def main() -> int:

@@ -51,6 +51,9 @@ gcc) come from the pinned Ubuntu image's apt repositories. The base image is rep
 indexes are rolling by default. Set the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ` build argument to use a dated
 Ubuntu snapshot, and record that timestamp when byte-for-byte reproducibility is required.
 
+Builds using `VERSION=latest` query the upstream GitHub API. CI supplies `GH_TOKEN` to avoid unauthenticated rate limits;
+local builds can set the same variable when repeated API requests or network restrictions make anonymous access unreliable.
+
 ### 3. CI Lint Layer
 
 Before any build runs, the CI workflow validates:

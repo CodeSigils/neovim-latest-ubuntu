@@ -37,7 +37,8 @@ fi
 
 # --- Create temp build directory ---
 BUILD_DIR="$(mktemp -d)"
-trap 'rm -rf "$BUILD_DIR"' EXIT
+API_ERROR_FILE=""
+trap 'rm -rf "$BUILD_DIR" "${API_ERROR_FILE:-}"' EXIT
 
 echo "    Build dir: $BUILD_DIR"
 echo "    Output dir: $OUTPUT_DIR"
@@ -55,13 +56,21 @@ elif [[ "$VERSION" == "latest" ]]; then
   if [[ -n "${GH_TOKEN:-}" ]]; then
     github_headers+=(-H "Authorization: Bearer ${GH_TOKEN}")
   fi
-  response="$(curl --fail --silent --show-error --location \
+  API_ERROR_FILE="$(mktemp)"
+  if ! response="$(curl --fail --silent --show-error --location \
     --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
     "${github_headers[@]}" \
-    https://api.github.com/repos/neovim/neovim/releases/latest)" || {
-    echo "Error: Could not query the GitHub API while resolving VERSION=latest" >&2
+    https://api.github.com/repos/neovim/neovim/releases/latest 2>"$API_ERROR_FILE")"; then
+    echo "Error: GitHub API request failed while resolving VERSION=latest." >&2
+    cat "$API_ERROR_FILE" >&2
+    if [[ -n "${GH_TOKEN:-}" ]]; then
+      echo "Hint: verify the token has not expired and that GitHub API access is available." >&2
+    else
+      echo "Hint: check network/DNS access or set GH_TOKEN to avoid unauthenticated API rate limits." >&2
+    fi
     exit 1
-  }
+  fi
+  API_ERROR_FILE=""
   VERSION="$(jq -r '.tag_name // empty' <<<"$response")"
   if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Error: GitHub API returned an invalid latest release tag: ${VERSION:-<empty>}" >&2
