@@ -30,10 +30,12 @@ tag. For packaging-only rebuilds of an already-built upstream version, use the p
 
 Before tagging, check both upstream and this repository:
 
+The commands below require `curl`, `jq`, `git`, and the GitHub CLI (`gh`) to be installed and authenticated.
+
 ```bash
 # Latest upstream Neovim release
-curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
-  | grep '"tag_name":' | head -1
+curl --fail --silent --show-error https://api.github.com/repos/neovim/neovim/releases/latest \
+  | jq -r '.tag_name'
 
 # Existing local/remote tags and GitHub Releases
 git tag --list 'v*' --sort=-version:refname | head
@@ -64,8 +66,8 @@ Only tag when it prints `READY`.
 ### 1. Confirm the version exists
 
 ```bash
-curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
-  | grep '"tag_name":' | head -1
+curl --fail --silent --show-error https://api.github.com/repos/neovim/neovim/releases/latest \
+  | jq -r '.tag_name'
 ```
 
 Or visit [neovim/neovim/releases](https://github.com/neovim/neovim/releases) and look for the latest stable tag.

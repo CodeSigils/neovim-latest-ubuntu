@@ -1,6 +1,6 @@
 # Reproducibility — Neovim Latest deb Package
 
-**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-07
+**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-08
 
 ## What "Reproducible" Means Here
 
@@ -34,7 +34,8 @@ The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced 
 
 ### 2. Parameterized Build Script
 
-`build.sh` accepts two variables: the Neovim version and output directory. Everything else is deterministic:
+`build.sh` accepts two variables: the Neovim version and output directory. The remaining build choices are explicit, while
+the default `latest` version and Ubuntu apt indexes intentionally remain rolling:
 
 | Parameter       | Source                                    | Default                             |
 | --------------- | ----------------------------------------- | ----------------------------------- |
@@ -52,7 +53,7 @@ indexes are rolling; use a dated Ubuntu snapshot and record its date when byte-f
 
 Before any build runs, the CI workflow validates:
 
-- **shellcheck** on `build.sh` and `test.sh` — catches scripting errors
+- **shellcheck** on `build.sh`, `test.sh`, and `scripts/*.sh` — catches scripting errors
 - **hadolint** on `Containerfile` — catches container anti-patterns
 
 These lints ensure the build scripts are deterministic and well-formed. A ShellCheck-clean script is much less likely to
@@ -132,7 +133,7 @@ docker run --rm -e VERSION=latest -v "$PWD/output:/output" neovim-builder
 sha256sum output/*.deb
 ```
 
-If `test.sh` passes all checks, the build is reproducible.
+If `test.sh` passes all checks, the build is functionally reproducible according to the guarantees above.
 
 ## Cross-Architecture Considerations
 
