@@ -51,9 +51,13 @@ elif [[ "$VERSION" == "latest" ]]; then
     echo "Error: jq is required to resolve VERSION=latest" >&2
     exit 1
   fi
+  github_headers=(-H 'Accept: application/vnd.github+json')
+  if [[ -n "${GH_TOKEN:-}" ]]; then
+    github_headers+=(-H "Authorization: Bearer ${GH_TOKEN}")
+  fi
   response="$(curl --fail --silent --show-error --location \
     --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
-    -H 'Accept: application/vnd.github+json' \
+    "${github_headers[@]}" \
     https://api.github.com/repos/neovim/neovim/releases/latest)" || {
     echo "Error: Could not query the GitHub API while resolving VERSION=latest" >&2
     exit 1
