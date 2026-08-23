@@ -14,6 +14,15 @@ DEB="${1:-}"
 EXPECTED_VERSION="${2:-}"
 EXPECTED_PACKAGE_VERSION="${3:-}"
 FAILED=0
+PACKAGE_INSTALLED=0
+PACKAGE_NAME=""
+
+cleanup() {
+  if [[ "$PACKAGE_INSTALLED" -eq 1 && -n "$PACKAGE_NAME" ]]; then
+    sudo dpkg -r "$PACKAGE_NAME" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
 
 if [[ -z "$DEB" || "$1" == "--help" || "$1" == "-h" ]]; then
   sed -n '/^# test.sh/,/^$/ s/^# //p' "$0"
@@ -68,11 +77,14 @@ echo ""
 echo "--- Install ---"
 DEB_PATH="$(realpath "$DEB")"
 if sudo dpkg -i "$DEB_PATH" 2>/dev/null; then
+  PACKAGE_INSTALLED=1
   echo "[PASS] dpkg install succeeded"
 else
   echo "      dpkg reported dependency issues — attempting to fix..."
   sudo apt-get install -y -f 2>/dev/null
-  check "dpkg install (after dep fix)" dpkg -i "$DEB_PATH" 2>/dev/null
+  if check "dpkg install (after dep fix)" dpkg -i "$DEB_PATH" 2>/dev/null; then
+    PACKAGE_INSTALLED=1
+  fi
 fi
 
 # Step 2: Verify version
@@ -104,7 +116,9 @@ check "update-alternatives registers nvim for vi" \
 # Step 6: Cleanup
 echo ""
 echo "--- Cleanup ---"
-check "dpkg -r ${PACKAGE_NAME} succeeds" sudo dpkg -r "$PACKAGE_NAME"
+if check "dpkg -r ${PACKAGE_NAME} succeeds" sudo dpkg -r "$PACKAGE_NAME"; then
+  PACKAGE_INSTALLED=0
+fi
 
 # Summary
 echo ""

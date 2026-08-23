@@ -16,7 +16,9 @@ import yaml
 def main() -> int:
     """Check all workflow YAML files parse correctly."""
     errors = 0
-    for path in sorted(Path(".github/workflows").glob("*.yml")):
+    paths = sorted(Path(".github/workflows").glob("*.yml"))
+    paths.extend(sorted(Path(".github/actions").glob("*/action.yml")))
+    for path in paths:
         with path.open() as fh:
             try:
                 yaml.safe_load(fh)

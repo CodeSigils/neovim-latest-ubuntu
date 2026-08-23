@@ -1,5 +1,9 @@
 name: Nightly Build
 
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   schedule:
     - cron: '0 6 * * *'   # Daily: 06:00 UTC (same time as weekly stable build)
@@ -19,22 +23,8 @@ jobs:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Run dependency consistency check
-        run: python3 scripts/check-dependencies.py
-      - name: Validate workflow labels
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/check-labels.py
-      - name: Run shellcheck
-        run: shellcheck build.sh test.sh scripts/*.sh
-      - name: Validate YAML workflow syntax
-        run: python3 scripts/check-yaml-syntax.py
-      - name: Run release readiness tests
-        run: python3 -m unittest discover -s tests -p 'test_*.py'
-      - name: Run hadolint
-        uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
-        with:
-          dockerfile: Containerfile
+      - name: Run shared quality gates
+        uses: ./.github/actions/quality-gates
 
   build:
     if: github.actor != 'dependabot[bot]'
@@ -141,8 +131,8 @@ jobs:
             --repo ${{ github.repository }} \
             --label nightly \
             --state open \
-            --json number \
-            --jq 'length' 2>/dev/null || echo "0")
+            --json title \
+            --jq '[.[] | select(.title | startswith("Nightly build failed —"))] | length' 2>/dev/null || echo "0")
           echo "count=$EXISTING" >> "$GITHUB_OUTPUT"
           echo "Existing open nightly issues: $EXISTING"
 
@@ -181,8 +171,8 @@ jobs:
             --repo ${{ github.repository }} \
             --label nightly \
             --state open \
-            --json number \
-            --jq '.[0].number // empty' 2>/dev/null)
+            --json number,title \
+            --jq '[.[] | select(.title | startswith("Nightly build failed —"))][0].number // empty' 2>/dev/null)
           if [ -n "$ISSUE" ]; then
             echo "Closing nightly failure issue #$ISSUE — build has recovered"
             gh issue comment "$ISSUE" \

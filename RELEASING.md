@@ -228,7 +228,7 @@ The CI determines the version with this priority chain:
 1. **Manual dispatch input** — from the Actions tab, without a leading `v`
 2. **Git tag** — source version extracted from the pushed tag; an optional package revision suffix is passed separately
    to CPack and retained in Debian package metadata
-3. **Default** — `latest` (auto-detects current stable via GitHub API; no hardcoded version to go stale)
+3. **Default** — `latest` (auto-detects current stable via the GitHub API)
 
 The schedule trigger and bare workflow_dispatch both resolve to the default (`latest`).
 

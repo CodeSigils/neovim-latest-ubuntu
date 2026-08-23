@@ -29,9 +29,10 @@ class WorkflowPolicyTests(unittest.TestCase):
         """Workflow-created labels should be guarded by the label validation script."""
         build = yaml.safe_load((REPO / ".github/workflows/build.yml").read_text())
         lint_steps = build["jobs"]["lint"]["steps"]
-        runs = "\n".join(step.get("run", "") for step in lint_steps)
-
-        self.assertIn("python3 scripts/check-labels.py", runs)
+        uses = "\n".join(step.get("uses", "") for step in lint_steps)
+        self.assertIn("./.github/actions/quality-gates", uses)
+        quality = (REPO / ".github/actions/quality-gates/action.yml").read_text()
+        self.assertIn("python3 scripts/check-labels.py", quality)
 
     def test_label_validation_covers_workflow_created_labels(self) -> None:
         """Every workflow-created label should be present in check-labels.py."""
@@ -98,6 +99,14 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("nvim-linux-x86_64.deb", runs)
         self.assertIn("nvim-linux-arm64.deb", runs)
         self.assertIn("Architecture", runs)
+        self.assertIn("Reject an existing release for this immutable tag", "\n".join(
+            step.get("name", "") for step in release["steps"]
+        ))
+
+    def test_nightly_recovery_only_targets_automated_failure_issues(self) -> None:
+        """Recovery must not close unrelated issues carrying the nightly label."""
+        nightly = (REPO / ".github/workflows/nightly.yml").read_text()
+        self.assertIn('startswith("Nightly build failed —")', nightly)
 
     def test_build_matrix_enforces_expected_artifact_identity(self) -> None:
         """Each runner must emit exactly the package for its declared architecture."""
@@ -176,6 +185,13 @@ class WorkflowPolicyTests(unittest.TestCase):
             reproducibility,
             r"`VERSION`.*`[0-9]+[.][0-9]+[.][0-9]+` in `build[.]sh`",
         )
+
+    def test_build_defaults_to_latest_and_uses_structured_api_parsing(self) -> None:
+        """Local builds must not silently fall back to an obsolete release."""
+        build = (REPO / "build.sh").read_text()
+        self.assertIn('VERSION:-latest', build)
+        self.assertIn("curl --fail", build)
+        self.assertIn("jq -r '.tag_name // empty'", build)
 
 
 if __name__ == "__main__":

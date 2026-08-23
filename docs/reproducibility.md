@@ -38,14 +38,15 @@ The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced 
 
 | Parameter       | Source                                    | Default                             |
 | --------------- | ----------------------------------------- | ----------------------------------- |
-| `VERSION`       | First arg or env var; `latest` auto-detects current stable | Fallback defined only in `build.sh`; CI schedule/manual-empty uses `latest` |
+| `VERSION`       | First arg or env var; `latest` auto-detects current stable | `latest` |
 | `OUTPUT_DIR`    | Second arg or env var                     | `.` in `build.sh`; `/output` in the container |
 | Build type      | Hardcoded                                 | `RelWithDebInfo`                    |
 | CMake generator | Upstream Makefile                         | Auto-detects Ninja                  |
 | CPack config    | Upstream `cmake.packaging/CMakeLists.txt` | Ships with Neovim                   |
 
 Building inside the container eliminates host-specific variation: all build prerequisites (ninja, cmake, gettext, curl,
-gcc) are the versions that ship with the pinned Ubuntu image.
+gcc) come from the pinned Ubuntu image's apt repositories. The base image is reproducible by digest, but apt package
+indexes are rolling; use a dated Ubuntu snapshot and record its date when byte-for-byte reproducibility is required.
 
 ### 3. CI Lint Layer
 

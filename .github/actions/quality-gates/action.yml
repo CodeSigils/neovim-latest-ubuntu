@@ -1,0 +1,26 @@
+name: Neovim quality gates
+description: Shared lint, policy, syntax, and release-readiness checks
+runs:
+  using: composite
+  steps:
+    - name: Run dependency consistency check
+      shell: bash
+      run: python3 scripts/check-dependencies.py
+    - name: Validate workflow labels
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: python3 scripts/check-labels.py
+    - name: Run shellcheck
+      shell: bash
+      run: shellcheck build.sh test.sh scripts/*.sh
+    - name: Validate YAML workflow syntax
+      shell: bash
+      run: python3 scripts/check-yaml-syntax.py
+    - name: Run release readiness tests
+      shell: bash
+      run: python3 -m unittest discover -s tests -p 'test_*.py'
+    - name: Run hadolint
+      uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
+      with:
+        dockerfile: Containerfile

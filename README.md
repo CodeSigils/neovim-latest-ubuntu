@@ -103,7 +103,7 @@ For custom builds, reproducible builds, or building newer/older versions of Neov
 Manual build-host prerequisites (source of truth: [`deps/ubuntu-build-deps.txt`](./deps/ubuntu-build-deps.txt)):
 
 ```bash
-sudo apt install ninja-build gettext cmake curl git build-essential
+sudo apt install ninja-build gettext cmake curl jq git build-essential
 ```
 
 | Tool          | Minimum version |
@@ -160,9 +160,12 @@ podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 ```
 
 The container image (pinned to the current Ubuntu LTS in the Containerfile) includes all build prerequisites and runs
-[`build.sh`](./build.sh) on startup. Set `VERSION` via `-e` to build a specific release; defaults to the version in
-`build.sh`. Use `VERSION=latest` to build the latest stable release (the CI workflow uses this for its weekly scheduled
-build). The `-v "$(pwd)/output:/output"` mount ensures the `.deb` appears in the `output/` directory on your host.
+[`build.sh`](./build.sh) on startup. Set `VERSION` via `-e` to build a specific release; it defaults to `latest`, which
+resolves the current stable release from the upstream GitHub API. The `-v "$(pwd)/output:/output"` mount ensures the
+`.deb` appears in the `output/` directory on your host.
+
+The base image is digest-pinned, but Ubuntu apt repositories remain rolling. For byte-for-byte reproducibility, build
+from a dated Ubuntu package snapshot and record the snapshot date alongside the release.
 
 > The Ubuntu base image version, codename, and digest are sourced from repo-level GitHub Actions variables
 > (`UBUNTU_VERSION`, `UBUNTU_CODENAME`, `UBUNTU_SHA256`). When upgrading to a new Ubuntu LTS,

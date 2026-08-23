@@ -2,7 +2,7 @@
 # build.sh — Build Neovim from source and package as .deb
 #
 # Usage: ./build.sh [VERSION] [OUTPUT_DIR] [PACKAGE_REVISION]
-#   VERSION          Neovim release tag (default: see VERSION= fallback below)
+#   VERSION          Neovim release tag, or latest/nightly (default: latest)
 #   OUTPUT_DIR       Where to place the built .deb (default: .)
 #   PACKAGE_REVISION Optional positive Debian package revision (for example: 1)
 #
@@ -20,7 +20,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
 fi
 
 # --- Parameters ---
-VERSION="${1:-${VERSION:-0.12.4}}"
+VERSION="${1:-${VERSION:-latest}}"
 OUTPUT_DIR="${2:-${OUTPUT_DIR:-.}}"
 PACKAGE_REVISION="${3:-${PACKAGE_REVISION:-}}"
 
@@ -47,12 +47,23 @@ if [[ "$VERSION" == "nightly" ]]; then
   echo "==> Building Neovim nightly (master branch)..."
 elif [[ "$VERSION" == "latest" ]]; then
   echo "==> Detecting latest Neovim stable version..."
-  VERSION="$(curl -sL https://api.github.com/repos/neovim/neovim/releases/latest \
-    | grep -oP '"tag_name": "\K[^"]+' | sed 's/^v//')"
-  if [[ -z "$VERSION" ]]; then
-    echo "Error: Could not detect latest version from GitHub API" >&2
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "Error: jq is required to resolve VERSION=latest" >&2
     exit 1
   fi
+  response="$(curl --fail --silent --show-error --location \
+    --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
+    -H 'Accept: application/vnd.github+json' \
+    https://api.github.com/repos/neovim/neovim/releases/latest)" || {
+    echo "Error: Could not query the GitHub API while resolving VERSION=latest" >&2
+    exit 1
+  }
+  VERSION="$(jq -r '.tag_name // empty' <<<"$response")"
+  if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "Error: GitHub API returned an invalid latest release tag: ${VERSION:-<empty>}" >&2
+    exit 1
+  fi
+  VERSION="${VERSION#v}"
   echo "    Latest stable: v${VERSION}"
 else
   echo "==> Building Neovim v${VERSION}..."

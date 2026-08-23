@@ -1,5 +1,9 @@
 name: Build Neovim deb Package
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   push:
     branches: [main]
@@ -59,22 +63,8 @@ jobs:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Run dependency consistency check
-        run: python3 scripts/check-dependencies.py
-      - name: Validate workflow labels
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/check-labels.py
-      - name: Run shellcheck
-        run: shellcheck build.sh test.sh scripts/*.sh
-      - name: Validate YAML workflow syntax
-        run: python3 scripts/check-yaml-syntax.py
-      - name: Run release readiness tests
-        run: python3 -m unittest discover -s tests -p 'test_*.py'
-      - name: Run hadolint
-        uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
-        with:
-          dockerfile: Containerfile
+      - name: Run shared quality gates
+        uses: ./.github/actions/quality-gates
 
   build:
     if: github.actor != 'dependabot[bot]'
@@ -221,6 +211,15 @@ jobs:
       id-token: write         # for actions/attest (OIDC → Sigstore)
       attestations: write     # for actions/attest (store attestations)
     steps:
+      - name: Reject an existing release for this immutable tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "A GitHub Release already exists for ${GITHUB_REF_NAME}; refusing to mutate it." >&2
+            exit 1
+          fi
+
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: nvim-linux-deb-*

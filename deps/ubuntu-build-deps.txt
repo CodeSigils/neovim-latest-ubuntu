@@ -4,5 +4,6 @@ ninja-build
 gettext
 cmake
 curl
+jq
 git
 build-essential
