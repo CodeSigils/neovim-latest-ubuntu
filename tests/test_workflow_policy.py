@@ -58,6 +58,7 @@ class WorkflowPolicyTests(unittest.TestCase):
             "test.sh",
             "scripts/check-dependencies.py",
             "tests/test_workflow_policy.py",
+            "scripts/check-markdown-links.py",
             ".github/workflows/docs-consistency.yml",
         }
 
@@ -71,6 +72,7 @@ class WorkflowPolicyTests(unittest.TestCase):
             [
                 "python3 scripts/check-dependencies.py",
                 "python3 -m unittest tests.test_workflow_policy",
+                "python3 scripts/check-markdown-links.py",
             ],
         )
         self.assertEqual(docs["permissions"], {"contents": "read"})
@@ -190,6 +192,17 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn('VERSION:-latest', build)
         self.assertIn("curl --fail", build)
         self.assertIn("jq -r '.tag_name // empty'", build)
+
+    def test_dependency_freshness_report_is_scheduled_and_non_blocking(self) -> None:
+        """Action freshness is reported separately from build correctness."""
+        workflow = yaml.safe_load(
+            (REPO / ".github/workflows/dependency-freshness.yml").read_text()
+        )
+        triggers = workflow.get("on", workflow.get(True))
+        self.assertIn("schedule", triggers)
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        report = (REPO / "scripts/report-action-freshness.py").read_text()
+        self.assertIn("update available", report)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
 ARG UBUNTU_VERSION
 ARG UBUNTU_CODENAME="Resolute Raccoon"
 ARG UBUNTU_SHA256
+ARG UBUNTU_APT_SNAPSHOT=""
 ARG DEBIAN_FRONTEND=noninteractive
 LABEL description="Neovim build environment"
 LABEL ubuntu.version="${UBUNTU_VERSION}"
@@ -19,7 +20,10 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 COPY deps/ /tmp/deps/
 
 # hadolint ignore=DL3008  # base image pinned by SHA256 digest, so individual apt pinning is redundant
-RUN apt-get update \
+RUN if [[ -n "$UBUNTU_APT_SNAPSHOT" ]]; then \
+      sed -i -E "s|^URIs: .*|URIs: https://snapshot.ubuntu.com/ubuntu/${UBUNTU_APT_SNAPSHOT}/|" /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+    && apt-get update \
     && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-build-deps.txt | xargs -r apt-get install -y --no-install-recommends \
     && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-ci-extra-deps.txt | xargs -r apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/deps

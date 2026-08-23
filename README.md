@@ -165,7 +165,11 @@ resolves the current stable release from the upstream GitHub API. The `-v "$(pwd
 `.deb` appears in the `output/` directory on your host.
 
 The base image is digest-pinned, but Ubuntu apt repositories remain rolling. For byte-for-byte reproducibility, build
-from a dated Ubuntu package snapshot and record the snapshot date alongside the release.
+from a dated Ubuntu package snapshot and record the snapshot timestamp alongside the release. For example:
+
+```bash
+podman build --build-arg UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ -t neovim-builder .
+```
 
 > The Ubuntu base image version, codename, and digest are sourced from repo-level GitHub Actions variables
 > (`UBUNTU_VERSION`, `UBUNTU_CODENAME`, `UBUNTU_SHA256`). When upgrading to a new Ubuntu LTS,

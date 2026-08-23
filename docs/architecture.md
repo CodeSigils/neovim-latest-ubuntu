@@ -26,6 +26,7 @@ Use it to answer two questions quickly:
 - `.github/workflows/check-upstream.yml` — auto-detects new upstream Neovim releases and creates notification issues.
 - `.github/workflows/codeql.yml`, `check-author.yml` — security scanning and repo guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
+- `.github/workflows/dependency-freshness.yml` — weekly report for pinned action SHA drift.
 - `docs/` — architecture, reproducibility, and curated reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.
 

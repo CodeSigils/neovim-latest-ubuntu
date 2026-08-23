@@ -277,7 +277,7 @@ You push tag vX.Y.Z
   - Determine upstream tag for release notes link
   - Regenerate combined SHA256SUMS
   - Attest build provenance
-  - softprops/action-gh-release
+  - `gh release create` with the two architecture packages and `SHA256SUMS`
     |
     v
 Users download from Releases page

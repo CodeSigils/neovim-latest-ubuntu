@@ -27,10 +27,11 @@ The `Containerfile` pins the base image to a specific SHA256 digest of the curre
 ```dockerfile
 ARG UBUNTU_VERSION=26.04
 ARG UBUNTU_SHA256=f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+ARG UBUNTU_APT_SNAPSHOT=""
 FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
 ```
 
-The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced from repo-level variables (`vars.UBUNTU_VERSION`, `vars.UBUNTU_SHA256`, etc.) with fallbacks in the Containerfile. To switch to a new Ubuntu LTS, update all three variables in one place.
+The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced from repo-level variables (`vars.UBUNTU_VERSION`, `vars.UBUNTU_SHA256`, etc.) with fallbacks in the Containerfile. `UBUNTU_APT_SNAPSHOT` is an optional local/release-build argument and is intentionally not a repository variable.
 
 ### 2. Parameterized Build Script
 
@@ -47,7 +48,8 @@ the default `latest` version and Ubuntu apt indexes intentionally remain rolling
 
 Building inside the container eliminates host-specific variation: all build prerequisites (ninja, cmake, gettext, curl,
 gcc) come from the pinned Ubuntu image's apt repositories. The base image is reproducible by digest, but apt package
-indexes are rolling; use a dated Ubuntu snapshot and record its date when byte-for-byte reproducibility is required.
+indexes are rolling by default. Set the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ` build argument to use a dated
+Ubuntu snapshot, and record that timestamp when byte-for-byte reproducibility is required.
 
 ### 3. CI Lint Layer
 

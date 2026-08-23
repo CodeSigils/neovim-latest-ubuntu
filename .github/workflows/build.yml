@@ -266,29 +266,33 @@ jobs:
           subject-path: '*.deb'
 
       - name: Create Release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
-        with:
-          body: |
-            Neovim ${{ github.ref_name }} packaged as a `.deb` for Ubuntu ${{ env.UBUNTU_VERSION }} LTS (${{ env.UBUNTU_CODENAME }})-based systems.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          Neovim ${{ github.ref_name }} packaged as a `.deb` for Ubuntu ${{ env.UBUNTU_VERSION }} LTS (${{ env.UBUNTU_CODENAME }})-based systems.
 
-            **Install:**
+          **Install:**
 
-            ```
-            sudo dpkg -i nvim-linux-<arch>.deb
-            nvim --version
-            ```
+          ```
+          sudo dpkg -i nvim-linux-<arch>.deb
+          nvim --version
+          ```
 
-            **Verify integrity:**
+          **Verify integrity:**
 
-            ```
-            sha256sum -c SHA256SUMS
-            ```
+          ```
+          sha256sum -c SHA256SUMS
+          ```
 
-            **Upstream resources:**
-            - [Release notes](https://github.com/neovim/neovim/releases/tag/${{ steps.version.outputs.upstream_tag }}) (upstream changes for this version)
-            - [News](https://neovim.io/doc/user/news.html) (`:help news` in Nvim)
+          **Upstream resources:**
+          - [Release notes](https://github.com/neovim/neovim/releases/tag/${{ steps.version.outputs.upstream_tag }}) (upstream changes for this version)
+          - [News](https://neovim.io/doc/user/news.html) (`:help news` in Nvim)
 
-            **Assets:** nvim-linux-x86_64.deb, nvim-linux-arm64.deb, SHA256SUMS
-          files: |
-            *.deb
-            SHA256SUMS
+          **Assets:** nvim-linux-x86_64.deb, nvim-linux-arm64.deb, SHA256SUMS
+          EOF
+          gh release create "${GITHUB_REF_NAME}" *.deb SHA256SUMS \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Neovim ${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md

@@ -118,3 +118,29 @@ jobs:
               body,
               labels: ['new-release']
             });
+
+      - name: Close resolved release notification issues
+        if: steps.compare.outputs.result == 'same'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'new-release'
+            });
+            for (const issue of issues.filter(issue => issue.title.startsWith('New upstream Neovim release:'))) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'Resolved: the repository is now tracking this upstream release.'
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }

@@ -34,6 +34,8 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
   apt-installed packages are still resolved from Ubuntu repositories at image-build time.
 - **Parameterised base image** — `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` are governed by repo-level
   variables in CI, with public hardcoded fallbacks for fork compatibility.
+- **Optional apt snapshot** — release operators can pass `UBUNTU_APT_SNAPSHOT` to pin Ubuntu package indexes for a
+  reproducibility-focused build; normal scheduled builds intentionally follow the current Ubuntu repositories.
 - **Container isolation** — compilation and packaging run inside `docker build` then `docker run`, limiting their access
   to the hosted runner. Repository lint and orchestration scripts still execute on the host runner with read-only
   repository permissions.
@@ -51,6 +53,7 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 | Guard | What it checks | Frequency | Blocks build? |
 |---|---|---|---|
 | **Dependabot** | Keeps GitHub Actions dependencies current; PRs require human review and merge | Weekly | No (creates PR) |
+| **Dependency freshness** | Reports pinned action SHAs that lag their documented major version | Weekly | No (report only) |
 | **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, PRs, and weekly | Yes |
 | **Shellcheck** | Shell correctness, quoting, error handling (`build.sh`, `test.sh`, and stable-build `scripts/*.sh`) | Every build | Yes |
 | **Hadolint** | `Containerfile` — Dockerfile anti-patterns, layer hygiene | Every build | Yes |
