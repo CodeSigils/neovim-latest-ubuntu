@@ -23,7 +23,7 @@ Use it to answer two questions quickly:
 - `.github/workflows/nightly.yml` — daily nightly builds from Neovim master.
 - `.github/actions/quality-gates/action.yml` — shared lint and policy checks used by stable and nightly builds.
 - `.github/workflows/docs-consistency.yml` — lightweight dependency-documentation consistency gate.
-- `.github/workflows/check-upstream.yml` — auto-detects new upstream Neovim releases and creates version-bump PRs.
+- `.github/workflows/check-upstream.yml` — auto-detects new upstream Neovim releases and creates notification issues.
 - `.github/workflows/codeql.yml`, `check-author.yml` — security scanning and repo guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
 - `docs/` — architecture, reproducibility, and curated reference material.

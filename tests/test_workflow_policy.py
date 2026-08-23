@@ -15,15 +15,13 @@ REPO = Path(__file__).resolve().parent.parent
 class WorkflowPolicyTests(unittest.TestCase):
     """Validate workflow contracts that are easy to break independently."""
 
-    def test_auto_update_bot_commits_are_allowed_only_on_auto_update_branches(self) -> None:
-        """check-upstream bot commits must be compatible with the author guard."""
+    def test_upstream_check_is_notification_only(self) -> None:
+        """Dynamic latest builds must not rely on bot version-edit commits."""
         upstream = (REPO / ".github/workflows/check-upstream.yml").read_text()
-        author = (REPO / ".github/workflows/check-author.yml").read_text()
-
-        self.assertIn('git config user.name "github-actions[bot]"', upstream)
-        self.assertIn("CHECKED_BRANCH", author)
-        self.assertRegex(author, r"auto/update-v\*")
-        self.assertIn('github-actions[bot]', author)
+        self.assertIn("Create or update release notification issue", upstream)
+        self.assertNotIn("auto/update-v", upstream)
+        self.assertNotIn("git commit", upstream)
+        self.assertIn("issues: write", upstream)
 
     def test_required_workflow_labels_are_validated_in_build_lint(self) -> None:
         """Workflow-created labels should be guarded by the label validation script."""
