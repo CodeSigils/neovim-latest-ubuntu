@@ -17,7 +17,11 @@ FAILED=0
 PACKAGE_INSTALLED=0
 PACKAGE_NAME=""
 
+# Invoked by the EXIT trap below; ShellCheck cannot resolve indirect trap calls.
+# shellcheck disable=SC2329
 cleanup() {
+  # Invoked indirectly by the EXIT trap; ShellCheck cannot see that call site.
+  # shellcheck disable=SC2317
   if [[ "$PACKAGE_INSTALLED" -eq 1 && -n "$PACKAGE_NAME" ]]; then
     sudo dpkg -r "$PACKAGE_NAME" >/dev/null 2>&1 || true
   fi
