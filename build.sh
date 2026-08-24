@@ -2,12 +2,12 @@
 # build.sh — Build Neovim from source and package as .deb
 #
 # Usage: ./build.sh [VERSION] [OUTPUT_DIR] [PACKAGE_REVISION]
-#   VERSION          Neovim release tag, or latest/nightly (default: latest)
+#   VERSION          Neovim X.Y.Z version without v, or latest/nightly (default: latest)
 #   OUTPUT_DIR       Where to place the built .deb (default: .)
 #   PACKAGE_REVISION Optional positive Debian package revision (for example: 1)
 #
 # Environment-only reproducibility inputs:
-#   SOURCE_COMMIT     Exact upstream commit resolved from the release tag
+#   SOURCE_COMMIT     Exact upstream commit resolved from the selected tag/branch
 #   BUILD_TYPE        CMake build type (stable default: Release; nightly: RelWithDebInfo)
 #
 # Examples:
@@ -33,6 +33,10 @@ SOURCE_COMMIT="${SOURCE_COMMIT:-}"
 if [[ -z "$VERSION" ]]; then
   echo "Error: VERSION must not be empty" >&2
   echo "Usage: $0 [VERSION] [OUTPUT_DIR] [PACKAGE_REVISION]" >&2
+  exit 1
+fi
+if [[ "$VERSION" != "latest" && "$VERSION" != "nightly" && ! "$VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
+  echo "Error: VERSION must be latest, nightly, or a stable X.Y.Z version" >&2
   exit 1
 fi
 if [[ -n "$PACKAGE_REVISION" && ! "$PACKAGE_REVISION" =~ ^[1-9][0-9]*$ ]]; then
@@ -79,6 +83,7 @@ elif [[ "$VERSION" == "latest" ]]; then
     fi
     exit 1
   fi
+  rm -f "$API_ERROR_FILE"
   API_ERROR_FILE=""
   VERSION="$(jq -r '.tag_name // empty' <<<"$response")"
   if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -109,11 +114,12 @@ if [[ ! "$BUILD_TYPE" =~ ^(Release|RelWithDebInfo)$ ]]; then
 fi
 
 # --- Clone ---
-if [[ "$VERSION" == "nightly" ]]; then
-  echo "==> Cloning Neovim master branch..."
-  git clone --depth 1 --branch master https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
-elif [[ -n "$SOURCE_COMMIT" ]]; then
-  echo "==> Fetching exact Neovim commit ${SOURCE_COMMIT} for v${VERSION}..."
+if [[ -n "$SOURCE_COMMIT" ]]; then
+  if [[ "$VERSION" == "nightly" ]]; then
+    echo "==> Fetching exact Neovim nightly commit ${SOURCE_COMMIT}..."
+  else
+    echo "==> Fetching exact Neovim commit ${SOURCE_COMMIT} for v${VERSION}..."
+  fi
   git -C "$BUILD_DIR" init -q
   git -C "$BUILD_DIR" remote add origin https://github.com/neovim/neovim
   git -C "$BUILD_DIR" fetch --depth 1 origin "$SOURCE_COMMIT"
@@ -122,6 +128,9 @@ elif [[ -n "$SOURCE_COMMIT" ]]; then
     echo "Error: checked-out source does not match SOURCE_COMMIT" >&2
     exit 1
   fi
+elif [[ "$VERSION" == "nightly" ]]; then
+  echo "==> Cloning Neovim master branch..."
+  git clone --depth 1 --branch master https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
 else
   echo "==> Cloning Neovim v${VERSION}..."
   git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim "$BUILD_DIR" 2>&1

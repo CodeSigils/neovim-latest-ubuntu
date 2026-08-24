@@ -8,9 +8,8 @@ on:
         required: true
         type: string
       source_commit:
-        description: Exact upstream commit resolved from the release tag
-        required: false
-        default: ''
+        description: Exact upstream commit resolved from the selected tag or branch
+        required: true
         type: string
       package_revision:
         description: Optional positive Debian package revision
@@ -47,6 +46,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Run shared quality gates
         uses: ./.github/actions/quality-gates
 
@@ -69,18 +70,27 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Build container image
-        run: >
-          docker build -t neovim-builder
-          --build-arg UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
-          --build-arg UBUNTU_CODENAME="${{ env.UBUNTU_CODENAME }}"
-          --build-arg UBUNTU_SHA256=${{ env.UBUNTU_SHA256 }}
-          -f Containerfile .
+        run: |
+          [[ "$UBUNTU_VERSION" =~ ^[0-9]{2}[.][0-9]{2}$ ]] || {
+            echo "Error: invalid UBUNTU_VERSION" >&2
+            exit 1
+          }
+          [[ "$UBUNTU_SHA256" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "Error: invalid UBUNTU_SHA256" >&2
+            exit 1
+          }
+          docker build -t neovim-builder \
+            --build-arg "UBUNTU_VERSION=$UBUNTU_VERSION" \
+            --build-arg "UBUNTU_CODENAME=$UBUNTU_CODENAME" \
+            --build-arg "UBUNTU_SHA256=$UBUNTU_SHA256" \
+            -f Containerfile .
 
       - name: Build Neovim package
         env:
-          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
           PACKAGE_REVISION: ${{ inputs.package_revision }}
@@ -90,7 +100,6 @@ jobs:
             -e VERSION \
             -e SOURCE_COMMIT \
             -e PACKAGE_REVISION \
-            -e GH_TOKEN \
             -v "$PWD/output:/output" \
             neovim-builder
 
@@ -115,16 +124,16 @@ jobs:
           DEB_ARCH: ${{ matrix.deb_arch }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
           SOURCE_VERSION: ${{ inputs.version }}
-          PACKAGE_REVISION: ${{ inputs.package_revision }}
         run: |
           cd output
+          package_version=$(dpkg-deb -f "$DEB_FILE" Version)
           sha256sum "$DEB_FILE" > "SHA256SUMS-${DEB_ARCH}"
           python3 ../scripts/write-build-metadata.py \
             --artifact "$DEB_FILE" \
             --architecture "$DEB_ARCH" \
             --source-version "$SOURCE_VERSION" \
             --source-commit "$SOURCE_COMMIT" \
-            --package-revision "$PACKAGE_REVISION" \
+            --package-version "$package_version" \
             --ubuntu-version "$UBUNTU_VERSION" \
             --ubuntu-codename "$UBUNTU_CODENAME" \
             --ubuntu-image-digest "$UBUNTU_SHA256" \

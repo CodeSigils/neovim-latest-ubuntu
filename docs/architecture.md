@@ -26,10 +26,13 @@ Use it to answer two questions quickly:
 - `.github/workflows/policy.yml` — lightweight repository-wide maintenance and documentation gate.
 - `.github/workflows/codeql.yml`, `check-author.yml` — security scanning and repo guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
-- `.github/workflows/dependency-freshness.yml` — weekly report for pinned action SHA drift.
+- `.github/workflows/dependency-freshness.yml` — weekly action-freshness and remote release-configuration audit.
+- `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and immutability drift gate.
 - `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
 - `scripts/write-build-metadata.py` — deterministic per-architecture provenance metadata.
+- `scripts/verify-release-candidate.py` — independent package/metadata binding and combined-checksum gate.
 - `scripts/check-lintian.sh`, `scripts/lintian-allowlist.txt` — package-policy regression baseline.
+- `requirements-dev.txt`, `pyproject.toml` — pinned repository-validation tools and Python quality policy.
 - `docs/` — architecture, reproducibility, and curated reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.
 
@@ -64,6 +67,7 @@ Use it to answer two questions quickly:
 
 7. **Cross-architecture consistency**
    - Stable and nightly callers use one reusable package workflow; x86_64 and ARM64 use the same containerized logic.
+   - Both channels resolve an exact upstream commit before invoking upstream build code.
    - Differences between architectures should be limited to target-ISA-specific build outputs.
 
 8. **Package-policy regression control**
@@ -84,6 +88,8 @@ Use it to answer two questions quickly:
     - A Git tag is not evidence that a package shipped; published GitHub Releases with their required assets are the
       release state authority.
     - Both architecture candidates must pass before a draft release or release tag is created.
+    - Candidate metadata is independently matched to package hashes and build inputs before publication.
+    - A draft with an unexpected or incomplete asset set is never published.
     - Maintenance releases publish automatically. Feature releases use the protected `release-reviewed` environment.
     - Routine success creates no issue; automation failures create a self-healing maintainer issue.
 

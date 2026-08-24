@@ -70,14 +70,15 @@ A complete release contains:
 Verify a downloaded package:
 
 ```bash
-sha256sum -c SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS
 gh attestation verify nvim-linux-x86_64.deb \
   -R CodeSigils/neovim-latest-ubuntu
 dpkg-deb -f nvim-linux-x86_64.deb Version Architecture
 ```
 
-Each metadata document records the upstream tag and commit, packaging repository commit, target Ubuntu image digest,
-Debian architecture, package version, and package SHA256.
+Each metadata document records the upstream ref and exact commit, packaging repository commit, target Ubuntu image
+digest, Debian architecture, package version, and package SHA256. Publication independently verifies all of those
+bindings and refuses draft releases containing missing or unexpected assets.
 
 ## Package gates
 
@@ -95,8 +96,28 @@ upstream CPack findings are recorded in `scripts/lintian-allowlist.txt`; any new
 
 ## Nightly builds
 
-The nightly workflow builds Neovim `master` daily and uploads 30-day workflow artifacts. Nightlies never create GitHub
-Releases. A single self-healing `nightly` issue is opened only while scheduled builds are failing.
+The nightly workflow resolves the current Neovim `master` commit, builds that exact SHA, and uploads 30-day workflow
+artifacts. Nightlies never create GitHub Releases. A single self-healing `nightly` issue is opened only while scheduled
+builds are failing.
+
+## Validate repository changes
+
+The policy workflow is authoritative. To run its Python and workflow-security checks locally:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+ruff check scripts tests
+ruff format --check scripts tests
+python -m unittest discover -s tests -p 'test_*.py'
+zizmor --offline --min-severity medium --min-confidence medium .
+shellcheck build.sh test.sh scripts/*.sh .githooks/prepare-commit-msg
+```
+
+CI additionally runs Actionlint and Hadolint from pinned tools. The weekly repository-maintenance workflow audits
+remote labels, Actions variables, release-environment protection, immutable releases, and action freshness rather than
+coupling every local code check to GitHub API availability.
 
 ## Troubleshooting
 

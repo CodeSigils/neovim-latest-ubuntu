@@ -37,13 +37,16 @@ def load_dep_file(path: Path) -> list[str]:
 def parse_readme_manual_deps() -> list[str]:
     """Extract the apt install package list from the README prerequisites block."""
     text = README.read_text()
-    heading = re.search(r"^### Prerequisites$", text, re.MULTILINE)
-    if not heading:
+    section = re.search(
+        r"^### Prerequisites\s*$\n(?P<body>.*?)(?=^#{2,3}\s|\Z)",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    if not section:
         raise SystemExit("FAIL: Could not find README prerequisites heading")
-    snippet = text[heading.end() : heading.end() + 500]
     match = re.search(
         r"```bash\nsudo apt install (?P<deps>[^\n]+)\n```",
-        snippet,
+        section.group("body"),
         re.MULTILINE,
     )
     if not match:
@@ -137,7 +140,9 @@ def main() -> int:
         print("\n".join(errors))
         return 1
 
-    print("PASS: dependency manifests, README prerequisites, Containerfile, build.sh, and test.sh are aligned.")
+    print(
+        "PASS: dependency manifests, README prerequisites, Containerfile, build.sh, and test.sh are aligned."
+    )
     print(f"  manual build deps: {', '.join(build_deps)}")
     print(f"  CI extra deps: {', '.join(ci_extra_deps)}")
     return 0

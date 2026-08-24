@@ -19,6 +19,9 @@ on:
       - '.github/dependabot.yml'
       - '.github/workflows/**'
       - '.mailmap'
+      - 'pyproject.toml'
+      - 'requirements-dev.txt'
+      - 'tests/**'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -32,6 +35,9 @@ on:
       - '.github/dependabot.yml'
       - '.github/workflows/**'
       - '.mailmap'
+      - 'pyproject.toml'
+      - 'requirements-dev.txt'
+      - 'tests/**'
   schedule:
     - cron: '0 8 * * *'
   workflow_dispatch:
@@ -51,6 +57,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   UBUNTU_VERSION: ${{ vars.UBUNTU_VERSION || '26.04' }}
   UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME || 'Resolute Raccoon' }}
+  UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 || 'f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64' }}
 
 permissions:
   contents: read
@@ -70,6 +77,8 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Resolve exact source and release plan
         id: plan
         env:
@@ -123,12 +132,19 @@ jobs:
       id-token: write
       attestations: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: stable-deb-*
           merge-multiple: true
 
       - name: Verify complete release candidate
+        env:
+          PACKAGE_REVISION: ${{ needs.plan.outputs.package_revision }}
+          SOURCE_COMMIT: ${{ needs.plan.outputs.source_commit }}
+          UPSTREAM_VERSION: ${{ needs.plan.outputs.version }}
         run: |
           expected=(
             nvim-linux-x86_64.deb
@@ -147,7 +163,14 @@ jobs:
           done
           [[ "$(dpkg-deb -f nvim-linux-x86_64.deb Architecture)" == amd64 ]]
           [[ "$(dpkg-deb -f nvim-linux-arm64.deb Architecture)" == arm64 ]]
-          sha256sum -- ./*.deb > SHA256SUMS
+          python3 scripts/verify-release-candidate.py \
+            --version "$UPSTREAM_VERSION" \
+            --package-revision "$PACKAGE_REVISION" \
+            --source-commit "$SOURCE_COMMIT" \
+            --repository-commit "$GITHUB_SHA" \
+            --ubuntu-version "$UBUNTU_VERSION" \
+            --ubuntu-codename "$UBUNTU_CODENAME" \
+            --ubuntu-image-digest "$UBUNTU_SHA256"
 
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
@@ -172,7 +195,7 @@ jobs:
           **Verify:**
 
           \`\`\`bash
-          sha256sum -c SHA256SUMS
+          sha256sum --ignore-missing -c SHA256SUMS
           gh attestation verify nvim-linux-<arch>.deb -R ${GITHUB_REPOSITORY}
           \`\`\`
 
@@ -207,6 +230,16 @@ jobs:
               --notes-file release-notes.md \
               --draft
           fi
+          mapfile -t expected_assets < <(printf '%s\n' "${assets[@]}" | sort)
+          mapfile -t actual_assets < <(
+            gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | sort
+          )
+          if [[ "${actual_assets[*]}" != "${expected_assets[*]}" ]]; then
+            echo "Draft release contains an unexpected or incomplete asset set." >&2
+            printf 'Expected: %s\n' "${expected_assets[*]}" >&2
+            printf 'Actual:   %s\n' "${actual_assets[*]}" >&2
+            exit 1
+          fi
           gh release edit "$RELEASE_TAG" --draft=false --latest
           url=$(gh release view "$RELEASE_TAG" --json url --jq '.url')
           echo "url=$url" >> "$GITHUB_OUTPUT"
@@ -225,9 +258,11 @@ jobs:
     steps:
       - name: Create or update release failure issue
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
         with:
           script: |
-            const tag = '${{ needs.plan.outputs.tag }}' || '(planning failed)';
+            const tag = process.env.RELEASE_TAG || '(planning failed)';
             const title = `Stable release automation failed: ${tag}`;
             const body = [
               'Automated stable-release processing requires maintainer attention.',
@@ -271,9 +306,11 @@ jobs:
     steps:
       - name: Close resolved release failure issue
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
         with:
           script: |
-            const tag = '${{ needs.plan.outputs.tag }}';
+            const tag = process.env.RELEASE_TAG;
             const title = `Stable release automation failed: ${tag}`;
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,

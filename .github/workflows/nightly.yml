@@ -16,17 +16,39 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  resolve:
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    outputs:
+      source_commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - name: Resolve current Neovim master commit
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit=$(gh api repos/neovim/neovim/commits/master --jq '.sha')
+          [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "Error: upstream returned an invalid commit SHA" >&2
+            exit 1
+          }
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
   package:
+    needs: resolve
     uses: ./.github/workflows/package.yml
     with:
       version: nightly
+      source_commit: ${{ needs.resolve.outputs.source_commit }}
       artifact_prefix: nvim-nightly-deb
       retention_days: 30
       run_lintian: false
 
   report-failure:
-    needs: package
-    if: failure() && github.event_name != 'workflow_dispatch'
+    needs: [resolve, package]
+    if: >-
+      always() && github.event_name != 'workflow_dispatch' &&
+      (needs.resolve.result == 'failure' || needs.package.result == 'failure')
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:
@@ -68,8 +90,10 @@ jobs:
             }
 
   report-success:
-    needs: package
-    if: success() && github.event_name != 'workflow_dispatch'
+    needs: [resolve, package]
+    if: >-
+      always() && github.event_name != 'workflow_dispatch' &&
+      needs.resolve.result == 'success' && needs.package.result == 'success'
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:

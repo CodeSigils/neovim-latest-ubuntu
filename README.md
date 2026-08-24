@@ -149,9 +149,13 @@ podman run --rm -v "$(pwd)/output:/output" neovim-builder
 # Build a different version (e.g. v0.14.0)
 podman run --rm -e VERSION=0.14.0 -v "$(pwd)/output:/output" neovim-builder
 
-# Verify the .deb
+# Verify the .deb inside the disposable build container
 # x86_64 builds produce nvim-linux-x86_64.deb; ARM64 builds produce nvim-linux-arm64.deb.
-./test.sh output/nvim-linux-x86_64.deb
+podman run --rm \
+  -v "$PWD/test.sh:/tmp/test.sh:ro" \
+  -v "$PWD/output:/output:ro" \
+  neovim-builder \
+  bash /tmp/test.sh /output/nvim-linux-x86_64.deb
 ```
 
 The container image (pinned to the current Ubuntu LTS in the Containerfile) includes all build prerequisites and runs
@@ -215,6 +219,8 @@ Each build is verified against these checks:
 | 8   | Uninstall      | `dpkg -r` removes cleanly and unregisters alternatives             |
 
 These checks are automated in [`test.sh`](./test.sh).
+Because the test installs and removes the system `neovim` package, it refuses to run directly on a host unless
+`ALLOW_HOST_PACKAGE_TEST=1` is explicitly set. The disposable container invocation above is the supported default.
 
 For stable CI builds, the upstream release tag is resolved to an exact commit before compilation. Requested source and
 Debian package versions are passed to `test.sh` independently of generated package metadata. Package revisions such as

@@ -54,8 +54,9 @@ indexes are rolling by default. Set the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTH
 Ubuntu snapshot and record that timestamp when stronger replayability is required. A snapshot removes one rolling
 input; it does not by itself make the output byte-for-byte reproducible.
 
-Builds using `VERSION=latest` query the upstream GitHub API. CI supplies `GH_TOKEN` to avoid unauthenticated rate limits;
-local builds can set the same variable when repeated API requests or network restrictions make anonymous access unreliable.
+Local builds using `VERSION=latest` query the upstream GitHub API and can set `GH_TOKEN` to avoid unauthenticated rate
+limits. CI resolves stable versions and nightly commits in an authenticated orchestration step, then passes only the
+resolved version and commit into the token-free build boundary.
 
 Stable CI first resolves the published upstream tag to its final 40-character commit SHA. `build.sh` fetches and
 verifies that exact commit through `SOURCE_COMMIT`; tag names are retained as human-facing version identifiers rather
@@ -140,8 +141,12 @@ To verify that your build matches the canonical output:
 docker build -t neovim-builder -f Containerfile .
 docker run --rm -e VERSION=latest -v "$PWD/output:/output" neovim-builder
 
-# 2. Run test.sh on the result (auto-detects version from the .deb)
-./test.sh output/nvim-linux-x86_64.deb
+# 2. Test inside the disposable target container (auto-detects package version)
+docker run --rm \
+  -v "$PWD/test.sh:/tmp/test.sh:ro" \
+  -v "$PWD/output:/output:ro" \
+  neovim-builder \
+  bash /tmp/test.sh /output/nvim-linux-x86_64.deb
 
 # 3. Compare checksum style (not exact values — timestamps differ)
 sha256sum output/*.deb

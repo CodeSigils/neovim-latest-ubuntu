@@ -10,6 +10,8 @@ updates:
       day: "monday"
       time: "06:00"
       timezone: "Etc/UTC"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
@@ -18,6 +20,26 @@ updates:
       codeql:
         patterns:
           - "github/codeql-action/*"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:15"
+      timezone: "Etc/UTC"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    groups:
+      python-quality:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore"
       include: "scope"

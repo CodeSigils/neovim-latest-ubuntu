@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
+import sys
 from pathlib import Path
+
+from release_metadata import ARTIFACTS, BuildInputs, build_metadata
 
 
 def parse_args() -> argparse.Namespace:
@@ -15,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--architecture", required=True)
     parser.add_argument("--source-version", required=True)
     parser.add_argument("--source-commit", default="")
-    parser.add_argument("--package-revision", default="")
+    parser.add_argument("--package-version", required=True)
     parser.add_argument("--ubuntu-version", required=True)
     parser.add_argument("--ubuntu-codename", required=True)
     parser.add_argument("--ubuntu-image-digest", required=True)
@@ -24,39 +26,34 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def validate(args: argparse.Namespace, inputs: BuildInputs) -> None:
+    """Reject incomplete or ambiguous provenance inputs."""
+    if not args.artifact.is_file():
+        raise ValueError(f"artifact does not exist: {args.artifact}")
+    if args.architecture not in ARTIFACTS:
+        raise ValueError(f"unsupported architecture: {args.architecture}")
+    errors = inputs.validation_errors(allow_nightly=True)
+    if errors:
+        raise ValueError("; ".join(errors))
 
 
 def main() -> int:
     args = parse_args()
-    package_version = args.source_version
-    if args.package_revision:
-        package_version += f"-{args.package_revision}"
-    metadata = {
-        "artifact": {
-            "architecture": args.architecture,
-            "name": args.artifact.name,
-            "sha256": sha256(args.artifact),
-        },
-        "build_environment": {
-            "ubuntu_codename": args.ubuntu_codename,
-            "ubuntu_image_digest": f"sha256:{args.ubuntu_image_digest}",
-            "ubuntu_version": args.ubuntu_version,
-        },
-        "package_version": package_version,
-        "packaging_repository_commit": args.repository_commit,
-        "schema_version": 1,
-        "upstream": {
-            "commit": args.source_commit or None,
-            "repository": "https://github.com/neovim/neovim",
-            "tag": f"v{args.source_version}",
-        },
-    }
+    inputs = BuildInputs(
+        source_version=args.source_version,
+        source_commit=args.source_commit,
+        package_version=args.package_version,
+        repository_commit=args.repository_commit,
+        ubuntu_version=args.ubuntu_version,
+        ubuntu_codename=args.ubuntu_codename,
+        ubuntu_image_digest=args.ubuntu_image_digest,
+    )
+    try:
+        validate(args, inputs)
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    metadata = build_metadata(inputs, args.artifact, args.architecture)
     args.output.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")
     return 0
 

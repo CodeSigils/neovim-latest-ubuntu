@@ -16,6 +16,7 @@ from pathlib import Path
 
 STABLE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([1-9]\d*))?$")
 CORE_ASSETS = {"nvim-linux-x86_64.deb", "nvim-linux-arm64.deb", "SHA256SUMS"}
+HTTP_NOT_FOUND = 404
 
 
 @dataclass(frozen=True)
@@ -57,9 +58,7 @@ class GitHub:
         }
 
     def get(self, path: str) -> dict:
-        request = urllib.request.Request(
-            f"https://api.github.com/{path}", headers=self.headers
-        )
+        request = urllib.request.Request(f"https://api.github.com/{path}", headers=self.headers)
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.load(response)
 
@@ -67,7 +66,7 @@ class GitHub:
         try:
             return self.get(path)
         except urllib.error.HTTPError as error:
-            if error.code == 404:
+            if error.code == HTTP_NOT_FOUND:
                 return None
             raise
 
@@ -83,19 +82,22 @@ def upstream_commit(client: GitHub, tag: str) -> str:
             return sha
         if reference["type"] != "tag":
             raise ValueError(f"upstream tag resolves to unsupported object: {reference['type']}")
-        reference = client.get(f"repos/neovim/neovim/git/tags/{reference['sha']}")[
-            "object"
-        ]
+        reference = client.get(f"repos/neovim/neovim/git/tags/{reference['sha']}")["object"]
     raise ValueError("upstream tag indirection is too deep")
 
 
 def release_is_complete(client: GitHub, repository: str, tag: str) -> bool:
     encoded = urllib.parse.quote(tag, safe="")
     release = client.optional(f"repos/{repository}/releases/tags/{encoded}")
-    if not release or release.get("draft"):
+    if not release or release.get("draft") or release.get("prerelease"):
         return False
-    assets = {asset["name"] for asset in release.get("assets", [])}
-    return CORE_ASSETS <= assets
+    assets = {asset["name"]: asset for asset in release.get("assets", [])}
+    return all(
+        name in assets
+        and assets[name].get("state") == "uploaded"
+        and assets[name].get("size", 0) > 0
+        for name in CORE_ASSETS
+    )
 
 
 def make_plan(
@@ -121,7 +123,9 @@ def make_plan(
     publish = mode in {"scheduled", "tag"} or publish_requested
     complete = release_is_complete(client, repository, version.tag)
     should_build = not (publish and complete)
-    reason = "release already published with required assets" if not should_build else "build candidate"
+    reason = (
+        "release already published with required assets" if not should_build else "build candidate"
+    )
     return Plan(
         package_revision=version.package_revision,
         publish=publish,

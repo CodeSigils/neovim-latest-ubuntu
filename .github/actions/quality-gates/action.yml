@@ -3,14 +3,23 @@ description: Shared lint, policy, syntax, and release-readiness checks
 runs:
   using: composite
   steps:
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      with:
+        python-version: '3.13'
+        cache: pip
+        cache-dependency-path: requirements-dev.txt
+    - name: Install repository validation tools
+      shell: bash
+      run: python -m pip install --disable-pip-version-check --requirement requirements-dev.txt
+    - name: Check Python quality and formatting
+      shell: bash
+      run: |
+        ruff check scripts tests
+        ruff format --check scripts tests
     - name: Run dependency consistency check
       shell: bash
       run: python3 scripts/check-dependencies.py
-    - name: Validate workflow labels
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: python3 scripts/check-labels.py
     - name: Run shellcheck
       shell: bash
       run: shellcheck build.sh test.sh scripts/*.sh
@@ -25,6 +34,9 @@ runs:
         --workdir /repo
         rhysd/actionlint@sha256:9d36088643581e728c969f35141f88139fec77280b2be23c1f66f8e40e1025e7
         -color
+    - name: Audit GitHub Actions security
+      shell: bash
+      run: zizmor --offline --min-severity medium --min-confidence medium .
     - name: Run release readiness tests
       shell: bash
       run: python3 -m unittest discover -s tests -p 'test_*.py'

@@ -6,6 +6,10 @@
 #   EXPECTED_VERSION         Neovim runtime version to verify
 #   EXPECTED_PACKAGE_VERSION Debian package version to verify
 #
+# Safety:
+#   Package installation/removal must run in a disposable container. To run
+#   directly on a host anyway, set ALLOW_HOST_PACKAGE_TEST=1 explicitly.
+#
 # Runs all checks and reports results at the end.
 
 set -euo pipefail
@@ -31,6 +35,12 @@ trap cleanup EXIT
 if [[ -z "$DEB" || "$1" == "--help" || "$1" == "-h" ]]; then
   sed -n '/^# test.sh/,/^$/ s/^# //p' "$0"
   exit 1
+fi
+
+if [[ ! -f /.dockerenv && ! -f /run/.containerenv && "${ALLOW_HOST_PACKAGE_TEST:-}" != "1" ]]; then
+  echo "[FAIL] Refusing to install and remove a system package outside a disposable container." >&2
+  echo "       Use the documented container command, or set ALLOW_HOST_PACKAGE_TEST=1 knowingly." >&2
+  exit 2
 fi
 
 if [[ ! -f "$DEB" ]]; then
@@ -86,7 +96,7 @@ if sudo dpkg -i "$DEB_PATH" 2>/dev/null; then
 else
   echo "      dpkg reported dependency issues — attempting to fix..."
   sudo apt-get install -y -f 2>/dev/null
-  if check "dpkg install (after dep fix)" dpkg -i "$DEB_PATH" 2>/dev/null; then
+  if check "dpkg install (after dep fix)" sudo dpkg -i "$DEB_PATH" 2>/dev/null; then
     PACKAGE_INSTALLED=1
   fi
 fi
@@ -114,8 +124,10 @@ check "ldd reports no unresolved dependencies" \
 # Step 5: Verify update-alternatives
 echo ""
 echo "--- update-alternatives ---"
-check "update-alternatives registers nvim for vi" \
-  bash -c "update-alternatives --display vi 2>/dev/null | grep -q nvim"
+for alternative in vi vim view; do
+  check "update-alternatives registers nvim for $alternative" \
+    bash -c "update-alternatives --display \"$alternative\" 2>/dev/null | grep -q nvim"
+done
 
 # Step 6: Cleanup
 echo ""

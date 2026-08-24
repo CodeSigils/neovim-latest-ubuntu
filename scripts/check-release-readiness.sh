@@ -28,36 +28,29 @@ TAG="v${REQUESTED}"
 
 # Package revision suffix support: if REQUESTED is "0.12.2-1", extract
 # BASE_VERSION="0.12.2" for upstream Neovim comparisons.
-if [[ "$REQUESTED" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+if [[ "$REQUESTED" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([1-9][0-9]*)$ ]]; then
   BASE_VERSION="${BASH_REMATCH[1]}"
-  # shellcheck disable=SC2034 # PKG_REVISION reserved for future use (package metadata revision)
-  PKG_REVISION="${BASH_REMATCH[2]}"
 else
   BASE_VERSION="$REQUESTED"
-  # shellcheck disable=SC2034 # PKG_REVISION reserved for future use (package metadata revision)
-  PKG_REVISION=""
 fi
 BASE_TAG="v${BASE_VERSION}"
+CHECK_LOG="$(mktemp)"
+trap 'rm -f "$CHECK_LOG"' EXIT
 
 blockers=()
-warnings=()
 
 add_blocker() {
   blockers+=("$1")
 }
 
-add_warning() {
-  warnings+=("$1")
-}
-
 run_check() {
   local label="$1"
   shift
-  if "$@" >/tmp/release-readiness-check.log 2>&1; then
+  if "$@" >"$CHECK_LOG" 2>&1; then
     echo "PASS: $label"
   else
     echo "FAIL: $label"
-    sed 's/^/  /' /tmp/release-readiness-check.log
+    sed 's/^/  /' "$CHECK_LOG"
     add_blocker "$label failed"
   fi
 }
@@ -74,7 +67,7 @@ for cmd in git gh curl python3; do
   fi
 done
 
-if [[ ! "$REQUESTED" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$ ]]; then
+if [[ ! "$REQUESTED" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[1-9][0-9]*)?$ ]]; then
   add_blocker "Unsupported release version format: ${REQUESTED} (expected X.Y.Z or X.Y.Z-N)"
 fi
 
@@ -104,9 +97,15 @@ else
     add_blocker "Local tag already exists: ${TAG}"
   fi
 
-  if git ls-remote --exit-code --tags origin "${TAG}" >/dev/null 2>&1; then
-    add_blocker "Remote tag already exists: ${TAG}"
-  fi
+  set +e
+  git ls-remote --exit-code --tags origin "${TAG}" >"$CHECK_LOG" 2>&1
+  remote_tag_status=$?
+  set -e
+  case "$remote_tag_status" in
+    0) add_blocker "Remote tag already exists: ${TAG}" ;;
+    2) : ;; # No matching ref.
+    *) add_blocker "Could not determine whether remote tag exists: ${TAG}" ;;
+  esac
 fi
 
 if command_exists gh; then
@@ -114,19 +113,33 @@ if command_exists gh; then
     add_blocker "GitHub CLI is not authenticated"
   fi
 
-  if gh release view "$TAG" >/dev/null 2>&1; then
-    add_blocker "GitHub Release already exists: ${TAG}"
+  repository="$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null || true)"
+  if [[ -z "$repository" ]]; then
+    add_blocker "Could not determine the GitHub repository"
+  else
+    set +e
+    release_error="$(gh api "repos/${repository}/releases/tags/${TAG}" --silent 2>&1)"
+    release_status=$?
+    set -e
+    if [[ "$release_status" -eq 0 ]]; then
+      add_blocker "GitHub Release already exists: ${TAG}"
+    elif ! grep -q 'HTTP 404' <<<"$release_error"; then
+      add_blocker "Could not determine whether GitHub Release exists: ${TAG}"
+    fi
   fi
 
-  vars="$(gh variable list 2>/dev/null || true)"
-  if ! grep -q '^UBUNTU_VERSION[[:space:]]' <<<"$vars"; then
-    add_blocker "GitHub repo variable missing: UBUNTU_VERSION"
-  fi
-  if ! grep -q '^UBUNTU_CODENAME[[:space:]]' <<<"$vars"; then
-    add_blocker "GitHub repo variable missing: UBUNTU_CODENAME"
-  fi
-  if ! grep -q '^UBUNTU_SHA256[[:space:]]' <<<"$vars"; then
-    add_blocker "GitHub repo variable missing: UBUNTU_SHA256"
+  if vars="$(gh variable list 2>/dev/null)"; then
+    if ! grep -q '^UBUNTU_VERSION[[:space:]]' <<<"$vars"; then
+      add_blocker "GitHub repo variable missing: UBUNTU_VERSION"
+    fi
+    if ! grep -q '^UBUNTU_CODENAME[[:space:]]' <<<"$vars"; then
+      add_blocker "GitHub repo variable missing: UBUNTU_CODENAME"
+    fi
+    if ! grep -q '^UBUNTU_SHA256[[:space:]]' <<<"$vars"; then
+      add_blocker "GitHub repo variable missing: UBUNTU_SHA256"
+    fi
+  else
+    add_blocker "Could not list GitHub repository variables"
   fi
 fi
 
@@ -152,14 +165,7 @@ if command_exists curl && command_exists python3; then
   fi
 fi
 
-if [[ -f build.sh ]]; then
-  default_version="$(sed -n 's/^[[:space:]]*VERSION="${1:-${VERSION:-\([^}]*\)}}"$/\1/p' build.sh)"
-  if [[ -z "$default_version" ]]; then
-    add_warning "Could not parse build.sh default version; verify manually"
-  elif [[ "$default_version" != "$BASE_VERSION" ]]; then
-    add_warning "build.sh default version is ${default_version}, requested release base is ${BASE_VERSION}"
-  fi
-else
+if [[ ! -f build.sh ]]; then
   add_blocker "build.sh missing"
 fi
 
@@ -183,17 +189,7 @@ fi
 
 run_check "git diff whitespace" git diff --check
 
-rm -f /tmp/release-readiness-check.log
-
 echo ""
-if ((${#warnings[@]} > 0)); then
-  echo "WARNINGS:"
-  for warning in "${warnings[@]}"; do
-    echo "- $warning"
-  done
-  echo ""
-fi
-
 if ((${#blockers[@]} > 0)); then
   echo "NOT READY"
   for blocker in "${blockers[@]}"; do

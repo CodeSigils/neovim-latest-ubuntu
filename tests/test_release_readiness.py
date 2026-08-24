@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Tests for scripts/check-release-readiness.sh."""
 
 from __future__ import annotations
@@ -15,7 +14,9 @@ REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "check-release-readiness.sh"
 
 
-def run(cmd: list[str] | str, cwd: Path, **kwargs) -> subprocess.CompletedProcess[str]:
+def run(
+    cmd: list[str] | str, cwd: Path, *, check: bool = False, **kwargs
+) -> subprocess.CompletedProcess[str]:
     """Execute a command in a given working directory and return the result."""
     return subprocess.run(
         cmd,
@@ -24,6 +25,7 @@ def run(cmd: list[str] | str, cwd: Path, **kwargs) -> subprocess.CompletedProces
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         shell=isinstance(cmd, str),
+        check=check,
         **kwargs,
     )
 
@@ -59,8 +61,12 @@ class ReleaseReadinessTests(unittest.TestCase):
             """,
         )
         write_executable(work / "test.sh", "#!/usr/bin/env bash\ntrue\n")
-        write_executable(work / "scripts" / "check-dependencies.py", "#!/usr/bin/env python3\nprint('deps ok')\n")
-        write_executable(work / "scripts" / "check-yaml-syntax.py", "#!/usr/bin/env python3\nprint('yaml ok')\n")
+        write_executable(
+            work / "scripts" / "check-dependencies.py", "#!/usr/bin/env python3\nprint('deps ok')\n"
+        )
+        write_executable(
+            work / "scripts" / "check-yaml-syntax.py", "#!/usr/bin/env python3\nprint('yaml ok')\n"
+        )
         shutil.copy2(SCRIPT, work / "scripts" / "check-release-readiness.sh")
 
         run("git add .", work, check=True)
@@ -75,6 +81,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         *,
         upstream: str = "v1.2.3",
         release_exists: bool = False,
+        release_lookup_error: bool = False,
         variables: str | None = None,
     ) -> Path:
         """Create mock curl/gh binaries that return controlled test responses."""
@@ -93,7 +100,12 @@ class ReleaseReadinessTests(unittest.TestCase):
             printf '{{"tag_name":"{upstream}","html_url":"https://example.test/{upstream}"}}\\n'
             """,
         )
-        release_view_exit = "exit 0" if release_exists else "exit 1"
+        if release_lookup_error:
+            release_api = "printf 'gh: Service unavailable (HTTP 503)\\n' >&2; exit 1"
+        elif release_exists:
+            release_api = "exit 0"
+        else:
+            release_api = "printf 'gh: Not Found (HTTP 404)\\n' >&2; exit 1"
         write_executable(
             fake / "gh",
             f"""
@@ -101,11 +113,12 @@ class ReleaseReadinessTests(unittest.TestCase):
             set -euo pipefail
             case "${{1:-}} ${{2:-}}" in
               "auth status") exit 0 ;;
+              "repo view") printf 'owner/repo\\n'; exit 0 ;;
               "api repos/neovim/neovim/releases/latest") exit 1 ;;
+              "api repos/owner/repo/releases/tags/"*) {release_api} ;;
               # Mock fixture — values are placeholders, not assertions.
             # The script only checks that these variables EXIST, not their values.
             "variable list") printf '{variables}'; exit 0 ;;
-              "release view") {release_view_exit} ;;
               *) printf 'unexpected gh call: %s\\n' "$*" >&2; exit 1 ;;
             esac
             """,
@@ -156,14 +169,44 @@ class ReleaseReadinessTests(unittest.TestCase):
             fake = self.make_fake_bin(tmp_path, upstream="v1.2.3")
             env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
 
-            result = run(
-                ["bash", "scripts/check-release-readiness.sh", "1.2.3-1"], repo, env=env
-            )
+            result = run(["bash", "scripts/check-release-readiness.sh", "1.2.3-1"], repo, env=env)
 
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("READY: safe to publish v1.2.3-1", result.stdout)
         self.assertIn("git tag v1.2.3-1", result.stdout)
         self.assertIn("git push origin v1.2.3-1", result.stdout)
+
+    def test_existing_github_release_blocks_emergency_tag(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            tmp_path = Path(raw)
+            repo = self.make_repo(tmp_path)
+            fake = self.make_fake_bin(tmp_path, release_exists=True)
+            env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
+
+            result = run(
+                ["bash", "scripts/check-release-readiness.sh", "1.2.3"],
+                repo,
+                env=env,
+            )
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("GitHub Release already exists", result.stdout)
+
+    def test_release_lookup_failure_blocks_instead_of_failing_open(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            tmp_path = Path(raw)
+            repo = self.make_repo(tmp_path)
+            fake = self.make_fake_bin(tmp_path, release_lookup_error=True)
+            env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
+
+            result = run(
+                ["bash", "scripts/check-release-readiness.sh", "1.2.3"],
+                repo,
+                env=env,
+            )
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("Could not determine whether GitHub Release exists", result.stdout)
 
     def test_missing_ubuntu_sha_variable_blocks_release(self) -> None:
         """The gate should require the pinned Ubuntu image digest variable."""
@@ -182,20 +225,22 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertIn("NOT READY", result.stdout)
         self.assertIn("GitHub repo variable missing: UBUNTU_SHA256", result.stdout)
 
-    def test_build_sh_default_version_mismatch_warns_only(self) -> None:
-        """Tag releases should not be blocked by build.sh's convenience default."""
+    def test_zero_package_revision_is_rejected(self) -> None:
+        """Package revisions use Debian's positive revision convention."""
         with tempfile.TemporaryDirectory() as raw:
             tmp_path = Path(raw)
-            repo = self.make_repo(tmp_path, version="1.2.2")
+            repo = self.make_repo(tmp_path)
             fake = self.make_fake_bin(tmp_path, upstream="v1.2.3")
             env = os.environ | {"PATH": f"{fake}:{os.environ['PATH']}"}
 
-            result = run(["bash", "scripts/check-release-readiness.sh", "1.2.3"], repo, env=env)
+            result = run(
+                ["bash", "scripts/check-release-readiness.sh", "1.2.3-0"],
+                repo,
+                env=env,
+            )
 
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("WARNINGS:", result.stdout)
-        self.assertIn("build.sh default version is 1.2.2, requested release base is 1.2.3", result.stdout)
-        self.assertIn("READY: safe to publish v1.2.3", result.stdout)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("Unsupported release version format", result.stdout)
 
 
 if __name__ == "__main__":

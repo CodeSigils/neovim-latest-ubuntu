@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Integration tests for the Lintian regression allowlist."""
 
 from __future__ import annotations
@@ -18,11 +17,7 @@ class LintianGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             fake = root / "lintian"
-            fake.write_text(
-                "#!/usr/bin/env bash\n"
-                f"echo {output!r}\n"
-                "exit 2\n"
-            )
+            fake.write_text(f"#!/usr/bin/env bash\necho {output!r}\nexit 2\n")
             fake.chmod(0o755)
             deb = root / "package.deb"
             deb.touch()

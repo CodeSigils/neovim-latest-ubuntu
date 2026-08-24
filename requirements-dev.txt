@@ -1,0 +1,4 @@
+# Repository validation tools. Dependabot keeps these exact pins current.
+PyYAML==6.0.3
+ruff==0.16.4
+zizmor==1.29.0

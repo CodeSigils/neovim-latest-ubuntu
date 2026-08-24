@@ -217,8 +217,8 @@ _Upstream Neovim's CPack config in `cmake.packaging/CMakeLists.txt` uses these s
 
 ### CI efficiency policy
 
-- Documentation, workflow, script, test, and dependency changes use the lightweight repository policy workflow rather
-  than the package matrix.
+- Documentation and validation-only changes use the lightweight repository policy workflow. Build-affecting scripts,
+  package tests, dependency manifests, and container changes also run the native package matrix.
 - Stable and nightly callers share one reusable native package workflow to prevent architecture-gate drift.
 - The daily authenticated release plan skips compilation when the latest published release already has its core assets.
 - Maintenance releases publish automatically after the full matrix; feature releases pause only at the protected
