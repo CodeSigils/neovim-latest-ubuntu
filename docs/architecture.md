@@ -26,8 +26,9 @@ Use it to answer two questions quickly:
 - `.github/workflows/policy.yml` — lightweight repository-wide maintenance and documentation gate.
 - `.github/workflows/codeql.yml`, `check-author.yml` — security scanning and repo guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
-- `.github/workflows/dependency-freshness.yml` — weekly action-freshness and remote release-configuration audit.
-- `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and immutability drift gate.
+- `.github/workflows/dependency-freshness.yml` — weekly action-freshness and token-readable release-configuration audit.
+- `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and local admin
+  immutability drift gate.
 - `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
 - `scripts/write-build-metadata.py` — deterministic per-architecture provenance metadata.
 - `scripts/verify-release-candidate.py` — independent package/metadata binding and combined-checksum gate.

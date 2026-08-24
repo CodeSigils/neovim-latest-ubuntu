@@ -27,8 +27,6 @@ def configured_response(path: str) -> dict | list:
         return {
             "protection_rules": [{"type": "required_reviewers", "reviewers": [{"type": "User"}]}]
         }
-    if path.endswith("/immutable-releases"):
-        return {"enabled": True}
     raise AssertionError(f"unexpected API path: {path}")
 
 
@@ -36,7 +34,9 @@ class RepositorySettingsTests(unittest.TestCase):
     def test_expected_configuration_passes(self) -> None:
         with patch.object(repository_settings, "gh_json", side_effect=configured_response):
             self.assertEqual(
-                repository_settings.audit("owner/repo", repository_settings.REQUIRED_VARIABLES),
+                repository_settings.audit(
+                    "owner/repo", repository_settings.REQUIRED_VARIABLES, True
+                ),
                 [],
             )
 
@@ -45,12 +45,12 @@ class RepositorySettingsTests(unittest.TestCase):
             result = configured_response(path)
             if path.endswith("/environments/release-reviewed"):
                 return {"protection_rules": []}
-            if path.endswith("/immutable-releases"):
-                return {"enabled": False}
             return result
 
         with patch.object(repository_settings, "gh_json", side_effect=drifted):
-            errors = repository_settings.audit("owner/repo", repository_settings.REQUIRED_VARIABLES)
+            errors = repository_settings.audit(
+                "owner/repo", repository_settings.REQUIRED_VARIABLES, False
+            )
 
         self.assertIn("release-reviewed must require at least one reviewer", errors)
         self.assertIn("immutable releases must be enabled", errors)

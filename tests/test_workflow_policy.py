@@ -129,6 +129,24 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("ruff check", quality)
         self.assertIn("zizmor --offline", quality)
 
+    def test_validation_only_changes_do_not_start_native_package_builds(self) -> None:
+        build = load_workflow("build.yml")
+        triggers = build.get("on", build.get(True))
+        expected_ignored = {
+            "pyproject.toml",
+            "requirements-dev.txt",
+            "tests/**",
+            "scripts/check-dependencies.py",
+            "scripts/check-markdown-links.py",
+            "scripts/check-release-readiness.sh",
+            "scripts/check-repository-settings.py",
+            "scripts/check-yaml-syntax.py",
+            "scripts/report-action-freshness.py",
+        }
+        for event in ("push", "pull_request"):
+            ignored = set(triggers[event]["paths-ignore"])
+            self.assertTrue(expected_ignored <= ignored)
+
     def test_failure_issues_are_exception_only_and_self_healing(self) -> None:
         stable = (REPO / ".github/workflows/build.yml").read_text()
         nightly = (REPO / ".github/workflows/nightly.yml").read_text()

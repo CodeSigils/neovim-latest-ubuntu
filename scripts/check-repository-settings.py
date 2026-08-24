@@ -52,7 +52,9 @@ def gh_json(path: str) -> dict | list:
         raise RuntimeError(f"GitHub returned invalid JSON for {path}: {error}") from error
 
 
-def audit(repository: str, variables: set[str]) -> list[str]:
+def audit(
+    repository: str, variables: set[str], immutable_releases_enabled: bool | None
+) -> list[str]:
     errors: list[str] = []
 
     label_data = gh_json(f"repos/{repository}/labels?per_page=100")
@@ -78,8 +80,7 @@ def audit(repository: str, variables: set[str]) -> list[str]:
     if not review_rules or not review_rules[0].get("reviewers"):
         errors.append("release-reviewed must require at least one reviewer")
 
-    immutable = gh_json(f"repos/{repository}/immutable-releases")
-    if immutable.get("enabled") is not True:
+    if immutable_releases_enabled is False:
         errors.append("immutable releases must be enabled")
 
     return errors
@@ -92,10 +93,13 @@ def main() -> int:
             variables = {
                 name for name in REQUIRED_VARIABLES if os.environ.get(f"REPOSITORY_VARIABLE_{name}")
             }
+            immutable_releases_enabled = None
         else:
             variable_data = gh_json(f"repos/{repository}/actions/variables")
             variables = {item["name"] for item in variable_data["variables"]}
-        errors = audit(repository, variables)
+            immutable_data = gh_json(f"repos/{repository}/immutable-releases")
+            immutable_releases_enabled = immutable_data.get("enabled") is True
+        errors = audit(repository, variables, immutable_releases_enabled)
     except (KeyError, RuntimeError, TypeError) as error:
         print(f"FAIL: could not audit repository settings: {error}", file=sys.stderr)
         return 1
@@ -106,9 +110,10 @@ def main() -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
 
-    print(
-        "PASS: labels, Actions variables, release environments, and immutable releases are configured"
-    )
+    checked = "labels, Actions variables, and release environments"
+    if immutable_releases_enabled is not None:
+        checked += ", plus immutable-release enforcement"
+    print(f"PASS: configured {checked}")
     return 0
 
 

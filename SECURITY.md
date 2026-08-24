@@ -60,7 +60,7 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 | Guard | What it checks | Frequency | Blocks build? |
 |---|---|---|---|
 | **Dependabot** | Keeps GitHub Actions dependencies current; PRs require human review and merge | Weekly | No (creates PR) |
-| **Repository maintenance** | Reports action freshness and audits labels, Actions variables, release environments, and immutable releases | Weekly and manual | Yes for configuration drift; freshness remains report-only |
+| **Repository maintenance** | Reports action freshness and audits labels, Actions variables, and release environments | Weekly and manual | Yes for configuration drift; freshness remains report-only |
 | **Ruff** | Python correctness, modernization, and deterministic formatting | Every policy/build gate | Yes |
 | **Zizmor** | GitHub Actions security, token persistence, and template-injection risks | Every policy/build gate | Yes |
 | **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, all PRs (including Dependabot), and weekly | Yes |
@@ -84,7 +84,8 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
   can hold/pin it cleanly. It does not overwrite or shadow system files outside Neovim's installation path.
 - **Candidate-first releases** — scheduled or explicitly requested publication builds and verifies both architectures
   before creating a draft release and tag. Tag pushes remain an emergency compatibility path. Published tags and
-  assets are protected by GitHub immutable-release enforcement.
+  assets created after immutable releases were enabled are protected by repository enforcement. The legacy `v0.12.5`
+  release predates the setting and is not retroactively immutable.
 - **HTTPS-only distribution** — all artifacts are served via TLS from GitHub Releases or Actions artifacts. There is
   no plain-HTTP mirror, no PPA, no custom repository endpoint.
 - **Fork compatibility** — all CI expressions have hardcoded fallbacks so forks work without configuring repo-level

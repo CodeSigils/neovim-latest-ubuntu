@@ -19,7 +19,8 @@ approval. Routine detections do not open issues; failures create or update a `ne
 run closes it.
 
 The published GitHub Release—not a Git tag—is the source of truth for whether a version shipped. Repository-level
-immutable-release enforcement prevents published tags or assets from being moved, replaced, or deleted.
+immutable-release enforcement protects releases published after the setting was enabled. The legacy `v0.12.5` release
+predates that enforcement and is not retroactively immutable.
 
 ## Normal operation
 
@@ -116,8 +117,9 @@ shellcheck build.sh test.sh scripts/*.sh .githooks/prepare-commit-msg
 ```
 
 CI additionally runs Actionlint and Hadolint from pinned tools. The weekly repository-maintenance workflow audits
-remote labels, Actions variables, release-environment protection, immutable releases, and action freshness rather than
-coupling every local code check to GitHub API availability.
+remote labels, Actions variables, release-environment protection, and action freshness rather than coupling every local
+code check to GitHub API availability. Running `scripts/check-repository-settings.py` locally with an authenticated
+maintainer session additionally verifies the admin-only immutable-release setting.
 
 ## Troubleshooting
 
