@@ -10,13 +10,12 @@
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu 26.04-based systems — no snaps, no
 Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
-A [weekly CI build](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) automatically fetches and packages the latest Neovim release. A
-[daily upstream check](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/check-upstream.yml) monitors Neovim releases and opens a notification issue when a new
-version is available. Review the release and push its tag to build it. GitHub
-Releases are created only when version tags are pushed. The Monday scheduled build keeps a fresh stable package
-available as a workflow artifact on the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) (retained for 7 days, refreshed every Monday), while
-[nightly builds](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml) from Neovim's `master` branch run daily and are **artifacts-only**
-(download from the workflow run page, not from Releases).
+A [daily stable-release workflow](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
+detects new upstream releases, resolves each release tag to an exact commit, builds and verifies both architectures,
+then publishes maintenance releases automatically. Feature releases build automatically and wait for approval at the
+publication step. Issues are created only when release automation fails. Neovim
+[`master` nightlies](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml) remain
+artifacts-only and never replace the stable GitHub Release.
 
 ## Quick Start
 
@@ -27,12 +26,8 @@ curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/down
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-On ARM64 systems, use `nvim-linux-arm64.deb` instead. Releases are created automatically when a tag is pushed to the
-repository. A weekly scheduled build (Monday 06:00 UTC) also packages the latest stable Neovim as a workflow artifact,
-so you can always download a fresh stable build from the [Actions run page](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) even between tagged releases.
-
-> Need the freshest stable build rather than the last tagged release? Open the latest successful
-> [`build.yml`](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml) run and download the workflow artifact for your architecture.
+On ARM64 systems, use `nvim-linux-arm64.deb` instead. Every published release has passed the native x86_64 and ARM64
+matrix and includes checksums, build metadata, and GitHub artifact attestations.
 
 That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, and
 `view` commands.
@@ -135,7 +130,7 @@ Build and install Neovim in three commands:
 ```bash
 sudo apt install ninja-build gettext cmake curl git build-essential
 git clone --depth 1 --branch v<VERSION> https://github.com/neovim/neovim && cd neovim
-make CMAKE_BUILD_TYPE=RelWithDebInfo && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
+make CMAKE_BUILD_TYPE=Release && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
 ### Containerized Build (Recommended for Reproducibility)
@@ -164,6 +159,8 @@ The container image (pinned to the current Ubuntu LTS in the Containerfile) incl
 resolves the current stable release from the upstream GitHub API. The `-v "$(pwd)/output:/output"` mount ensures the
 `.deb` appears in the `output/` directory on your host.
 
+Stable versions use CMake's `Release` build type. `VERSION=nightly` uses `RelWithDebInfo` for diagnostic value.
+
 The base image is digest-pinned, but Ubuntu apt repositories remain rolling. For byte-for-byte reproducibility, build
 from a dated Ubuntu package snapshot and record the snapshot timestamp alongside the release. For example:
 
@@ -171,9 +168,9 @@ from a dated Ubuntu package snapshot and record the snapshot timestamp alongside
 podman build --build-arg UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ -t neovim-builder .
 ```
 
-> The Ubuntu base image version, codename, and digest are sourced from repo-level GitHub Actions variables
-> (`UBUNTU_VERSION`, `UBUNTU_CODENAME`, `UBUNTU_SHA256`). When upgrading to a new Ubuntu LTS,
-> update those three variables — all workflows and the Containerfile pick them up automatically.
+> CI passes the Ubuntu base image version, codename, and digest from repo-level GitHub Actions variables
+> (`UBUNTU_VERSION`, `UBUNTU_CODENAME`, `UBUNTU_SHA256`) into the Containerfile. When upgrading to a new Ubuntu LTS,
+> update those three variables and the public Containerfile fallbacks together.
 > Fork? Don't worry — every expression has a hardcoded fallback, so CI works without creating any variables.
 > Configure them in the repo under Settings → Secrets and variables → Actions → Variables; see
 > [GitHub Actions variables](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables).
@@ -219,9 +216,16 @@ Each build is verified against these checks:
 
 These checks are automated in [`test.sh`](./test.sh).
 
-For tagged CI builds, the requested source and Debian package versions are passed to `test.sh` independently of the
-generated package metadata. Package rebuild tags such as `vX.Y.Z-1` therefore verify Neovim `X.Y.Z` while requiring
-the Debian package version to be `X.Y.Z-1`.
+For stable CI builds, the upstream release tag is resolved to an exact commit before compilation. Requested source and
+Debian package versions are passed to `test.sh` independently of generated package metadata. Package revisions such as
+`vX.Y.Z-1` therefore verify Neovim `X.Y.Z` while requiring Debian package version `X.Y.Z-1`.
+
+To verify provenance after downloading a release:
+
+```bash
+gh attestation verify nvim-linux-x86_64.deb \
+  -R CodeSigils/neovim-latest-ubuntu
+```
 
 ## License
 

@@ -6,8 +6,8 @@
 
 This project produces a `.deb` package from Neovim source code. **Reproducibility** means:
 
-> Given the same Neovim version and the same base container image, the build pipeline produces a functionally equivalent
-> `.deb` that passes the same verification checks.
+> Given the same exact Neovim source commit, target architecture, pinned base image, and equivalent resolved build
+> dependencies, the pipeline produces a functionally equivalent `.deb` that passes the same verification checks.
 
 This is **functional reproducibility** — not byte-for-byte binary reproducibility. Two builds with the same inputs will
 not produce identical SHA256 hashes, but they will produce packages that install, run, and behave identically.
@@ -35,24 +35,31 @@ The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced 
 
 ### 2. Parameterized Build Script
 
-`build.sh` accepts two variables: the Neovim version and output directory. The remaining build choices are explicit, while
-the default `latest` version and Ubuntu apt indexes intentionally remain rolling:
+`build.sh` accepts positional or environment inputs for the package identity and output. CI also supplies an exact
+source commit. The default `latest` version and Ubuntu apt indexes intentionally remain rolling:
 
 | Parameter       | Source                                    | Default                             |
 | --------------- | ----------------------------------------- | ----------------------------------- |
 | `VERSION`       | First arg or env var; `latest` auto-detects current stable | `latest` |
 | `OUTPUT_DIR`    | Second arg or env var                     | `.` in `build.sh`; `/output` in the container |
-| Build type      | Hardcoded                                 | `RelWithDebInfo`                    |
+| `PACKAGE_REVISION` | Third arg or env var                   | Empty (upstream package version)    |
+| `SOURCE_COMMIT` | Environment only; stable CI resolves the release tag | Empty (clone by tag/channel) |
+| Build type      | Selected by release channel               | Stable: `Release`; nightly: `RelWithDebInfo` |
 | CMake generator | Upstream Makefile                         | Auto-detects Ninja                  |
 | CPack config    | Upstream `cmake.packaging/CMakeLists.txt` | Ships with Neovim                   |
 
 Building inside the container eliminates host-specific variation: all build prerequisites (ninja, cmake, gettext, curl,
 gcc) come from the pinned Ubuntu image's apt repositories. The base image is reproducible by digest, but apt package
 indexes are rolling by default. Set the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ` build argument to use a dated
-Ubuntu snapshot, and record that timestamp when byte-for-byte reproducibility is required.
+Ubuntu snapshot and record that timestamp when stronger replayability is required. A snapshot removes one rolling
+input; it does not by itself make the output byte-for-byte reproducible.
 
 Builds using `VERSION=latest` query the upstream GitHub API. CI supplies `GH_TOKEN` to avoid unauthenticated rate limits;
 local builds can set the same variable when repeated API requests or network restrictions make anonymous access unreliable.
+
+Stable CI first resolves the published upstream tag to its final 40-character commit SHA. `build.sh` fetches and
+verifies that exact commit through `SOURCE_COMMIT`; tag names are retained as human-facing version identifiers rather
+than used as the final source-integrity boundary.
 
 ### 3. CI Lint Layer
 
@@ -91,14 +98,16 @@ The pipeline never relies on implicit paths or auto-detected locations:
 - CI mounts `/output` from the container to `$PWD/output/` on the host
 - CI requires exactly the expected architecture-specific package and verifies its Debian `Architecture` field before
   any downstream step
-- `sha256sum *.deb > SHA256SUMS` generates checksums at two points: per-arch during build, and combined during release
+- Per-architecture artifacts include `SHA256SUMS-<arch>`; publication regenerates one combined `SHA256SUMS`
+- `BUILD-METADATA-<arch>.json` binds each package hash to its upstream commit, packaging commit, architecture, package
+  version, and Ubuntu image digest
 
 ## Reproducibility Guarantees
 
 ### What Is Guaranteed
 
-- **Same version + same base image = same behavior**: Two builds of the same Neovim version inside the pinned base image
-  will produce packages that pass identical verification checks and behave identically at runtime.
+- **Recorded inputs support functional replay**: Two builds using the same exact source, target architecture, base image,
+  and equivalent resolved dependencies should pass identical verification checks and behave equivalently at runtime.
 - **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
   verify → checksum → (optionally) release.
 - **Cross-architecture consistency**: The same build runs for x86_64 and ARM64. The verification checklist is identical.

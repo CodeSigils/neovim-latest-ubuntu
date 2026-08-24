@@ -17,6 +17,14 @@ runs:
     - name: Validate YAML workflow syntax
       shell: bash
       run: python3 scripts/check-yaml-syntax.py
+    - name: Validate GitHub Actions semantics
+      shell: bash
+      run: >-
+        docker run --rm
+        -v "$GITHUB_WORKSPACE:/repo:ro"
+        --workdir /repo
+        rhysd/actionlint@sha256:9d36088643581e728c969f35141f88139fec77280b2be23c1f66f8e40e1025e7
+        -color
     - name: Run release readiness tests
       shell: bash
       run: python3 -m unittest discover -s tests -p 'test_*.py'

@@ -6,6 +6,10 @@
 #   OUTPUT_DIR       Where to place the built .deb (default: .)
 #   PACKAGE_REVISION Optional positive Debian package revision (for example: 1)
 #
+# Environment-only reproducibility inputs:
+#   SOURCE_COMMIT     Exact upstream commit resolved from the release tag
+#   BUILD_TYPE        CMake build type (stable default: Release; nightly: RelWithDebInfo)
+#
 # Examples:
 #   ./build.sh                          # Build default version into current dir
 #   ./build.sh 0.13.0 ./out             # Build v0.13.0 into ./out
@@ -23,6 +27,7 @@ fi
 VERSION="${1:-${VERSION:-latest}}"
 OUTPUT_DIR="${2:-${OUTPUT_DIR:-.}}"
 PACKAGE_REVISION="${3:-${PACKAGE_REVISION:-}}"
+SOURCE_COMMIT="${SOURCE_COMMIT:-}"
 
 # --- Validation ---
 if [[ -z "$VERSION" ]]; then
@@ -32,6 +37,10 @@ if [[ -z "$VERSION" ]]; then
 fi
 if [[ -n "$PACKAGE_REVISION" && ! "$PACKAGE_REVISION" =~ ^[1-9][0-9]*$ ]]; then
   echo "Error: PACKAGE_REVISION must be a positive integer" >&2
+  exit 1
+fi
+if [[ -n "$SOURCE_COMMIT" && ! "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "Error: SOURCE_COMMIT must be a full 40-character Git commit SHA" >&2
   exit 1
 fi
 
@@ -87,19 +96,40 @@ PACKAGE_VERSION="$SOURCE_VERSION"
 if [[ -n "$PACKAGE_REVISION" ]]; then
   PACKAGE_VERSION="${SOURCE_VERSION}-${PACKAGE_REVISION}"
 fi
+if [[ -z "${BUILD_TYPE:-}" ]]; then
+  if [[ "$VERSION" == "nightly" ]]; then
+    BUILD_TYPE="RelWithDebInfo"
+  else
+    BUILD_TYPE="Release"
+  fi
+fi
+if [[ ! "$BUILD_TYPE" =~ ^(Release|RelWithDebInfo)$ ]]; then
+  echo "Error: BUILD_TYPE must be Release or RelWithDebInfo" >&2
+  exit 1
+fi
 
 # --- Clone ---
 if [[ "$VERSION" == "nightly" ]]; then
   echo "==> Cloning Neovim master branch..."
   git clone --depth 1 --branch master https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
+elif [[ -n "$SOURCE_COMMIT" ]]; then
+  echo "==> Fetching exact Neovim commit ${SOURCE_COMMIT} for v${VERSION}..."
+  git -C "$BUILD_DIR" init -q
+  git -C "$BUILD_DIR" remote add origin https://github.com/neovim/neovim
+  git -C "$BUILD_DIR" fetch --depth 1 origin "$SOURCE_COMMIT"
+  git -C "$BUILD_DIR" checkout --detach -q "$SOURCE_COMMIT"
+  if [[ "$(git -C "$BUILD_DIR" rev-parse HEAD)" != "$SOURCE_COMMIT" ]]; then
+    echo "Error: checked-out source does not match SOURCE_COMMIT" >&2
+    exit 1
+  fi
 else
   echo "==> Cloning Neovim v${VERSION}..."
   git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
 fi
 
 # --- Build (via upstream Makefile which handles bundled deps first) ---
-echo "==> Building (make CMAKE_BUILD_TYPE=RelWithDebInfo)..."
-make -C "$BUILD_DIR" CMAKE_BUILD_TYPE=RelWithDebInfo
+echo "==> Building (make CMAKE_BUILD_TYPE=${BUILD_TYPE})..."
+make -C "$BUILD_DIR" CMAKE_BUILD_TYPE="$BUILD_TYPE"
 
 # --- Package ---
 echo "==> Running cpack -G DEB..."

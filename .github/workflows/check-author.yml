@@ -17,7 +17,7 @@ permissions:
 jobs:
   check-attribution:
     name: Check Commit Authorship
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -160,17 +160,18 @@ jobs:
           checked=${{ steps.check.outputs.checked || '0' }}
           errors=${{ steps.check.outputs.errors || '0' }}
 
-          echo "## Author Attribution Guard Results" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Commits checked | $checked |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Canonical author required | $CANONICAL_AUTHOR_NAME <$CANONICAL_AUTHOR_EMAIL> |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Violations found | $errors |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$errors" -gt 0 ]; then
-            echo "❌ **FAILED**: Canonical human authorship violated. Author and committer must both stay with the human maintainer." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "✅ **PASS**: All commits clean — canonical human authorship enforced." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "## Author Attribution Guard Results"
+            echo ""
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Commits checked | $checked |"
+            echo "| Canonical author required | $CANONICAL_AUTHOR_NAME <$CANONICAL_AUTHOR_EMAIL> |"
+            echo "| Violations found | $errors |"
+            echo ""
+            if [ "$errors" -gt 0 ]; then
+              echo "❌ **FAILED**: Canonical human authorship violated. Author and committer must both stay with the human maintainer."
+            else
+              echo "✅ **PASS**: All commits clean — canonical human authorship enforced."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

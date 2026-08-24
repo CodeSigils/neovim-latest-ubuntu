@@ -1,0 +1,165 @@
+name: Package Neovim
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Exact upstream Neovim version without the leading v
+        required: true
+        type: string
+      source_commit:
+        description: Exact upstream commit resolved from the release tag
+        required: false
+        default: ''
+        type: string
+      package_revision:
+        description: Optional positive Debian package revision
+        required: false
+        default: ''
+        type: string
+      artifact_prefix:
+        description: Prefix used for architecture-specific workflow artifacts
+        required: true
+        type: string
+      retention_days:
+        description: Workflow artifact retention period
+        required: false
+        default: 7
+        type: number
+      run_lintian:
+        description: Run the package-policy regression audit
+        required: false
+        default: true
+        type: boolean
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  UBUNTU_VERSION: ${{ vars.UBUNTU_VERSION || '26.04' }}
+  UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME || 'Resolute Raccoon' }}
+  UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 || 'f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Run shared quality gates
+        uses: ./.github/actions/quality-gates
+
+  build:
+    needs: lint
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+        include:
+          - arch: x86_64
+            runner: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+            deb_arch: amd64
+            deb_file: nvim-linux-x86_64.deb
+          - arch: aarch64
+            runner: ${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}
+            deb_arch: arm64
+            deb_file: nvim-linux-arm64.deb
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build container image
+        run: >
+          docker build -t neovim-builder
+          --build-arg UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
+          --build-arg UBUNTU_CODENAME="${{ env.UBUNTU_CODENAME }}"
+          --build-arg UBUNTU_SHA256=${{ env.UBUNTU_SHA256 }}
+          -f Containerfile .
+
+      - name: Build Neovim package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          PACKAGE_REVISION: ${{ inputs.package_revision }}
+        run: |
+          mkdir -p output
+          docker run --rm \
+            -e VERSION \
+            -e SOURCE_COMMIT \
+            -e PACKAGE_REVISION \
+            -e GH_TOKEN \
+            -v "$PWD/output:/output" \
+            neovim-builder
+
+      - name: Verify artifact identity
+        run: |
+          shopt -s nullglob
+          debs=(output/*.deb)
+          if [ "${#debs[@]}" -ne 1 ] || [ "${debs[0]##*/}" != "${{ matrix.deb_file }}" ]; then
+            echo "Error: expected exactly output/${{ matrix.deb_file }}" >&2
+            ls -la output/
+            exit 1
+          fi
+          actual_arch=$(dpkg-deb -f "output/${{ matrix.deb_file }}" Architecture)
+          if [ "$actual_arch" != "${{ matrix.deb_arch }}" ]; then
+            echo "Error: expected Debian architecture ${{ matrix.deb_arch }}, got $actual_arch" >&2
+            exit 1
+          fi
+
+      - name: Generate checksums and build metadata
+        env:
+          DEB_FILE: ${{ matrix.deb_file }}
+          DEB_ARCH: ${{ matrix.deb_arch }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          SOURCE_VERSION: ${{ inputs.version }}
+          PACKAGE_REVISION: ${{ inputs.package_revision }}
+        run: |
+          cd output
+          sha256sum "$DEB_FILE" > "SHA256SUMS-${DEB_ARCH}"
+          python3 ../scripts/write-build-metadata.py \
+            --artifact "$DEB_FILE" \
+            --architecture "$DEB_ARCH" \
+            --source-version "$SOURCE_VERSION" \
+            --source-commit "$SOURCE_COMMIT" \
+            --package-revision "$PACKAGE_REVISION" \
+            --ubuntu-version "$UBUNTU_VERSION" \
+            --ubuntu-codename "$UBUNTU_CODENAME" \
+            --ubuntu-image-digest "$UBUNTU_SHA256" \
+            --repository-commit "$GITHUB_SHA" \
+            --output "BUILD-METADATA-${DEB_ARCH}.json"
+
+      - name: Test package
+        run: |
+          DEB_NAME="${{ matrix.deb_file }}"
+          docker run --rm \
+            -v "$PWD/test.sh:/tmp/test.sh:ro" \
+            -v "$PWD/output:/output:ro" \
+            neovim-builder \
+            bash /tmp/test.sh "/output/$DEB_NAME" \
+              "$(cat output/EXPECTED_SOURCE_VERSION)" \
+              "$(cat output/EXPECTED_PACKAGE_VERSION)"
+
+      - name: Run package-policy regression audit
+        if: inputs.run_lintian
+        env:
+          DEB_FILE: ${{ matrix.deb_file }}
+        run: |
+          docker run --rm \
+            -v "$PWD/scripts/lintian-allowlist.txt:/tmp/lintian-allowlist.txt:ro" \
+            -v "$PWD/scripts/check-lintian.sh:/tmp/check-lintian.sh:ro" \
+            -v "$PWD/output:/output:ro" \
+            neovim-builder \
+            bash /tmp/check-lintian.sh "/output/$DEB_FILE" /tmp/lintian-allowlist.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ inputs.artifact_prefix }}-${{ matrix.arch }}
+          path: |
+            output/*.deb
+            output/SHA256SUMS-*
+            output/BUILD-METADATA-*.json
+          retention-days: ${{ inputs.retention_days }}

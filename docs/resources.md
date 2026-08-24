@@ -54,8 +54,8 @@ All resources below have been evaluated against five criteria:
 - **CPack:** `cpack --config build/CPackConfig.cmake`
 - **Release trigger:** tag push, scheduled nightly, or manual dispatch in upstream automation
 - **History:** `.deb` files were removed from main upstream releases in PR #22773 to reduce maintenance burden
-- **Project alignment:** This repository uses the same upstream CMake/CPack packaging path, but currently builds via the
-  upstream Makefile wrapper with `CMAKE_BUILD_TYPE=RelWithDebInfo`.
+- **Project alignment:** This repository uses the same upstream CMake/CPack packaging path through the upstream Makefile
+  wrapper. Stable packages use `Release`; artifact-only nightlies use `RelWithDebInfo`.
 
 ---
 
@@ -199,6 +199,9 @@ _Upstream Neovim's CPack config in `cmake.packaging/CMakeLists.txt` uses these s
 | [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions)                                                | GitHub official | Latest  | Yes      | Yes          | Complete reference |
 | [Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows)                         | GitHub official | Latest  | Yes      | Yes          | Complete reference |
 | [Using conditions to control job execution](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution) | GitHub official | Latest  | Yes      | Yes          | How-to guide       |
+| [Reuse workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)                                                                              | GitHub official | Latest  | Yes      | Yes          | Reusable workflows |
+| [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)                                             | GitHub official | Latest  | Yes      | Yes          | Publication gates  |
+| [Artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)                                    | GitHub official | Latest  | Yes      | Yes          | Build provenance   |
 
 ### Key rules for GitHub Actions YAML parser
 
@@ -214,9 +217,14 @@ _Upstream Neovim's CPack config in `cmake.packaging/CMakeLists.txt` uses these s
 
 ### CI efficiency policy
 
-- Documentation-only changes use lightweight validation rather than the package build matrix.
-- Tag pushes always build because GitHub does not apply path filters to tag events.
-- Dependabot PRs run lint but skip package compilation; dependency updates remain manually reviewed.
+- Documentation, workflow, script, test, and dependency changes use the lightweight repository policy workflow rather
+  than the package matrix.
+- Stable and nightly callers share one reusable native package workflow to prevent architecture-gate drift.
+- The daily authenticated release plan skips compilation when the latest published release already has its core assets.
+- Maintenance releases publish automatically after the full matrix; feature releases pause only at the protected
+  publication environment. Issues represent failures, not ordinary release availability.
+- Tag pushes remain a recovery path and always build because GitHub does not apply path filters to tag events.
+- Dependabot PRs run repository policy and CodeQL checks but remain manually reviewed.
 - Exact filters, runner selection, and job conditions belong in the workflow files, which are the source of truth.
 - Historical run counts and timing estimates are intentionally omitted because repository activity and runner
   performance change over time.

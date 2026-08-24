@@ -1,7 +1,7 @@
-name: Build Neovim deb Package
+name: Build and release stable Neovim
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: stable-${{ github.ref }}
   cancel-in-progress: false
 
 on:
@@ -17,11 +17,7 @@ on:
       - '.gitignore'
       - '.githooks/**'
       - '.github/dependabot.yml'
-      - '.github/workflows/nightly.yml'
-      - '.github/workflows/check-author.yml'
-      - '.github/workflows/codeql.yml'
-      - '.github/workflows/docs-consistency.yml'
-      - '.github/workflows/check-upstream.yml'
+      - '.github/workflows/**'
       - '.mailmap'
   pull_request:
     branches: [main]
@@ -34,267 +30,268 @@ on:
       - '.gitignore'
       - '.githooks/**'
       - '.github/dependabot.yml'
-      - '.github/workflows/nightly.yml'
-      - '.github/workflows/check-author.yml'
-      - '.github/workflows/codeql.yml'
-      - '.github/workflows/docs-consistency.yml'
-      - '.github/workflows/check-upstream.yml'
+      - '.github/workflows/**'
       - '.mailmap'
   schedule:
-    - cron: '0 6 * * 1'   # Weekly: Monday 06:00 UTC — builds latest stable
+    - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Neovim version (e.g. 0.14.0)'
+        description: Stable Neovim version without v; empty means latest
         required: false
         default: ''
+        type: string
+      publish:
+        description: Publish after successful verification
+        required: false
+        default: false
+        type: boolean
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   UBUNTU_VERSION: ${{ vars.UBUNTU_VERSION || '26.04' }}
   UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME || 'Resolute Raccoon' }}
-  UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 || 'f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64' }}
 
 permissions:
   contents: read
 
 jobs:
-  lint:
+  plan:
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    outputs:
+      package_revision: ${{ steps.plan.outputs.package_revision }}
+      publish: ${{ steps.plan.outputs.publish }}
+      reason: ${{ steps.plan.outputs.reason }}
+      requires_review: ${{ steps.plan.outputs.requires_review }}
+      should_build: ${{ steps.plan.outputs.should_build }}
+      source_commit: ${{ steps.plan.outputs.source_commit }}
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Run shared quality gates
-        uses: ./.github/actions/quality-gates
-
-  build:
-    if: github.actor != 'dependabot[bot]'
-    needs: lint
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x86_64, aarch64]
-        include:
-          - arch: x86_64
-            runner: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
-            deb_arch: amd64
-            deb_file: nvim-linux-x86_64.deb
-          - arch: aarch64
-            runner: ${{ vars.RUNNER_AARCH64 || 'ubuntu-24.04-arm' }}
-            deb_arch: arm64
-            deb_file: nvim-linux-arm64.deb
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Build container image
-        run: >
-          docker build -t neovim-builder
-          --build-arg UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
-          --build-arg UBUNTU_CODENAME="${{ env.UBUNTU_CODENAME }}"
-          --build-arg UBUNTU_SHA256=${{ env.UBUNTU_SHA256 }}
-          -f Containerfile .
-
-      - name: Build Neovim .deb
+      - name: Resolve exact source and release plan
+        id: plan
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION_FROM_INPUT: ${{ github.event.inputs.version || '' }}
-          VERSION_FROM_REF: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          INPUT_VERSION: ${{ github.event.inputs.version || '' }}
+          INPUT_PUBLISH: ${{ github.event.inputs.publish || 'false' }}
         run: |
-          mkdir -p output
-          # Priority: workflow_dispatch input > git tag > latest (default)
-          # 'latest' auto-detects the current stable Neovim via GitHub API
-          # (same logic as build.sh 'latest' alias). No hardcoded version
-          # means the default is always current — no version drift.
-          if [ -n "$VERSION_FROM_INPUT" ]; then
-            VERSION="$VERSION_FROM_INPUT"
-            PACKAGE_REVISION=""
-          elif [ -n "$VERSION_FROM_REF" ]; then
-            TAG_VERSION="${VERSION_FROM_REF#v}"
-            VERSION="${TAG_VERSION%%-*}"
-            if [ "$TAG_VERSION" != "$VERSION" ]; then
-              PACKAGE_REVISION="${TAG_VERSION#*-}"
-            else
-              PACKAGE_REVISION=""
+          mode=ci
+          version=latest
+          publish_arg=()
+          if [[ "$GITHUB_EVENT_NAME" == schedule ]]; then
+            mode=scheduled
+          elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            mode=manual
+            version="${INPUT_VERSION:-latest}"
+            if [[ "$INPUT_PUBLISH" == true ]]; then
+              publish_arg=(--publish)
             fi
-          else
-            VERSION="latest"
-            PACKAGE_REVISION=""
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            mode=tag
+            version="$GITHUB_REF_NAME"
           fi
-          echo "Building Neovim v${VERSION} for ${{ matrix.arch }}"
-          docker run --rm \
-            -e VERSION="$VERSION" \
-            -e PACKAGE_REVISION="$PACKAGE_REVISION" \
-            -e GH_TOKEN="$GH_TOKEN" \
-            -v "$PWD/output:/output" \
-            neovim-builder
+          python3 scripts/plan-release.py \
+            --mode "$mode" \
+            --version "$version" \
+            "${publish_arg[@]}" \
+            --github-output "$GITHUB_OUTPUT"
 
-      - name: Verify artifact exists
-        run: |
-          shopt -s nullglob
-          debs=(output/*.deb)
-          if [ "${#debs[@]}" -ne 1 ] || [ "${debs[0]##*/}" != "${{ matrix.deb_file }}" ]; then
-            echo "Error: Expected exactly output/${{ matrix.deb_file }}" >&2
-            ls -la output/
-            exit 1
-          fi
-          actual_arch=$(dpkg-deb -f "output/${{ matrix.deb_file }}" Architecture)
-          if [ "$actual_arch" != "${{ matrix.deb_arch }}" ]; then
-            echo "Error: Expected Debian architecture ${{ matrix.deb_arch }}, got $actual_arch" >&2
-            exit 1
-          fi
-          ls -lh output/
-
-      - name: Generate SHA256 checksums
-        run: |
-          cd output
-          sha256sum *.deb > SHA256SUMS
-          cat SHA256SUMS
-
-      - name: Test .deb package
-        run: |
-          DEB_NAME="${{ matrix.deb_file }}"
-          echo "Testing: output/$DEB_NAME"
-          # Run test.sh inside the build container: the .deb's runtime
-          # deps (auto-generated by dpkg-shlibdeps) reference libraries
-          # from the build environment, which may differ from the runner's.
-          # The runner OS and container OS may differ (the runner is
-          # ${{ matrix.runner }} while the container targets
-          # $UBUNTU_VERSION) — running the test in the container avoids
-          # dependency version skew.
-          docker run --rm \
-            -v "$PWD/test.sh:/tmp/test.sh:ro" \
-            -v "$PWD/output:/output:ro" \
-            neovim-builder \
-            bash /tmp/test.sh "/output/$DEB_NAME" \
-              "$(cat output/EXPECTED_SOURCE_VERSION)" \
-              "$(cat output/EXPECTED_PACKAGE_VERSION)"
-
-      - name: Run lintian package-policy audit
-        run: |
-          set +e
-          docker run --rm \
-            -v "$PWD/output:/output:ro" \
-            neovim-builder \
-            bash -c '
-              if ! command -v lintian >/dev/null 2>&1; then
-                echo "lintian is missing from the target container." >&2
-                exit 1
-              fi
-              for deb in /output/*.deb; do
-                echo "Running non-blocking lintian audit inside target container: $deb"
-                lintian "$deb"
-                lintian_status=$?
-                if [ "$lintian_status" -ne 0 ]; then
-                  echo "lintian reported package-policy findings for $deb (exit $lintian_status); continuing because this is an advisory audit for a CPack convenience package."
-                fi
-              done
-            '
-          lintian_container_status=$?
-          if [ "$lintian_container_status" -ne 0 ]; then
-            echo "lintian container audit exited $lintian_container_status; continuing because this audit is advisory."
-          fi
-          set -e
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: nvim-linux-deb-${{ matrix.arch }}
-          path: |
-            output/*.deb
-            output/SHA256SUMS
-          retention-days: 7
+  package:
+    needs: plan
+    if: needs.plan.outputs.should_build == 'true' && github.actor != 'dependabot[bot]'
+    uses: ./.github/workflows/package.yml
+    with:
+      version: ${{ needs.plan.outputs.version }}
+      source_commit: ${{ needs.plan.outputs.source_commit }}
+      package_revision: ${{ needs.plan.outputs.package_revision }}
+      artifact_prefix: stable-deb
+      retention_days: 7
+      run_lintian: true
 
   release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success'
+    needs: [plan, package]
+    if: needs.plan.outputs.publish == 'true' && needs.package.result == 'success'
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    environment:
+      name: ${{ needs.plan.outputs.requires_review == 'true' && 'release-reviewed' || 'release-auto' }}
+      url: ${{ steps.publish.outputs.url }}
     permissions:
-      contents: write        # for gh release create
-      id-token: write         # for actions/attest (OIDC → Sigstore)
-      attestations: write     # for actions/attest (store attestations)
+      contents: write
+      id-token: write
+      attestations: write
     steps:
-      - name: Reject an existing release for this immutable tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            echo "A GitHub Release already exists for ${GITHUB_REF_NAME}; refusing to mutate it." >&2
-            exit 1
-          fi
-
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          pattern: nvim-linux-deb-*
+          pattern: stable-deb-*
           merge-multiple: true
 
-      - name: List downloaded artifacts
-        run: ls -lh
-
-      - name: Verify complete release artifact set
+      - name: Verify complete release candidate
         run: |
-          expected=(nvim-linux-x86_64.deb nvim-linux-arm64.deb)
+          expected=(
+            nvim-linux-x86_64.deb
+            nvim-linux-arm64.deb
+            BUILD-METADATA-amd64.json
+            BUILD-METADATA-arm64.json
+          )
           shopt -s nullglob
-          actual=(*.deb)
-          if [ "${#actual[@]}" -ne "${#expected[@]}" ]; then
-            echo "Error: Expected exactly two release packages" >&2
-            printf 'Found: %s\n' "${actual[*]:-(none)}" >&2
+          actual=(./*.deb)
+          if [[ "${#actual[@]}" -ne 2 ]]; then
+            echo "Error: expected exactly two release packages" >&2
             exit 1
           fi
-          for package in "${expected[@]}"; do
-            if [ ! -f "$package" ]; then
-              echo "Error: Missing required release package: $package" >&2
-              exit 1
-            fi
+          for artifact in "${expected[@]}"; do
+            [[ -f "$artifact" ]] || { echo "Error: missing $artifact" >&2; exit 1; }
           done
-          [ "$(dpkg-deb -f nvim-linux-x86_64.deb Architecture)" = amd64 ]
-          [ "$(dpkg-deb -f nvim-linux-arm64.deb Architecture)" = arm64 ]
-
-      - name: Determine upstream tag for release notes link
-        id: version
-        run: |
-          TAG="${{ github.ref_name }}"
-          # Strip package revision suffix (e.g. vX.Y.Z-N → vX.Y.Z)
-          UPSTREAM_TAG="${TAG%%-*}"
-          echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Regenerate combined SHA256SUMS
-        run: |
-          sha256sum *.deb > SHA256SUMS
-          cat SHA256SUMS
+          [[ "$(dpkg-deb -f nvim-linux-x86_64.deb Architecture)" == amd64 ]]
+          [[ "$(dpkg-deb -f nvim-linux-arm64.deb Architecture)" == arm64 ]]
+          sha256sum -- ./*.deb > SHA256SUMS
 
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: '*.deb'
 
-      - name: Create Release
+      - name: Prepare release notes
         env:
-          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+          UPSTREAM_VERSION: ${{ needs.plan.outputs.version }}
         run: |
-          cat > release-notes.md <<'EOF'
-          Neovim ${{ github.ref_name }} packaged as a `.deb` for Ubuntu ${{ env.UBUNTU_VERSION }} LTS (${{ env.UBUNTU_CODENAME }})-based systems.
+          cat > release-notes.md <<EOF
+          Neovim ${RELEASE_TAG} packaged as a native \`.deb\` for Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})-based systems.
 
           **Install:**
 
-          ```
+          \`\`\`bash
           sudo dpkg -i nvim-linux-<arch>.deb
           nvim --version
-          ```
+          \`\`\`
 
-          **Verify integrity:**
+          **Verify:**
 
-          ```
+          \`\`\`bash
           sha256sum -c SHA256SUMS
-          ```
+          gh attestation verify nvim-linux-<arch>.deb -R ${GITHUB_REPOSITORY}
+          \`\`\`
 
-          **Upstream resources:**
-          - [Release notes](https://github.com/neovim/neovim/releases/tag/${{ steps.version.outputs.upstream_tag }}) (upstream changes for this version)
-          - [News](https://neovim.io/doc/user/news.html) (`:help news` in Nvim)
-
-          **Assets:** nvim-linux-x86_64.deb, nvim-linux-arm64.deb, SHA256SUMS
+          - [Upstream release notes](https://github.com/neovim/neovim/releases/tag/v${UPSTREAM_VERSION})
+          - Build metadata is included for both architectures.
           EOF
-          gh release create "${GITHUB_REF_NAME}" *.deb SHA256SUMS \
-            --repo "${GITHUB_REPOSITORY}" \
-            --target "${GITHUB_SHA}" \
-            --title "Neovim ${GITHUB_REF_NAME}" \
-            --notes-file release-notes.md
+
+      - name: Create or resume draft and publish release
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          assets=(
+            nvim-linux-x86_64.deb
+            nvim-linux-arm64.deb
+            SHA256SUMS
+            BUILD-METADATA-amd64.json
+            BUILD-METADATA-arm64.json
+          )
+          if state=$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' 2>/dev/null); then
+            if [[ "$state" != true ]]; then
+              echo "Published release $RELEASE_TAG already exists; refusing to mutate it." >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --target "$GITHUB_SHA" \
+              --title "Neovim $RELEASE_TAG" \
+              --notes-file release-notes.md \
+              --draft
+          fi
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+          url=$(gh release view "$RELEASE_TAG" --json url --jq '.url')
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+  report-failure:
+    needs: [plan, package, release]
+    if: >-
+      always() &&
+      (needs.plan.result == 'failure' ||
+      (needs.plan.outputs.publish == 'true' &&
+      (needs.package.result == 'failure' || needs.release.result == 'failure')))
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update release failure issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const tag = '${{ needs.plan.outputs.tag }}' || '(planning failed)';
+            const title = `Stable release automation failed: ${tag}`;
+            const body = [
+              'Automated stable-release processing requires maintainer attention.',
+              '',
+              `- **Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `- **Plan:** ${{ needs.plan.result }}`,
+              `- **Package:** ${{ needs.package.result }}`,
+              `- **Release:** ${{ needs.release.result }}`,
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'new-release'
+            });
+            const existing = issues.find(issue => issue.title === title);
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['new-release']
+              });
+            }
+
+  report-success:
+    needs: [plan, release]
+    if: needs.plan.outputs.publish == 'true' && needs.release.result == 'success'
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Close resolved release failure issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const tag = '${{ needs.plan.outputs.tag }}';
+            const title = `Stable release automation failed: ${tag}`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'new-release'
+            });
+            for (const issue of issues.filter(issue => issue.title === title)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Resolved by successful release ${tag}.`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }

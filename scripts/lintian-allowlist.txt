@@ -1,0 +1,8 @@
+extended-description-is-empty
+malformed-contact
+national-encoding
+no-changelog
+no-copyright-file
+shared-library-lacks-prerequisites
+uncompressed-manual-page
+unstripped-binary-or-object

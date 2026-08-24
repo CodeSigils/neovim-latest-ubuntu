@@ -15,7 +15,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '45 6 * * 1'   # Weekly: Monday 06:45 UTC (45 min after build, 15 min after check-upstream)
+    - cron: '45 6 * * 1'   # Weekly dormant-code backstop; push and PR analysis remain primary
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -26,7 +26,7 @@ permissions:
 jobs:
   analyze:
     name: Analyze (GitHub Actions)
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-24.04' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     permissions:
       security-events: write
       packages: read

@@ -1,0 +1,59 @@
+name: Repository policy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.md'
+      - 'docs/**'
+      - 'deps/**'
+      - 'Containerfile'
+      - 'build.sh'
+      - 'test.sh'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.mailmap'
+      - '.githooks/**'
+      - '.github/actions/**'
+      - '.github/workflows/**'
+      - '.github/dependabot.yml'
+      - 'LICENSE'
+  pull_request:
+    branches: [main]
+    paths:
+      - '*.md'
+      - 'docs/**'
+      - 'deps/**'
+      - 'Containerfile'
+      - 'build.sh'
+      - 'test.sh'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.mailmap'
+      - '.githooks/**'
+      - '.github/actions/**'
+      - '.github/workflows/**'
+      - '.github/dependabot.yml'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate:
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Run repository quality gates
+        uses: ./.github/actions/quality-gates
+      - name: Check relative Markdown links
+        run: python3 scripts/check-markdown-links.py
