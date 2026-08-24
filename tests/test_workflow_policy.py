@@ -203,6 +203,13 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         report = (REPO / "scripts/report-action-freshness.py").read_text()
         self.assertIn("update available", report)
+        self.assertIn("could not be verified", report)
+        self.assertIn("latest_cache", report)
+
+    def test_codeql_runs_for_dependency_update_pull_requests(self) -> None:
+        """Dependabot workflow changes receive the same static analysis as other PRs."""
+        codeql = (REPO / ".github/workflows/codeql.yml").read_text()
+        self.assertNotIn("github.actor != 'dependabot[bot]'", codeql)
 
 
 if __name__ == "__main__":

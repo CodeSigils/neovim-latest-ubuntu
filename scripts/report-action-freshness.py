@@ -57,17 +57,31 @@ def main() -> int:
                 entries.append((str(path), str(line_number), *match.groups()))
 
     rows: list[str] = []
+    latest_cache: dict[tuple[str, str], str | Exception] = {}
+    unknown_count = 0
     for path, line, repo, pinned, major in entries:
-        try:
-            latest = latest_sha(repo, major, token)
-        except (OSError, ValueError, KeyError, urllib.error.HTTPError) as error:
-            rows.append(f"| `{repo}` | `{major}` | unknown | `{path}:{line}` ({error}) |")
+        cache_key = (repo, major)
+        if cache_key not in latest_cache:
+            try:
+                latest_cache[cache_key] = latest_sha(repo, major, token)
+            except (OSError, ValueError, KeyError, urllib.error.HTTPError) as error:
+                latest_cache[cache_key] = error
+        result = latest_cache[cache_key]
+        if isinstance(result, Exception):
+            unknown_count += 1
+            rows.append(f"| `{repo}` | `{major}` | unknown | `{path}:{line}` ({result}) |")
             continue
+        latest = result
         state = "current" if pinned == latest else "update available"
         rows.append(f"| `{repo}` | `{major}` | {state} | `{path}:{line}` |")
 
     output = "## GitHub Action freshness\n\n| Action | Major | Status | Location |\n|---|---:|---|---|\n"
     output += "\n".join(rows) if rows else "No pinned actions found."
+    if unknown_count:
+        output += (
+            f"\n\n> Warning: freshness could not be verified for {unknown_count} action reference(s) "
+            "because the GitHub API was unavailable or rate-limited."
+        )
     print(output)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:

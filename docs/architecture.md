@@ -68,6 +68,8 @@ Use it to answer two questions quickly:
 
 9. **Security posture**
    - CI includes ShellCheck, Hadolint, CodeQL, and Dependabot.
+   - CodeQL analyzes workflow changes on every pull request, including Dependabot updates; scheduled analysis remains
+     the backstop for the default branch.
    - Security-related checks must not be bypassed by doc-only optimization rules.
 
 10. **Scope boundary**

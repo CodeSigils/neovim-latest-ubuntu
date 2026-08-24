@@ -54,7 +54,7 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 |---|---|---|---|
 | **Dependabot** | Keeps GitHub Actions dependencies current; PRs require human review and merge | Weekly | No (creates PR) |
 | **Dependency freshness** | Reports pinned action SHAs that lag their documented major version | Weekly | No (report only) |
-| **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, PRs, and weekly | Yes |
+| **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, all PRs (including Dependabot), and weekly | Yes |
 | **Shellcheck** | Shell correctness, quoting, error handling (`build.sh`, `test.sh`, and stable-build `scripts/*.sh`) | Every build | Yes |
 | **Hadolint** | `Containerfile` — Dockerfile anti-patterns, layer hygiene | Every build | Yes |
 | **YAML syntax validation** | Workflow files and local composite actions parse correctly | Every build | Yes |
@@ -79,6 +79,21 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
   no plain-HTTP mirror, no PPA, no custom repository endpoint.
 - **Fork compatibility** — all CI expressions have hardcoded fallbacks so forks work without configuring repo-level
   variables. No secrets or privileged credentials are baked into the pipeline.
+
+## Pull-request gate policy
+
+The workflows are designed so that every code or workflow change has a directly applicable validation path:
+
+- Build-affecting changes run the full lint, x86_64, and ARM64 matrix.
+- Documentation and dependency-manifest changes run the lightweight documentation-consistency workflow.
+- Workflow changes run CodeQL and the author-attribution guard.
+- Dependabot pull requests are intentionally not auto-merged; they receive the same CodeQL analysis and require a
+  maintainer decision.
+
+Repository branch-protection settings are managed in GitHub rather than in this repository. Maintainers should require
+the applicable validation checks before merging, while allowing documentation-only changes to use the lightweight gate.
+If branch protection is intentionally disabled for a fork, the workflow results remain available as an auditable manual
+gate.
 
 ## Supply Chain Visibility
 
