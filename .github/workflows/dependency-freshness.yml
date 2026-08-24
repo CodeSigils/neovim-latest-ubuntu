@@ -23,6 +23,11 @@ jobs:
       - name: Audit release-critical repository settings
         env:
           GH_TOKEN: ${{ github.token }}
+          REPOSITORY_VARIABLE_RUNNER_AARCH64: ${{ vars.RUNNER_AARCH64 }}
+          REPOSITORY_VARIABLE_RUNNER_X86_64: ${{ vars.RUNNER_X86_64 }}
+          REPOSITORY_VARIABLE_UBUNTU_CODENAME: ${{ vars.UBUNTU_CODENAME }}
+          REPOSITORY_VARIABLE_UBUNTU_SHA256: ${{ vars.UBUNTU_SHA256 }}
+          REPOSITORY_VARIABLE_UBUNTU_VERSION: ${{ vars.UBUNTU_VERSION }}
         run: python3 scripts/check-repository-settings.py
       - name: Report pinned action freshness
         env:

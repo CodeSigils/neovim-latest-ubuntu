@@ -52,7 +52,7 @@ def gh_json(path: str) -> dict | list:
         raise RuntimeError(f"GitHub returned invalid JSON for {path}: {error}") from error
 
 
-def audit(repository: str) -> list[str]:
+def audit(repository: str, variables: set[str]) -> list[str]:
     errors: list[str] = []
 
     label_data = gh_json(f"repos/{repository}/labels?per_page=100")
@@ -61,8 +61,6 @@ def audit(repository: str) -> list[str]:
     if missing_labels:
         errors.append("missing labels: " + ", ".join(missing_labels))
 
-    variable_data = gh_json(f"repos/{repository}/actions/variables")
-    variables = {item["name"] for item in variable_data["variables"]}
     missing_variables = sorted(REQUIRED_VARIABLES - variables)
     if missing_variables:
         errors.append("missing Actions variables: " + ", ".join(missing_variables))
@@ -90,7 +88,14 @@ def audit(repository: str) -> list[str]:
 def main() -> int:
     try:
         repository = repository_name()
-        errors = audit(repository)
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            variables = {
+                name for name in REQUIRED_VARIABLES if os.environ.get(f"REPOSITORY_VARIABLE_{name}")
+            }
+        else:
+            variable_data = gh_json(f"repos/{repository}/actions/variables")
+            variables = {item["name"] for item in variable_data["variables"]}
+        errors = audit(repository, variables)
     except (KeyError, RuntimeError, TypeError) as error:
         print(f"FAIL: could not audit repository settings: {error}", file=sys.stderr)
         return 1

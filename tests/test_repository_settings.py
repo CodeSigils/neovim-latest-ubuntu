@@ -21,8 +21,6 @@ SPEC.loader.exec_module(repository_settings)
 def configured_response(path: str) -> dict | list:
     if "/labels?" in path:
         return [{"name": name} for name in repository_settings.REQUIRED_LABELS]
-    if path.endswith("/actions/variables"):
-        return {"variables": [{"name": name} for name in repository_settings.REQUIRED_VARIABLES]}
     if path.endswith("/environments/release-auto"):
         return {"protection_rules": []}
     if path.endswith("/environments/release-reviewed"):
@@ -37,7 +35,10 @@ def configured_response(path: str) -> dict | list:
 class RepositorySettingsTests(unittest.TestCase):
     def test_expected_configuration_passes(self) -> None:
         with patch.object(repository_settings, "gh_json", side_effect=configured_response):
-            self.assertEqual(repository_settings.audit("owner/repo"), [])
+            self.assertEqual(
+                repository_settings.audit("owner/repo", repository_settings.REQUIRED_VARIABLES),
+                [],
+            )
 
     def test_release_protection_and_immutability_drift_are_reported(self) -> None:
         def drifted(path: str) -> dict | list:
@@ -49,7 +50,7 @@ class RepositorySettingsTests(unittest.TestCase):
             return result
 
         with patch.object(repository_settings, "gh_json", side_effect=drifted):
-            errors = repository_settings.audit("owner/repo")
+            errors = repository_settings.audit("owner/repo", repository_settings.REQUIRED_VARIABLES)
 
         self.assertIn("release-reviewed must require at least one reviewer", errors)
         self.assertIn("immutable releases must be enabled", errors)
