@@ -1,5 +1,5 @@
 name: Neovim quality gates
-description: Shared lint, policy, syntax, and release-readiness checks
+description: Shared lint, policy, syntax, and regression checks
 runs:
   using: composite
   steps:
@@ -22,7 +22,7 @@ runs:
       run: python3 scripts/check-dependencies.py
     - name: Run shellcheck
       shell: bash
-      run: shellcheck build.sh test.sh scripts/*.sh
+      run: shellcheck build.sh test.sh scripts/*.sh .githooks/prepare-commit-msg
     - name: Validate YAML workflow syntax
       shell: bash
       run: python3 scripts/check-yaml-syntax.py
@@ -37,7 +37,7 @@ runs:
     - name: Audit GitHub Actions security
       shell: bash
       run: zizmor --offline --min-severity medium --min-confidence medium .
-    - name: Run release readiness tests
+    - name: Run regression tests
       shell: bash
       run: python3 -m unittest discover -s tests -p 'test_*.py'
     - name: Run hadolint

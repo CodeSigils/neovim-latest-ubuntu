@@ -26,8 +26,8 @@ curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/down
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-On ARM64 systems, use `nvim-linux-arm64.deb` instead. Every published release has passed the native x86_64 and ARM64
-matrix and includes checksums, build metadata, and GitHub artifact attestations.
+On ARM64 systems, use `nvim-linux-arm64.deb` instead. Releases produced by the current pipeline pass the native x86_64
+and ARM64 matrix and include checksums, build metadata, SPDX SBOMs, and GitHub build-provenance and SBOM attestations.
 
 That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, and
 `view` commands.
@@ -58,22 +58,20 @@ sudo apt-mark unhold neovim
 
 Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
 
-| Approach                   | Drawback                                         |
-| -------------------------- | ------------------------------------------------ |
-| `apt install neovim`       | Often lags behind latest release by months       |
-| Official AppImage          | No system-wide `vi`/`editor` symlink integration |
+| Approach                   | Drawback                                                              |
+| -------------------------- | --------------------------------------------------------------------- |
+| `apt install neovim`       | Often lags behind latest release by months                            |
+| Official AppImage          | No package-manager ownership or system-wide alternatives integration  |
 | Snap (`snap install nvim`) | Classic confinement (no sandbox), but slower startup than native .deb |
-| Build from source manually | No package manager tracking, no clean uninstall  |
+| Build from source manually | No package manager tracking, no clean uninstall                       |
 
 This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean
 uninstall, dependency tracking.
 
 ## Wallpapers
 
-The [`wallpapers/`](./wallpapers/) directory contains AI-generated desktop wallpapers themed around this project
-**Neovim and Ubuntu themed**. They are a fun extra bundled with the repo — **they are not required
-for building or using Neovim** and do not affect the `.deb` package in any way. You can remove the folder after
-cloning if you don't need them.
+The [`wallpapers/`](./wallpapers/) directory contains optional AI-generated Neovim and Ubuntu artwork. It is not part
+of the package or build context and can be omitted from a sparse clone.
 
 If you don't want them taking up space after cloning, simply remove the directory:
 
@@ -101,27 +99,15 @@ Manual build-host prerequisites (source of truth: [`deps/ubuntu-build-deps.txt`]
 sudo apt install ninja-build gettext cmake curl jq git build-essential
 ```
 
-| Tool          | Minimum version |
-| ------------- | --------------- |
-| [ninja-build] | 1.11            |
-| [gettext]     | 0.21            |
-| [cmake]       | 3.25            |
-| curl          | 7.88            |
-
-> **Maintenance note**: These minimum versions were verified against the Neovim release used at the time of writing.
-> When updating to a newer Neovim version, check upstream
-> [BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md) or release notes for any raised dependency
-> requirements and update this table accordingly.
-
-[ninja-build]: https://ninja-build.org/
-[gettext]: https://www.gnu.org/software/gettext/
-[cmake]: https://cmake.org/
+The manifest is deliberately package-name based instead of duplicating version minima that can drift from Ubuntu and
+upstream Neovim. For non-Ubuntu hosts, follow upstream
+[BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md).
 
 > The CI/container image installs the same manual build list plus extra automation packages from
 > [`deps/ubuntu-ci-extra-deps.txt`](./deps/ubuntu-ci-extra-deps.txt) (`ca-certificates`, `file`, `lintian`, `lua5.1`,
 > `sudo`) for HTTPS fetches, packaging inspection, package-policy audit, and `test.sh` execution.
-> `scripts/check-dependencies.py` enforces that README, dependency manifests, Containerfile, and the build workflow stay
-> aligned.
+> `scripts/check-dependencies.py` enforces that the README, dependency manifests, `Containerfile`, and `.dockerignore`
+> stay aligned.
 
 ### Manual Build
 
@@ -135,8 +121,8 @@ make CMAKE_BUILD_TYPE=Release && cd build && cpack -G DEB && sudo dpkg -i nvim-l
 
 ### Containerized Build (Recommended for Reproducibility)
 
-Build inside a Podman (or Docker) container matching the target OS — isolates from host system state and ensures
-reproducibility:
+Build inside a Podman (or Docker) container matching the target OS. This isolates the build from most host state and is
+the canonical way to reproduce the project environment:
 
 ```bash
 # Build the container image (bakes build.sh into the image)
@@ -165,8 +151,8 @@ resolves the current stable release from the upstream GitHub API. The `-v "$(pwd
 
 Stable versions use CMake's `Release` build type. `VERSION=nightly` uses `RelWithDebInfo` for diagnostic value.
 
-The base image is digest-pinned, but Ubuntu apt repositories remain rolling. For byte-for-byte reproducibility, build
-from a dated Ubuntu package snapshot and record the snapshot timestamp alongside the release. For example:
+The base image is digest-pinned, but Ubuntu apt repositories remain rolling. A dated Ubuntu package snapshot removes
+that rolling input for a replay-oriented build; it does not by itself guarantee byte-identical output:
 
 ```bash
 podman build --build-arg UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ -t neovim-builder .
@@ -184,8 +170,9 @@ podman build --build-arg UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ -t neovim-builder 
 The build produces `nvim-linux-x86_64.deb` (or `nvim-linux-arm64.deb` on ARM64) in the specified output directory. When
 building in the container, this maps to `./output/`.
 
-Neovim's bundled dependencies (libuv, LuaJIT, tree-sitter, and others) are compiled and statically linked — no system
-library conflicts.
+Neovim's bundled third-party dependencies are built from revisions selected by the exact upstream source commit. CPack
+derives the remaining runtime shared-library dependencies from the target Ubuntu environment and records them in the
+package metadata.
 
 ## Compilation Details
 
@@ -207,16 +194,16 @@ matrix and the generated package itself as the source of truth rather than a har
 
 Each build is verified against these checks:
 
-| #   | Check          | Description                                                        |
-| --- | -------------- | ------------------------------------------------------------------ |
-| 1   | Install        | `dpkg -i` installs cleanly; `test.sh` attempts `apt-get install -f` if dependencies are missing |
-| 2   | Package version | Debian metadata reports the expected package version              |
-| 3   | Runtime version | `nvim --version` reports the expected release version              |
-| 4   | Smoke test     | `nvim --headless +q` starts and exits cleanly                      |
-| 5   | Runtime health | `nvim --headless +checkhealth +q` runs without crash               |
-| 6   | Dependencies   | `ldd` shows no unresolved shared library dependencies              |
-| 7   | Alternatives   | `update-alternatives --display vi` shows nvim registered           |
-| 8   | Uninstall      | `dpkg -r` removes cleanly and unregisters alternatives             |
+| #   | Check           | Description                                                                                     |
+| --- | --------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | Install         | `dpkg -i` installs cleanly; `test.sh` attempts `apt-get install -f` if dependencies are missing |
+| 2   | Package version | Debian metadata reports the expected package version                                            |
+| 3   | Runtime version | `nvim --version` reports the expected release version                                           |
+| 4   | Smoke test      | `nvim --headless +q` starts and exits cleanly                                                   |
+| 5   | Runtime health  | `nvim --headless +checkhealth +q` runs without crash                                            |
+| 6   | Dependencies    | `ldd` shows no unresolved shared library dependencies                                           |
+| 7   | Alternatives    | `update-alternatives` shows nvim registered for `vi`, `vim`, and `view`                         |
+| 8   | Uninstall       | `dpkg -r` removes cleanly and unregisters alternatives                                          |
 
 These checks are automated in [`test.sh`](./test.sh).
 Because the test installs and removes the system `neovim` package, it refuses to run directly on a host unless
@@ -231,6 +218,11 @@ To verify provenance after downloading a release:
 ```bash
 gh attestation verify nvim-linux-x86_64.deb \
   -R CodeSigils/neovim-latest-ubuntu
+
+# Verify the SPDX SBOM attestation
+gh attestation verify nvim-linux-x86_64.deb \
+  -R CodeSigils/neovim-latest-ubuntu \
+  --predicate-type https://spdx.dev/Document/v2.3
 ```
 
 ## License
@@ -244,19 +236,19 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 
 ## About This Project
 
-| Item             | Detail                                                                                        |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| **Package**      | Neovim built with CPack (upstream-recommended)                                                |
-| **Base OS**      | Ubuntu LTS (defined in Containerfile via `ARG UBUNTU_VERSION`)                                |
-| **Build system** | Ninja (auto-detected by Neovim's Makefile)                                                    |
-| **Dependencies** | Bundled and statically linked (libuv, LuaJIT, tree-sitter, utf8proc, unibilium)               |
-| **CI/CD**        | GitHub Actions with container reproducibility                                                 |
+| Item             | Detail                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Package**      | Neovim built with CPack (upstream-recommended)                                                                 |
+| **Base OS**      | Ubuntu LTS (defined in Containerfile via `ARG UBUNTU_VERSION`)                                                 |
+| **Build system** | Ninja (auto-detected by Neovim's Makefile)                                                                     |
+| **Dependencies** | Upstream-pinned bundled dependencies plus CPack-derived Ubuntu runtime dependencies                            |
+| **CI/CD**        | GitHub Actions with container reproducibility                                                                  |
 | **Verification** | 8-point automated test suite (install, package/runtime versions, smoke, health, deps, alternatives, uninstall) |
 
 ## Documentation
 
 - **[docs/architecture.md](./docs/architecture.md)** — Architectural invariants and code map (read this first)
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
-- **[docs/resources.md](./docs/resources.md)** — Curated reference resources with evaluation scores
+- **[docs/resources.md](./docs/resources.md)** — Authoritative upstream, packaging, and automation references
 - **[RELEASING.md](./RELEASING.md)** — Release process guide for maintainers
 - **[SECURITY.md](./SECURITY.md)** — Security policy, scanners, distribution boundaries

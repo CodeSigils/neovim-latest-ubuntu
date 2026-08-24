@@ -14,23 +14,28 @@ ARG DEBIAN_FRONTEND=noninteractive
 LABEL description="Neovim build environment"
 LABEL ubuntu.version="${UBUNTU_VERSION}"
 LABEL ubuntu.codename="${UBUNTU_CODENAME}"
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+LABEL ubuntu.image.digest="sha256:${UBUNTU_SHA256}"
 
 COPY deps/ /tmp/deps/
 
-# hadolint ignore=DL3008  # base image pinned by SHA256 digest, so individual apt pinning is redundant
-RUN if [[ -n "$UBUNTU_APT_SNAPSHOT" ]]; then \
-      sed -i -E "s|^URIs: .*|URIs: https://snapshot.ubuntu.com/ubuntu/${UBUNTU_APT_SNAPSHOT}/|" /etc/apt/sources.list.d/ubuntu.sources; \
-    fi \
-    && apt-get update \
-    && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-build-deps.txt | xargs -r apt-get install -y --no-install-recommends \
-    && grep -vE '^\s*(#|$)' /tmp/deps/ubuntu-ci-extra-deps.txt | xargs -r apt-get install -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/* /tmp/deps
+# hadolint ignore=DL3008,DL4006
+# Scheduled builds intentionally consume current Ubuntu updates; replay builds
+# use a snapshot. Bash supplies pipefail without a Docker-only SHELL directive.
+RUN /bin/bash -o pipefail -c '\
+      if [ -n "$UBUNTU_APT_SNAPSHOT" ]; then \
+        sed -i -E "s|^URIs: .*|URIs: https://snapshot.ubuntu.com/ubuntu/${UBUNTU_APT_SNAPSHOT}/|" /etc/apt/sources.list.d/ubuntu.sources; \
+      fi \
+      && apt-get update \
+      && grep -vE "^\\s*(#|$)" /tmp/deps/ubuntu-build-deps.txt | xargs -r apt-get install -y --no-install-recommends \
+      && grep -vE "^\\s*(#|$)" /tmp/deps/ubuntu-ci-extra-deps.txt | xargs -r apt-get install -y --no-install-recommends \
+      && rm -rf /var/lib/apt/lists/* /tmp/deps \
+    '
 
 COPY --chmod=755 build.sh /usr/local/bin/build-neovim
+COPY scripts/install-package-docs.cmake /usr/local/share/neovim-packaging/install-package-docs.cmake
 
 ENV OUTPUT_DIR=/output
+ENV PACKAGE_DOCS_SCRIPT=/usr/local/share/neovim-packaging/install-package-docs.cmake
 
 WORKDIR /tmp/build
 

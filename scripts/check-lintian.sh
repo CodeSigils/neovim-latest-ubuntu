@@ -9,7 +9,7 @@ REPORT="$(mktemp)"
 trap 'rm -f "$REPORT"' EXIT
 
 set +e
-lintian --no-tag-display-limit "$DEB" >"$REPORT" 2>&1
+lintian --tag-display-limit 0 "$DEB" >"$REPORT" 2>&1
 status=$?
 set -e
 cat "$REPORT"

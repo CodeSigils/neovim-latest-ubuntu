@@ -45,6 +45,8 @@ class WorkflowPolicyTests(unittest.TestCase):
             "nvim-linux-arm64.deb",
             "BUILD-METADATA-amd64.json",
             "BUILD-METADATA-arm64.json",
+            "SBOM-amd64.spdx.json",
+            "SBOM-arm64.spdx.json",
             "Architecture",
         ):
             self.assertIn(required, build)
@@ -96,7 +98,34 @@ class WorkflowPolicyTests(unittest.TestCase):
         allowlist = (REPO / "scripts/lintian-allowlist.txt").read_text()
         self.assertIn("check-lintian.sh", package)
         self.assertIn("New lintian findings", checker)
-        self.assertIn("unstripped-binary-or-object", allowlist)
+        self.assertIn("national-encoding", allowlist)
+        self.assertNotIn("unstripped-binary-or-object", allowlist)
+        self.assertIn("CPACK_STRIP_FILES=TRUE", (REPO / "build.sh").read_text())
+        self.assertIn("--tag-display-limit 0", checker)
+
+    def test_packages_include_spdx_sboms_and_sbom_attestations(self) -> None:
+        package = (REPO / ".github/workflows/package.yml").read_text()
+        stable = (REPO / ".github/workflows/build.yml").read_text()
+        self.assertIn("anchore/sbom-action@", package)
+        self.assertIn("format: spdx-json", package)
+        self.assertIn("SBOM-${{ matrix.deb_arch }}.spdx.json", package)
+        self.assertIn("sbom-path: SBOM-amd64.spdx.json", stable)
+        self.assertIn("sbom-path: SBOM-arm64.spdx.json", stable)
+        self.assertIn("--predicate-type https://spdx.dev/Document/v2.3", stable)
+
+    def test_stable_packages_use_reproducible_cpack_inputs(self) -> None:
+        build_script = (REPO / "build.sh").read_text()
+        container = (REPO / "Containerfile").read_text()
+        package_docs = (REPO / "scripts/install-package-docs.cmake").read_text()
+        self.assertIn("SOURCE_DATE_EPOCH", build_script)
+        self.assertIn("LC_ALL=C date", build_script)
+        self.assertIn("CPACK_INSTALL_SCRIPTS", build_script)
+        self.assertIn("CPACK_DEBIAN_PACKAGE_MAINTAINER", build_script)
+        self.assertIn("PACKAGE_DOCS_SCRIPT", container)
+        self.assertIn('ubuntu.image.digest="sha256:${UBUNTU_SHA256}"', container)
+        self.assertIn("changelog", package_docs)
+        self.assertIn("copyright", package_docs)
+        self.assertIn("$ENV{DESTDIR}/usr/share/doc/neovim", package_docs)
 
     def test_policy_workflow_covers_all_maintenance_surfaces(self) -> None:
         policy = load_workflow("policy.yml")
@@ -113,8 +142,10 @@ class WorkflowPolicyTests(unittest.TestCase):
             "pyproject.toml",
             "requirements-dev.txt",
             ".gitattributes",
+            ".dockerignore",
             ".gitignore",
             ".mailmap",
+            ".mdfmtignore",
             ".githooks/**",
             ".github/actions/**",
             ".github/workflows/**",
@@ -128,6 +159,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("python3 -m unittest discover", quality)
         self.assertIn("ruff check", quality)
         self.assertIn("zizmor --offline", quality)
+        self.assertIn(".githooks/prepare-commit-msg", quality)
 
     def test_validation_only_changes_do_not_start_native_package_builds(self) -> None:
         build = load_workflow("build.yml")
@@ -146,6 +178,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         for event in ("push", "pull_request"):
             ignored = set(triggers[event]["paths-ignore"])
             self.assertTrue(expected_ignored <= ignored)
+            self.assertNotIn(".github/workflows/**", ignored)
 
     def test_failure_issues_are_exception_only_and_self_healing(self) -> None:
         stable = (REPO / ".github/workflows/build.yml").read_text()
@@ -210,6 +243,15 @@ class WorkflowPolicyTests(unittest.TestCase):
                     True,
                     path.name,
                 )
+
+    def test_long_running_maintenance_jobs_have_timeouts(self) -> None:
+        for workflow_name, job_name in (
+            ("check-author.yml", "check-attribution"),
+            ("codeql.yml", "analyze"),
+            ("dependency-freshness.yml", "report"),
+        ):
+            workflow = load_workflow(workflow_name)
+            self.assertGreater(workflow["jobs"][job_name]["timeout-minutes"], 0)
 
     def test_codeql_runs_for_dependency_update_pull_requests(self) -> None:
         codeql = (REPO / ".github/workflows/codeql.yml").read_text()

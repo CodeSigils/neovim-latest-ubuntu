@@ -69,7 +69,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'nightly'
+              labels: 'nightly',
+              per_page: 100
             });
             const existing = issues.find(issue => issue.title === title);
             if (existing) {
@@ -107,7 +108,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'nightly'
+              labels: 'nightly',
+              per_page: 100
             });
             for (const issue of issues.filter(issue => issue.title === 'Nightly build failed')) {
               await github.rest.issues.createComment({

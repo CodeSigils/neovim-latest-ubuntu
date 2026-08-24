@@ -16,6 +16,15 @@ from pathlib import Path
 
 STABLE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([1-9]\d*))?$")
 CORE_ASSETS = {"nvim-linux-x86_64.deb", "nvim-linux-arm64.deb", "SHA256SUMS"}
+REQUIRED_ASSETS = CORE_ASSETS | {
+    "BUILD-METADATA-amd64.json",
+    "BUILD-METADATA-arm64.json",
+    "SBOM-amd64.spdx.json",
+    "SBOM-arm64.spdx.json",
+}
+# This release predates metadata/SBOM publication and is immutable. Keep its
+# historical contract explicit without weakening validation for new releases.
+LEGACY_RELEASE_ASSETS = {"v0.12.5": CORE_ASSETS}
 HTTP_NOT_FOUND = 404
 
 
@@ -53,6 +62,7 @@ class GitHub:
     def __init__(self, token: str) -> None:
         self.headers = {
             "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "neovim-latest-ubuntu-release-planner",
             **({"Authorization": f"Bearer {token}"} if token else {}),
         }
@@ -92,11 +102,12 @@ def release_is_complete(client: GitHub, repository: str, tag: str) -> bool:
     if not release or release.get("draft") or release.get("prerelease"):
         return False
     assets = {asset["name"]: asset for asset in release.get("assets", [])}
+    required_assets = LEGACY_RELEASE_ASSETS.get(tag, REQUIRED_ASSETS)
     return all(
         name in assets
         and assets[name].get("state") == "uploaded"
         and assets[name].get("size", 0) > 0
-        for name in CORE_ASSETS
+        for name in required_assets
     )
 
 

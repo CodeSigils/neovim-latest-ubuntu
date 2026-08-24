@@ -28,6 +28,8 @@ VERSION="${1:-${VERSION:-latest}}"
 OUTPUT_DIR="${2:-${OUTPUT_DIR:-.}}"
 PACKAGE_REVISION="${3:-${PACKAGE_REVISION:-}}"
 SOURCE_COMMIT="${SOURCE_COMMIT:-}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_DOCS_SCRIPT="${PACKAGE_DOCS_SCRIPT:-${SCRIPT_DIR}/scripts/install-package-docs.cmake}"
 
 # --- Validation ---
 if [[ -z "$VERSION" ]]; then
@@ -45,6 +47,10 @@ if [[ -n "$PACKAGE_REVISION" && ! "$PACKAGE_REVISION" =~ ^[1-9][0-9]*$ ]]; then
 fi
 if [[ -n "$SOURCE_COMMIT" && ! "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
   echo "Error: SOURCE_COMMIT must be a full 40-character Git commit SHA" >&2
+  exit 1
+fi
+if [[ ! -f "$PACKAGE_DOCS_SCRIPT" ]]; then
+  echo "Error: package documentation script not found: $PACKAGE_DOCS_SCRIPT" >&2
   exit 1
 fi
 
@@ -65,7 +71,10 @@ elif [[ "$VERSION" == "latest" ]]; then
     echo "Error: jq is required to resolve VERSION=latest" >&2
     exit 1
   fi
-  github_headers=(-H 'Accept: application/vnd.github+json')
+  github_headers=(
+    -H 'Accept: application/vnd.github+json'
+    -H 'X-GitHub-Api-Version: 2022-11-28'
+  )
   if [[ -n "${GH_TOKEN:-}" ]]; then
     github_headers+=(-H "Authorization: Bearer ${GH_TOKEN}")
   fi
@@ -136,18 +145,54 @@ else
   git clone --depth 1 --branch "v${VERSION}" https://github.com/neovim/neovim "$BUILD_DIR" 2>&1
 fi
 
+# Use the exact upstream commit time for build-system and archive timestamps.
+# CPack's DEB generator honors SOURCE_DATE_EPOCH, and many compiler/build tools
+# follow the same reproducible-build convention.
+SOURCE_DATE_EPOCH="$(git -C "$BUILD_DIR" show -s --format=%ct HEAD)"
+if [[ ! "$SOURCE_DATE_EPOCH" =~ ^[0-9]+$ ]]; then
+  echo "Error: could not resolve a valid upstream commit timestamp" >&2
+  exit 1
+fi
+export SOURCE_DATE_EPOCH
+
 # --- Build (via upstream Makefile which handles bundled deps first) ---
 echo "==> Building (make CMAKE_BUILD_TYPE=${BUILD_TYPE})..."
 make -C "$BUILD_DIR" CMAKE_BUILD_TYPE="$BUILD_TYPE"
 
+# CPack strips installed executables when CPACK_STRIP_FILES is enabled, but
+# upstream installs bundled tree-sitter parsers as data. Strip those stable
+# package objects explicitly; nightly builds retain their debugging symbols.
+if [[ "$SOURCE_VERSION" != "nightly" ]]; then
+  mapfile -d '' parser_libraries < <(
+    find "$BUILD_DIR" -type f -path '*/parser/*.so' -print0
+  )
+  if ((${#parser_libraries[@]} == 0)); then
+    echo "Error: no bundled parser libraries found to strip" >&2
+    exit 1
+  fi
+  strip --strip-unneeded "${parser_libraries[@]}"
+fi
+
 # --- Package ---
 echo "==> Running cpack -G DEB..."
 mkdir -p "$OUTPUT_DIR"
+PACKAGE_DESCRIPTION=$'Neovim is a Vim-based text editor focused on extensibility and usability.\n This package is built from the exact upstream Neovim release commit for Ubuntu.'
 CPACK_ARGS=(-G DEB --config "$BUILD_DIR/build/CPackConfig.cmake" -B "$OUTPUT_DIR")
+CPACK_ARGS+=(
+  -D "CPACK_DEBIAN_PACKAGE_MAINTAINER=CodeSigils <codesigils@users.noreply.github.com>"
+  -D "CPACK_DEBIAN_PACKAGE_DESCRIPTION=${PACKAGE_DESCRIPTION}"
+  -D "CPACK_INSTALL_SCRIPTS=${PACKAGE_DOCS_SCRIPT}"
+)
 if [[ -n "$PACKAGE_REVISION" ]]; then
   CPACK_ARGS+=(-D "CPACK_DEBIAN_PACKAGE_RELEASE=${PACKAGE_REVISION}")
 fi
-cpack "${CPACK_ARGS[@]}"
+if [[ "$SOURCE_VERSION" != "nightly" ]]; then
+  CPACK_ARGS+=(-D "CPACK_STRIP_FILES=TRUE")
+fi
+NEOVIM_SOURCE_DIR="$BUILD_DIR" \
+NEOVIM_PACKAGE_VERSION="$PACKAGE_VERSION" \
+PACKAGE_CHANGELOG_DATE="$(LC_ALL=C date --utc --date="@${SOURCE_DATE_EPOCH}" --rfc-email)" \
+  cpack "${CPACK_ARGS[@]}"
 
 # Record stable-release expectations independently from generated package
 # metadata. Development and prerelease builds retain the historical metadata

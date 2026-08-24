@@ -16,7 +16,9 @@ import yaml
 def main() -> int:
     """Check all workflow YAML files parse correctly."""
     errors = 0
-    paths = sorted(Path(".github/workflows").glob("*.yml"))
+    paths = sorted(
+        set(Path(".github/workflows").glob("*.yml")) | set(Path(".github/workflows").glob("*.yaml"))
+    )
     paths.extend(sorted(Path(".github/actions").glob("*/action.yml")))
     for path in paths:
         with path.open() as fh:

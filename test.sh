@@ -95,9 +95,10 @@ if sudo dpkg -i "$DEB_PATH" 2>/dev/null; then
   echo "[PASS] dpkg install succeeded"
 else
   echo "      dpkg reported dependency issues — attempting to fix..."
-  sudo apt-get install -y -f 2>/dev/null
-  if check "dpkg install (after dep fix)" sudo dpkg -i "$DEB_PATH" 2>/dev/null; then
-    PACKAGE_INSTALLED=1
+  if check "dependency repair" sudo apt-get install -y -f 2>/dev/null; then
+    if check "dpkg install (after dep fix)" sudo dpkg -i "$DEB_PATH" 2>/dev/null; then
+      PACKAGE_INSTALLED=1
+    fi
   fi
 fi
 

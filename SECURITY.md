@@ -43,43 +43,45 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
   runtime library versions match the build environment. The 8-check test suite covers install, package and runtime
   version matches, smoke test, runtime health, library dependencies, `update-alternatives` registration, and clean
   uninstall.
-- **Integrity attestation** — every release publishes `SHA256SUMS` alongside the `.deb`. Build provenance is attested
-  via `actions/attest` (Sigstore-backed OIDC).
+- **Integrity and inventory** — new releases publish `SHA256SUMS`, per-architecture build metadata, and SPDX SBOMs.
+  `actions/attest` creates separate build-provenance and SBOM attestations using GitHub OIDC and Sigstore.
 - **Exact upstream source** — stable release tags are dereferenced through the authenticated GitHub API and the build
   fetches the resulting full commit SHA rather than trusting a mutable tag name during compilation. Nightly builds
   likewise resolve and record the exact `master` commit before starting.
 - **Token containment** — the workflow token is used by orchestration only and is not passed into the container that
   executes upstream build code. Checkout credentials are not persisted in any job workspace.
-- **Build metadata** — every release records upstream and packaging commits, target image digest, architecture, package
-  version, and artifact hash in machine-readable metadata. Publication recomputes and verifies those bindings.
-- **Lintian regression gate** — reviewed upstream CPack findings remain visible in an allowlist; any new finding tag
-  blocks publication.
+- **Build metadata** — releases produced by the current pipeline record upstream and packaging commits, target image
+  digest, architecture, package version, and artifact hash. Publication recomputes and verifies those bindings.
+- **Package policy** — stable packages use standard CPack metadata, documentation, reproducible timestamps, and
+  stripping. The remaining reviewed upstream-content Lintian findings stay visible; any new tag blocks publication.
 
 ## Automated Scanners & Agents
 
-| Guard | What it checks | Frequency | Blocks build? |
-|---|---|---|---|
-| **Dependabot** | Keeps GitHub Actions dependencies current; PRs require human review and merge | Weekly | No (creates PR) |
-| **Repository maintenance** | Reports action freshness and audits labels, Actions variables, and release environments | Weekly and manual | Yes for configuration drift; freshness remains report-only |
-| **Ruff** | Python correctness, modernization, and deterministic formatting | Every policy/build gate | Yes |
-| **Zizmor** | GitHub Actions security, token persistence, and template-injection risks | Every policy/build gate | Yes |
-| **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns | Non-ignored pushes, all PRs (including Dependabot), and weekly | Yes |
-| **Shellcheck** | Shell correctness, quoting, error handling (`build.sh`, `test.sh`, and `scripts/*.sh`) | Every applicable policy/package gate | Yes |
-| **Hadolint** | `Containerfile` — Dockerfile anti-patterns, layer hygiene | Every applicable policy/package gate | Yes |
-| **YAML syntax validation** | Workflow files and local composite actions parse correctly | Every applicable policy/package gate | Yes |
-| **actionlint** | GitHub Actions schema, expressions, shell fragments, and workflow semantics | Every policy/build gate | Yes |
-| **Dependency consistency** | README, manifest files, Containerfile, and scripts agree on prerequisites | Every applicable policy/package gate | Yes |
-| **Release planner** | Published upstream release, exact source commit, published local assets, and approval class | Daily and on stable CI | Yes |
-| **Release readiness gate** | Emergency tag-path preflight: upstream tag, release absence, clean synchronized git state | Manual recovery only | No (outside CI) |
-| **Author attribution guard** | All commits authored by canonical human maintainer identity; no AI-agent trailers | Every push | Yes |
-| **Build matrix** | x86_64 + aarch64 both must pass; release is blocked if either fails | Every build | Yes |
+| Guard                          | What it checks                                                                              | Frequency                                                      | Blocks build?                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Dependabot**                 | Keeps GitHub Actions and pinned Python validation tools current; PRs require human review   | Weekly                                                         | No (creates PR)                                            |
+| **Repository maintenance**     | Reports action freshness and audits labels, Actions variables, and release environments     | Weekly and manual                                              | Yes for configuration drift; freshness remains report-only |
+| **Ruff**                       | Python correctness, modernization, and deterministic formatting                             | Every policy/build gate                                        | Yes                                                        |
+| **Zizmor**                     | GitHub Actions security, token persistence, and template-injection risks                    | Every policy/build gate                                        | Yes                                                        |
+| **CodeQL** (security-extended) | Static analysis of workflow YAML for injection, token leaks, unsafe patterns                | Non-ignored pushes, all PRs (including Dependabot), and weekly | Yes                                                        |
+| **Shellcheck**                 | Shell correctness and error handling in scripts and the commit-message hook                 | Every applicable policy/package gate                           | Yes                                                        |
+| **Hadolint**                   | `Containerfile` — Dockerfile anti-patterns, layer hygiene                                   | Every applicable policy/package gate                           | Yes                                                        |
+| **Syft**                       | Generates a per-architecture SPDX package inventory                                         | Every native package build                                     | Yes                                                        |
+| **YAML syntax validation**     | Workflow files and local composite actions parse correctly                                  | Every applicable policy/package gate                           | Yes                                                        |
+| **actionlint**                 | GitHub Actions schema, expressions, shell fragments, and workflow semantics                 | Every policy/build gate                                        | Yes                                                        |
+| **Dependency consistency**     | README, manifest files, Containerfile, and scripts agree on prerequisites                   | Every applicable policy/package gate                           | Yes                                                        |
+| **Release planner**            | Published upstream release, exact source commit, published local assets, and approval class | Daily and on stable CI                                         | Yes                                                        |
+| **Release readiness gate**     | Emergency tag-path preflight: upstream tag, release absence, clean synchronized git state   | Manual recovery only                                           | No (outside CI)                                            |
+| **Author attribution guard**   | All commits authored by canonical human maintainer identity; no AI-agent trailers           | Every push and pull request                                    | Yes                                                        |
+| **Build matrix**               | x86_64 + aarch64 both must pass; release is blocked if either fails                         | Every build                                                    | Yes                                                        |
 
 ## Distribution & Package Policy
 
 - **No apt repository mixing** — this project does not instruct users to add third-party apt sources, PPAs, or Debian
   Sid repositories to their system. The `.deb` is downloaded over HTTPS and installed via `dpkg -i`.
-- **Single self-contained package** — LuaJIT, libuv, tree-sitter and other bundled dependencies are statically linked
-  at build time. No runtime dependency on external library packages beyond standard glibc/libgcc.
+- **Single installable package** — upstream-pinned bundled dependencies are built with Neovim. CPack derives and
+  declares the remaining target-Ubuntu shared-library dependencies; the current package is not described as fully
+  static.
 - **No distro interference** — the package uses the name `neovim` (matching Ubuntu's archive package) so `apt-mark`
   can hold/pin it cleanly. It does not overwrite or shadow system files outside Neovim's installation path.
 - **Candidate-first releases** — scheduled or explicitly requested publication builds and verifies both architectures
@@ -118,6 +120,6 @@ The full build pipeline is defined in this repository and readable by anyone:
 - `.github/workflows/build.yml` — stable detection and release orchestration
 - `.github/workflows/package.yml` — reusable native build and verification matrix
 
-Build dependencies (CMake, Ninja, gettext, curl, jq, git, GCC) are installed from the configured Ubuntu LTS apt
-repositories inside the pinned base image — not downloaded from ad-hoc sources. Neovim source is cloned from the
-official GitHub repository at an exact release or resolved nightly commit.
+Build tools are installed from the configured Ubuntu LTS repositories inside the pinned base image. Neovim source is
+fetched from the official GitHub repository at an exact release or resolved nightly commit; upstream's own build
+system then resolves the dependency revisions selected by that source commit.

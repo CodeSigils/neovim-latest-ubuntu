@@ -16,9 +16,16 @@ SPEC.loader.exec_module(release_plan)
 
 
 class FakeGitHub:
-    def __init__(self, *, latest: str = "v0.12.5", existing: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        latest: str = "v0.12.5",
+        existing: bool = False,
+        existing_assets: set[str] | None = None,
+    ) -> None:
         self.latest = latest
         self.existing = existing
+        self.existing_assets = existing_assets
 
     def get(self, path: str) -> dict:
         if path.endswith("releases/latest"):
@@ -33,12 +40,16 @@ class FakeGitHub:
         if path.startswith("repos/neovim/neovim/releases/tags/"):
             return {"draft": False, "prerelease": False}
         if self.existing:
+            assets = (
+                self.existing_assets
+                if self.existing_assets is not None
+                else release_plan.LEGACY_RELEASE_ASSETS.get(
+                    self.latest, release_plan.REQUIRED_ASSETS
+                )
+            )
             return {
                 "draft": False,
-                "assets": [
-                    {"name": name, "size": 1, "state": "uploaded"}
-                    for name in release_plan.CORE_ASSETS
-                ],
+                "assets": [{"name": name, "size": 1, "state": "uploaded"} for name in assets],
             }
         return None
 
@@ -102,6 +113,20 @@ class ReleasePlanTests(unittest.TestCase):
         client.optional = incomplete  # type: ignore[method-assign]
         plan = release_plan.make_plan(
             client=client,
+            mode="scheduled",
+            requested="latest",
+            publish_requested=False,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
+        self.assertTrue(plan.should_build)
+
+    def test_new_releases_require_metadata_and_sboms(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(
+                latest="v0.12.6",
+                existing=True,
+                existing_assets=release_plan.CORE_ASSETS,
+            ),
             mode="scheduled",
             requested="latest",
             publish_requested=False,

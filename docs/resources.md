@@ -1,292 +1,88 @@
-# Ubuntu Packaging Resources
-
-**Purpose:** Curated, evaluated resources for building Neovim as a `.deb` package on Ubuntu. **Last updated:** 2026-08 **Base distribution:** Ubuntu 26.04 LTS (Resolute Raccoon)
-
-This file intentionally prefers official documentation. Third-party tutorials are omitted unless they are
-project-specific evidence that cannot be replaced by Debian, Ubuntu, upstream Neovim, CMake, or Podman sources.
-
-All resources below have been evaluated against five criteria:
-
-- **Authoritative** — official docs > project-maintained docs > wiki pages > blogs
-- **Current** — targets Neovim >= 0.10 / modern Ubuntu
-- **Specific** — concrete commands, configs, versions
-- **Reproducible** — approach reusable for future versions
-- **Complete** — covers the full workflow, not a fragment
-
----
-
-## Category 1: Neovim build system
-
-### Primary official sources
-
-| Resource                                                                                                             | Authoritative       | Current                 | Specific       | Reproducible | Complete       |
-| -------------------------------------------------------------------------------------------------------------------- | ------------------- | ----------------------- | -------------- | ------------ | -------------- |
-| [Neovim Install Docs](https://neovim.io/doc/install/)                                                                | Official            | v0.10+                  | Yes            | Yes          | Summary only   |
-| [Neovim BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md)                                             | Official            | Latest                  | Yes            | Yes          | Yes            |
-| [Neovim Latest Release](https://github.com/neovim/neovim/releases/latest)                                     | Official            | Current project default | Yes            | Yes          | Yes            |
-| [Neovim cmake.packaging/CMakeLists.txt](https://github.com/neovim/neovim/blob/master/cmake.packaging/CMakeLists.txt) | Official            | Latest                  | Yes            | Yes          | CPack fragment |
-| [Neovim release.yml](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml)                     | Official            | Latest                  | Full CI config | Yes          | Yes            |
-| [PR #22773 — ci!: remove the .deb release](https://github.com/neovim/neovim/pull/22773)                              | Official merged PR  | 2023 / v0.9 context     | Yes            | N/A          | PR context     |
-| [neovim/neovim-releases](https://github.com/neovim/neovim-releases)                                                  | Official Neovim org | Latest                  | Yes            | Yes          | Yes            |
-
-### Notes
-
-- Neovim upstream ships its own CPack `.deb` generator config in `cmake.packaging/CMakeLists.txt`.
-- Neovim removed `.deb` files from the main official release workflow in PR #22773 (merged Apr 2023, v0.9). The CPack
-  DEB config remains in source but is no longer published from the main release workflow.
-- `neovim/neovim-releases` is a separate official Neovim-org repository with release automation that can still provide
-  useful packaging context.
-- No separate `debian/` directory exists in upstream Neovim; this project wraps upstream CPack output rather than
-  maintaining Debian archive packaging.
-- Upstream maintainer scripts register Neovim via `update-alternatives` in `postinst` and unregister it in `prerm`.
-- Build prerequisites for this repository are declared in `deps/ubuntu-build-deps.txt` and enforced by
-  `scripts/check-dependencies.py`.
-- Bundled dependencies such as libuv, LuaJIT, tree-sitter, and utf8proc compile under `.deps/`, avoiding conflicts with
-  system copies.
-- Ninja is the recommended CMake generator: upstream CI uses it, Neovim's Makefile auto-detects it, and it gives
-  faster/more reliable parallel builds than Unix Makefiles.
-
-### Neovim release CI facts
-
-- **Build on:** `ubuntu-22.04` and `ubuntu-22.04-arm` in upstream release automation
-- **Build type:** nightly uses `RelWithDebInfo`; stable uses `Release`
-- **Upstream build command:** `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`, then `cmake --build build --target package`
-- **CPack:** `cpack --config build/CPackConfig.cmake`
-- **Release trigger:** tag push, scheduled nightly, or manual dispatch in upstream automation
-- **History:** `.deb` files were removed from main upstream releases in PR #22773 to reduce maintenance burden
-- **Project alignment:** This repository uses the same upstream CMake/CPack packaging path through the upstream Makefile
-  wrapper. Stable packages use `Release`; artifact-only nightlies use `RelWithDebInfo`.
-
----
-
-## Category 2: Debian and Ubuntu packaging guides
-
-### Official / highly authoritative
-
-| Resource                                                                                                                                         | Authoritative            | Current | Specific | Reproducible | Complete                            |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ------- | -------- | ------------ | ----------------------------------- |
-| [Debian Policy Manual](https://www.debian.org/doc/debian-policy/)                                                                                | Debian official          | Latest  | Yes      | Yes          | Complete policy reference           |
-| [Debian Developer's Reference §6 — Best Packaging Practices](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html) | Debian official          | Latest  | Yes      | Yes          | Maintainer best practices           |
-| [Debian New Maintainers' Guide](https://www.debian.org/doc/manuals/maint-guide/)                                                                 | Debian official          | Current | Yes      | Yes          | Introductory packaging guide        |
-| [Debian Packaging Tutorial](https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial)                                            | Debian official          | Current | Yes      | Yes          | Tutorial format                     |
-| [Guide for Debian Maintainers / debmake-doc](https://www.debian.org/doc/manuals/debmake-doc/)                                                    | Debian official          | Current | Yes      | Yes          | Modern tooling-focused guide        |
-| [Ubuntu Packaging Guide](https://packaging.ubuntu.com/)                                                                                          | Ubuntu official redirect | Latest  | Yes      | Yes          | Ubuntu contributor docs entry point |
-| [Install built packages](https://documentation.ubuntu.com/project/contributors/bug-fix/install-built-packages/)                                  | Ubuntu official          | Latest  | Yes      | Yes          | Install/test scope only             |
-| [Ubuntu 26.04 LTS Release Notes](https://discourse.ubuntu.com/t/resolute-raccoon-release-notes/)                                                 | Ubuntu official          | 26.04   | Yes      | Yes          | Release notes / changes             |
-| [GitHub Actions runner images](https://github.com/actions/runner-images)                                                                         | GitHub official          | 26.04   | Yes      | N/A          | Runner image reference              |
-
-### Useful Debian wiki supplement
-
-| Resource                                                                            | Authoritative       | Current | Specific | Reproducible | Complete        |
-| ----------------------------------------------------------------------------------- | ------------------- | ------- | -------- | ------------ | --------------- |
-| [Debian Wiki: HowToPackageForDebian](https://wiki.debian.org/HowToPackageForDebian) | Debian project wiki | Latest  | Yes      | Yes          | Wiki supplement |
-
-### Key best practices from Debian/Ubuntu sources
-
-1. **Maintainer scripts must be idempotent** — `postinst`, `prerm`, `postrm`, and `preinst` must tolerate repeated or
-   partial runs.
-2. **Avoid prompting during install** — package installation should be non-interactive unless debconf/preseeding is
-   explicitly designed.
-3. **Register alternatives consistently** — `update-alternatives` is appropriate for editor command integration (`vi`,
-   `vim`, `view`, `editor`).
-4. **Declare all runtime shared-library dependencies** — this project relies on `CPACK_DEBIAN_PACKAGE_SHLIBDEPS` /
-   `dpkg-shlibdeps` for auto-detection.
-5. **Do not conflict with Ubuntu archive packages accidentally** — this project is a local/distribution convenience
-   package, not a Debian archive replacement.
-6. **Test install, upgrade-adjacent behavior, and removal** — this repository's `test.sh` covers install, smoke, health,
-   dependency, alternatives, and uninstall checks.
-
-In this repository, `test.sh` implements these test and verification best practices. Neovim's upstream maintainer scripts (`postinst`/`prerm` inherited from `cmake.packaging/` during clone) handle `update-alternatives` registration and removal per policy.
-
-### Ubuntu 26.04 (Resolute Raccoon) packaging notes
+# Authoritative References
 
-Target distribution is Ubuntu 26.04 LTS (Resolute Raccoon), with build and test running inside a pinned `ubuntu:26.04`
-container. Key characteristics relevant to .deb packaging:
+This page is a maintainer index, not a snapshot of current tool versions. Version numbers, runner availability, and
+release state belong in executable configuration or generated package metadata, where CI can verify them. Prefer the
+primary sources below when changing the build or release design.
 
-| Component     | Ubuntu 26.04 | Note                                                                  |
-| ------------- | ------------ | --------------------------------------------------------------------- |
-| glibc (libc6) | 2.43         | Up from 2.39 in 24.04 — packages built on 26.04 require libc6 >= 2.43 |
-| GCC           | 15           | libgcc-s1 from GCC 15; C23 language features available                |
-| dpkg          | 1.22.x       | usrmerge-aware; improved dpkg-shlibdeps                               |
-| apt           | 2.9.x        | UI improvements, performance                                          |
-| lintian       | 2.117–2.118  | Updated usrmerge policy checks                                        |
-| Python        | 3.13         | Default interpreter; may affect build-time scripts                    |
-| OpenSSL       | 3.x          | System TLS library                                                    |
+## Neovim build and packaging
 
-_Versions as of 26.04 GA; see [Ubuntu release notes](https://discourse.ubuntu.com/t/resolute-raccoon-release-notes/) for updated toolchain details._
+- [Neovim BUILD.md](https://github.com/neovim/neovim/blob/master/BUILD.md) — supported build flow and prerequisites.
+- [Neovim CPack configuration](https://github.com/neovim/neovim/blob/master/cmake.packaging/CMakeLists.txt) — package
+  metadata, dependencies, filenames, and maintainer scripts inherited by this project.
+- [Neovim release workflow](https://github.com/neovim/neovim/blob/master/.github/workflows/release.yml) — upstream
+  release build types and automation patterns.
+- [Neovim releases](https://github.com/neovim/neovim/releases/latest) — stable release authority.
+- [Removal of upstream `.deb` release assets](https://github.com/neovim/neovim/pull/22773) — historical scope decision
+  that motivates this convenience package.
 
-**Packaging toolchain notes:**
+The repository deliberately wraps upstream CMake/CPack rather than maintaining a parallel `debian/` tree. Reconsider
+that choice only if the project becomes an apt repository or distribution package.
 
-- `dpkg-shlibdeps` emits versioned deps like `libc6 (>= 2.43)` — packages built on 26.04 will NOT install on 24.04
-  (glibc 2.39) or older. This is expected and correct for a native LTS package.
-- usrmerge (merged `/usr`) is complete in 26.04 — `/lib` and `/usr/lib` are the same filesystem. CPack and dpkg handle
-  this transparently.
-- GCC 15 ABI is backward-compatible; `libgcc-s1 (>= 3.3)` still covers all modern GCC versions.
-- Lintian runs inside the same pinned Ubuntu 26.04 target container that built and tested the `.deb`, so advisory package
-  policy findings reflect the target distribution rather than the host runner image.
-- The container digest is pinned via SHA256 (repo-level variable `UBUNTU_SHA256`) for reproducibility; update the variable when the base image needs refreshing (see docs/reproducibility.md).
-
----
-
-## Category 3: CPack DEB generator
-
-### Official documentation
-
-| Resource                                                                                            | Authoritative    | Current | Specific | Reproducible | Complete                         |
-| --------------------------------------------------------------------------------------------------- | ---------------- | ------- | -------- | ------------ | -------------------------------- |
-| [CMake CPack Documentation — DEB Generator](https://cmake.org/cmake/help/latest/cpack_gen/deb.html) | Kitware official | Latest  | Yes      | Yes          | Complete DEB generator reference |
-| [CPack module documentation](https://cmake.org/cmake/help/latest/module/CPack.html)                 | Kitware official | Latest  | Yes      | Yes          | Core CPack behavior              |
-| [CMake install command](https://cmake.org/cmake/help/latest/command/install.html)                   | Kitware official | Latest  | Yes      | Yes          | Install rule reference           |
+## Debian and Ubuntu packaging
 
-### Key CPack variables for DEB
-
-```cmake
-# Required
-set(CPACK_GENERATOR "DEB")
-set(CPACK_DEBIAN_PACKAGE_NAME "mypackage")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Name <email>")
-
-# Dependency auto-detection (recommended)
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS TRUE)
-
-# Output naming
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_DEBIAN_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")
-
-# Maintainer scripts (postinst, prerm, etc.)
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
-    "${CMAKE_SOURCE_DIR}/cmake/packaging/postinst"
-    "${CMAKE_SOURCE_DIR}/cmake/packaging/prerm"
-)
+- [Debian Policy Manual](https://www.debian.org/doc/debian-policy/) — normative binary-package requirements.
+- [Debian Developer's Reference: best packaging practices](https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html)
+  — maintainer scripts and operational practice.
+- [Guide for Debian Maintainers](https://www.debian.org/doc/manuals/debmake-doc/) — modern packaging workflow.
+- [Ubuntu packaging documentation](https://documentation.ubuntu.com/project/contributors/new-package/) —
+  Ubuntu-specific contributor guidance.
+- [Ubuntu 26.04 LTS release notes](https://documentation.ubuntu.com/release-notes/26.04/) — target-distribution changes.
+- [Lintian manual](https://lintian.debian.org/manual/index.html) — package-policy diagnostics and overrides.
 
-# Optional: triggers, shlibs, conffiles
-set(CPACK_DEBIAN_PACKAGE_TRIGGERS "${CMAKE_SOURCE_DIR}/debian/triggers")
-set(CPACK_DEBIAN_PACKAGE_SHLIBS "${CMAKE_SOURCE_DIR}/debian/shlibs")
-set(CPACK_DEBIAN_PACKAGE_CONFFILES "${CMAKE_SOURCE_DIR}/debian/conffiles")
+Project rules derived from these sources:
 
-# Package description (single line summary + longer body)
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Short description")
-set(CPACK_PACKAGE_DESCRIPTION "Longer\ndescription\nwith\nnewlines")
+- Maintainer scripts must remain non-interactive and idempotent.
+- Runtime shared-library dependencies must be declared; CPack derives them with `dpkg-shlibdeps`.
+- Install, runtime, alternatives registration, and removal are release gates.
+- Lintian findings remain visible. Fix project-owned findings and baseline only reviewed upstream-content findings.
+- This convenience package is not represented as a Debian or Ubuntu archive package.
 
-# Version
-set(CPACK_PACKAGE_VERSION "1.0.0")
+## CMake and reproducible builds
 
-# Must be at the end
-include(CPack)
-```
+- [CPack DEB generator](https://cmake.org/cmake/help/latest/cpack_gen/deb.html) — Debian generator inputs,
+  `SOURCE_DATE_EPOCH`, dependency generation, and debug-symbol behavior.
+- [CPack module](https://cmake.org/cmake/help/latest/module/CPack.html) — shared package variables and install scripts.
+- [Reproducible Builds documentation](https://reproducible-builds.org/docs/) — terminology and build techniques.
+- [Ubuntu snapshot service](https://snapshot.ubuntu.com/) — dated apt repositories for replay-oriented builds.
 
-_Upstream Neovim's CPack config in `cmake.packaging/CMakeLists.txt` uses these same mechanisms (`CPACK_DEBIAN_PACKAGE_SHLIBDEPS`, maintainer scripts, versioning); this project builds on that pattern rather than reinventing packaging metadata._
+`SOURCE_DATE_EPOCH`, an exact upstream commit, a digest-pinned base image, and an optional dated apt snapshot reduce
+variation. They do not establish byte-for-byte reproducibility until independent rebuilds demonstrate it.
 
----
+## Supply-chain and SBOM guidance
 
-## Category 4: Podman / container testing
+- [GitHub artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)
+  — build-provenance and SBOM attestations.
+- [actions/attest](https://github.com/actions/attest) — supported attestation inputs and verification model.
+- [Anchore SBOM action](https://github.com/anchore/sbom-action) — Syft-based SPDX generation used by the package matrix.
+- [SPDX 2.3 specification](https://spdx.github.io/spdx-spec/v2.3/) — published SBOM format.
 
-### Official documentation
+Release packages have separate build-provenance and SBOM attestations. `SHA256SUMS`, build metadata, and the SBOMs are
+also release assets so verification does not depend on a single interface.
 
-| Resource                                                                             | Authoritative         | Current | Specific | Reproducible | Complete             |
-| ------------------------------------------------------------------------------------ | --------------------- | ------- | -------- | ------------ | -------------------- |
-| [Podman installation docs](https://podman.io/docs/installation)                      | Podman official       | Latest  | Yes      | Yes          | Yes                  |
-| [podman-build manual](https://docs.podman.io/en/latest/markdown/podman-build.1.html) | Podman official       | Latest  | Yes      | Yes          | Yes                  |
-| [Ubuntu Docker image tags](https://hub.docker.com/_/ubuntu)                          | Ubuntu image official | Latest  | Yes      | Yes          | Image reference only |
+## GitHub Actions and runners
 
----
+- [Workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) — triggers,
+  expressions, permissions, and reusable workflows.
+- [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
+  — event-specific filtering behavior.
+- [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+  — feature-release approval gates.
+- [GitHub-hosted runner images](https://github.com/actions/runner-images) — available x86_64 and ARM64 labels.
+- [Immutable releases](https://docs.github.com/en/code-security/supply-chain-security/end-to-end-supply-chain/securing-accounts#immutable-releases)
+  — release immutability behavior.
 
-## Category 5: GitHub Actions workflow automation
+Do not copy runner-image package versions into prose. The workflow variables and actual run metadata are the authority.
+GitHub does not apply path filters to tag pushes, so the emergency tag path always runs the stable workflow.
 
-### Official documentation
+## Container tooling
 
-| Resource                                                                                                                                                                     | Authoritative   | Current | Specific | Reproducible | Complete           |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------- | -------- | ------------ | ------------------ |
-| [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions)                                                | GitHub official | Latest  | Yes      | Yes          | Complete reference |
-| [Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows)                         | GitHub official | Latest  | Yes      | Yes          | Complete reference |
-| [Using conditions to control job execution](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/using-conditions-to-control-job-execution) | GitHub official | Latest  | Yes      | Yes          | How-to guide       |
-| [Reuse workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)                                                                              | GitHub official | Latest  | Yes      | Yes          | Reusable workflows |
-| [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)                                             | GitHub official | Latest  | Yes      | Yes          | Publication gates  |
-| [Artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations)                                    | GitHub official | Latest  | Yes      | Yes          | Build provenance   |
+- [Podman build manual](https://docs.podman.io/en/latest/markdown/podman-build.1.html)
+- [Docker build reference](https://docs.docker.com/reference/cli/docker/buildx/build/)
+- [Official Ubuntu container image](https://hub.docker.com/_/ubuntu)
 
-### Key rules for GitHub Actions YAML parser
+Both Podman and Docker can build the `Containerfile`; CI uses Docker on GitHub-hosted runners.
 
-1. **Use flat structure under `on.push:`** — The `branches`, `tags`, and `paths-ignore` keywords must be siblings under
-   a single `push:` key. The YAML array/list syntax (`- branches:\n  - main`) is not supported under `push` by GitHub's
-   YAML parser.
-2. **Path filters are NOT evaluated for tag pushes** — Tag pushes always trigger the workflow regardless of
-   `paths-ignore`. Only branch pushes evaluate path filters.
-3. **`paths` and `paths-ignore` are mutually exclusive** — You cannot use both for the same event in a workflow. Use
-   `paths` with `!` prefix for exclusion if you need both include and exclude.
-4. **Branch and path filters compound** — If you define both `branches`/`branches-ignore` and `paths`/`paths-ignore`,
-   the workflow runs only when BOTH filters are satisfied.
+## Maintenance rule
 
-### CI efficiency policy
-
-- Documentation and validation-only changes use the lightweight repository policy workflow. Build-affecting scripts,
-  package tests, dependency manifests, and container changes also run the native package matrix.
-- Stable and nightly callers share one reusable native package workflow to prevent architecture-gate drift.
-- The daily authenticated release plan skips compilation when the latest published release already has its core assets.
-- Maintenance releases publish automatically after the full matrix; feature releases pause only at the protected
-  publication environment. Issues represent failures, not ordinary release availability.
-- Tag pushes remain a recovery path and always build because GitHub does not apply path filters to tag events.
-- Dependabot PRs run repository policy and CodeQL checks but remain manually reviewed.
-- Exact filters, runner selection, and job conditions belong in the workflow files, which are the source of truth.
-- Historical run counts and timing estimates are intentionally omitted because repository activity and runner
-  performance change over time.
-
----
-
-## Category 6: CodeQL / code scanning
-
-### Official documentation
-
-| Resource                                                                                                                                                           | Authoritative          | Current | Specific             | Reproducible | Complete                  |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | ------- | -------------------- | ------------ | ------------------------- |
-| [github/codeql-action](https://github.com/github/codeql-action)                                                                                                    | GitHub official        | Latest  | Yes                  | Yes          | Action reference + README |
-| [About code scanning with CodeQL](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-code-scanning-with-codeql)                          | GitHub Docs (concept)  | Latest  | Yes                  | Yes          | Conceptual overview       |
-| [CodeQL code scanning for compiled languages](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-codeql-code-scanning-for-compiled-languages) | GitHub Docs (concept)  | Latest  | Yes (C/C++ specific) | Yes          | Build modes + caching     |
-| [CodeQL query suites](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-query-suites)                                                 | GitHub Docs (concept)  | Latest  | Yes                  | Yes          | Default / security-extended / security-and-quality |
-| [Configuring advanced setup](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configuring-advanced-setup-for-code-scanning) | GitHub Docs (how-to)   | Latest  | Yes                  | Yes          | Step-by-step guide        |
-| [CodeQL CLI](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-the-codeql-cli)                                                          | GitHub Docs (concept)  | Latest  | Yes                  | Yes          | CLI reference             |
-| [CodeQL documentation](https://codeql.github.com/docs/)                                                                                                           | CodeQL official        | Latest  | Yes                  | Yes          | Full reference            |
-| [CodeQL init action.yml](https://github.com/github/codeql-action/blob/main/init/action.yml)                                                                        | GitHub official (code) | Latest  | All input parameters | Yes          | Action YAML spec          |
-
-### Key best practices for this project
-
-1. **Use `security-extended` over `security-and-quality` for the `actions` language** — The workflow analysis surface is
-   small, and the quality suite adds noise without meaningful security signal for this repository.
-
-2. **paths-ignore must NOT exclude workflow files** — CodeQL's purpose is to analyze workflow file changes for security issues. Excluding `.github/workflows/*.yml` from CodeQL's paths-ignore defeats its purpose. Build.yml's paths-ignore excludes workflow files to save build minutes; CodeQL's should only exclude doc/metadata files. Independent trigger lists serve different purposes.
-
-3. **Pin actions by full SHA with version comments** — Reference `github/codeql-action/init` and `github/codeql-action/analyze` by immutable commit SHA, with the intended major version kept in an adjacent comment. Dependabot updates the pinned SHAs through GitHub Actions dependency PRs, preserving both supply-chain integrity and update visibility.
-
-4. **Use `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true`** — GitHub Actions is migrating from Node 20 to Node 24. Setting this env var opt-in to the Node 24 runtime now, avoiding breakage when the default switches.
-
-5. **Schedule analysis weekly, not daily** — CodeQL runs on every push to main anyway. The schedule trigger exists to catch dormant code (no push activity). Weekly (Monday 06:45 UTC) is sufficient; daily burns minutes on idle repos.
-
-6. **Use `permissions:` explicitly** — CodeQL needs `security-events: write` to upload results and `contents: read` to checkout code. Setting these explicitly follows least-privilege and avoids issues with GITHUB_TOKEN defaults changing.
-
-7. **Single-language job for `actions`** — The `actions` language is analyzed alone rather than in a compiled-language
-   matrix. The query pack does not require compilation.
-
-8. **No CLI caching for the `actions` language** — Caching adds complexity with negligible benefit for this small
-   workflow-only analysis surface.
-
-9. **Dependency caching is for compiled languages** — CodeQL dependency caching (https://docs.github.com/en/code-security/concepts/code-scanning/codeql/about-codeql-code-scanning-for-compiled-languages#about-dependency-caching-for-codeql) applies to compiled languages like C/C++, Java, Go, Rust, and Swift — not to the `actions` language. If this project adds C/C++ CodeQL analysis in the future, consider caching Go module dependencies or other build artifacts.
-
----
-
-## Evaluation summary
-
-### Must-read first
-
-1. **Neovim BUILD.md** — primary build workflow reference
-2. **Neovim cmake.packaging/CMakeLists.txt** — upstream CPack config this project wraps
-3. **Neovim release.yml** — official upstream CI workflow and build command reference
-4. **PR #22773** — why `.deb` files were removed from the main Neovim release workflow
-5. **CMake CPack DEB Generator documentation** — official reference for DEB generator variables
-6. **Debian Policy Manual** — ultimate authority on Debian package structure and behavior
-7. **Debian Developer's Reference §6** — best practices for maintainer scripts and package maintenance
-8. **Ubuntu Packaging Guide** — target-distribution entry point for Ubuntu packaging conventions
-
-### Reference for specific questions
-
-1. **Guide for Debian Maintainers / debmake-doc** — modern Debian packaging workflow and tooling
-2. **Debian New Maintainers' Guide** — beginner-friendly Debian packaging flow
-3. **Ubuntu Install Built Packages** — target-side install/testing guidance
-4. **Podman build manual** — reproducible container build behavior
+Add a reference only when it explains an implemented decision or an active maintenance task. Prefer a durable landing
+page over a version-specific subsection, and remove copied facts once executable configuration can express them.

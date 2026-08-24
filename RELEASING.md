@@ -11,7 +11,8 @@ The daily stable workflow is candidate-first:
 2. Resolve its tag to an exact upstream commit SHA.
 3. Compare it with this repository's published GitHub Releases and required assets.
 4. Build and verify x86_64 and ARM64 packages from that exact commit.
-5. Create a draft release, attach packages, checksums, and build metadata, attest both packages, then publish.
+5. Create a draft release, attach packages, checksums, build metadata, and SPDX SBOMs, attest both packages, then
+   publish.
 
 Maintenance releases (`X.Y.Z` where `Z > 0`) publish automatically after all gates pass. Feature releases (`X.Y.0`)
 build automatically but the publish job uses the protected `release-reviewed` environment and waits for maintainer
@@ -67,6 +68,8 @@ A complete release contains:
 - `SHA256SUMS`
 - `BUILD-METADATA-amd64.json`
 - `BUILD-METADATA-arm64.json`
+- `SBOM-amd64.spdx.json`
+- `SBOM-arm64.spdx.json`
 
 Verify a downloaded package:
 
@@ -74,26 +77,48 @@ Verify a downloaded package:
 sha256sum --ignore-missing -c SHA256SUMS
 gh attestation verify nvim-linux-x86_64.deb \
   -R CodeSigils/neovim-latest-ubuntu
+gh attestation verify nvim-linux-x86_64.deb \
+  -R CodeSigils/neovim-latest-ubuntu \
+  --predicate-type https://spdx.dev/Document/v2.3
 dpkg-deb -f nvim-linux-x86_64.deb Version Architecture
 ```
 
 Each metadata document records the upstream ref and exact commit, packaging repository commit, target Ubuntu image
 digest, Debian architecture, package version, and package SHA256. Publication independently verifies all of those
-bindings and refuses draft releases containing missing or unexpected assets.
+bindings and refuses draft releases containing missing or unexpected assets. The SBOM attestation independently binds
+each SPDX inventory to the corresponding architecture package.
 
 ## Package gates
 
 The reusable package workflow applies the same architecture matrix and verification to stable and nightly builds:
 
-- Shared ShellCheck, Hadolint, dependency, label, YAML, actionlint, and regression-test gates
+- Shared ShellCheck, Hadolint, dependency-consistency, YAML, actionlint, and regression-test gates
 - Native x86_64 and ARM64 builds
 - Exact Debian architecture and filename checks
 - Independent package/runtime version expectations
 - Install, headless runtime, shared-library, alternatives, and removal tests
-- Per-architecture checksums and build metadata
+- Per-architecture checksums, build metadata, and SPDX SBOMs
 
-Stable packages use `CMAKE_BUILD_TYPE=Release`; nightlies use `RelWithDebInfo`. Stable builds also run Lintian. Known
-upstream CPack findings are recorded in `scripts/lintian-allowlist.txt`; any new error or warning tag fails the build.
+Stable packages use `CMAKE_BUILD_TYPE=Release`, a commit-derived `SOURCE_DATE_EPOCH`, and stripping for executables and
+generated parser libraries; nightlies use `RelWithDebInfo` and retain diagnostic symbols. Stable builds also run
+Lintian. Project-owned packaging findings are fixed, reviewed upstream-content tags are explained in
+`scripts/lintian-allowlist.txt`, and any new tag fails the build.
+
+## Routine maintenance
+
+| Change                        | Source of truth                                                      | Required validation                                                |
+| ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Ubuntu target or image digest | Repository variables plus `Containerfile` and workflow fallbacks     | Both native package jobs, repository-settings audit, docs review   |
+| Hosted runner label           | `RUNNER_X86_64` / `RUNNER_AARCH64` repository variables              | Native package matrix                                              |
+| GitHub Action                 | Full SHA in the workflow; Dependabot proposes updates                | Policy, CodeQL, and native matrix when packaging logic changes     |
+| Python validation tool        | Exact version in `requirements-dev.txt`                              | Policy workflow                                                    |
+| Lintian baseline              | `scripts/lintian-allowlist.txt` with a reason for each inherited tag | Both stable architectures; never add a tag solely to make CI green |
+| Release asset contract        | Planner, package workflow, release workflow, and tests               | Full stable candidate build                                        |
+
+The weekly repository-maintenance workflow reports action freshness and configuration drift. It does not mutate
+repository variables or merge dependency updates. For an Ubuntu image refresh, verify that the selected digest is a
+multi-architecture manifest containing both amd64 and arm64 before updating the three public fallbacks and remote
+variables together.
 
 ## Nightly builds
 
@@ -114,6 +139,8 @@ ruff format --check scripts tests
 python -m unittest discover -s tests -p 'test_*.py'
 zizmor --offline --min-severity medium --min-confidence medium .
 shellcheck build.sh test.sh scripts/*.sh .githooks/prepare-commit-msg
+python3 scripts/check-dependencies.py
+python3 scripts/check-markdown-links.py
 ```
 
 CI additionally runs Actionlint and Hadolint from pinned tools. The weekly repository-maintenance workflow audits
@@ -125,8 +152,9 @@ maintainer session additionally verifies the admin-only immutable-release settin
 
 ### Stable workflow says the release already exists
 
-The planner found a published release containing both packages and `SHA256SUMS`, so it correctly skipped the expensive
-build. Use a package-revision version for a packaging rebuild; do not mutate a published release.
+The planner found a published release satisfying the asset contract, so it correctly skipped the expensive build. The
+immutable legacy `v0.12.5` release has an explicit historical core-asset contract; all newer releases require metadata
+and SBOMs too. Use a package-revision version for a packaging rebuild; do not mutate a published release.
 
 ### Release job is waiting
 

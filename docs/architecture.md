@@ -32,6 +32,7 @@ Use it to answer two questions quickly:
 - `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
 - `scripts/write-build-metadata.py` — deterministic per-architecture provenance metadata.
 - `scripts/verify-release-candidate.py` — independent package/metadata binding and combined-checksum gate.
+- `scripts/install-package-docs.cmake` — Debian copyright and changelog files added during CPack staging.
 - `scripts/check-lintian.sh`, `scripts/lintian-allowlist.txt` — package-policy regression baseline.
 - `requirements-dev.txt`, `pyproject.toml` — pinned repository-validation tools and Python quality policy.
 - `docs/` — architecture, reproducibility, and curated reference material.
@@ -55,7 +56,7 @@ Use it to answer two questions quickly:
 4. **Explicit artifact paths**
    - CPack output must go to an explicit directory (`/output` in container, `output/` on host).
    - Each architecture fails fast if its expected `.deb` artifact is missing.
-   - Published releases require both packages, combined checksums, and per-architecture build metadata.
+   - Published releases require both packages, combined checksums, per-architecture build metadata, and SPDX SBOMs.
 
 5. **Deterministic scripting**
    - `build.sh` and `test.sh` must remain ShellCheck-clean and avoid host-dependent behavior.
@@ -72,8 +73,8 @@ Use it to answer two questions quickly:
    - Differences between architectures should be limited to target-ISA-specific build outputs.
 
 8. **Package-policy regression control**
-   - Reviewed upstream CPack Lintian tags are recorded in a small allowlist.
-   - Existing compatibility-package limitations remain visible; any new Lintian error or warning tag blocks release.
+   - Project-owned CPack metadata, documentation, and stripping findings are fixed in the packaging layer.
+   - Only reviewed upstream-content Lintian tags remain in the small allowlist; any new error or warning tag blocks.
 
 9. **Security posture**
    - CI includes ShellCheck, Hadolint, CodeQL, and Dependabot.
@@ -90,6 +91,7 @@ Use it to answer two questions quickly:
       release state authority.
     - Both architecture candidates must pass before a draft release or release tag is created.
     - Candidate metadata is independently matched to package hashes and build inputs before publication.
+    - SPDX SBOMs are published and separately attested against their architecture-specific packages.
     - A draft with an unexpected or incomplete asset set is never published.
     - Maintenance releases publish automatically. Feature releases use the protected `release-reviewed` environment.
     - Routine success creates no issue; automation failures create a self-healing maintainer issue.
@@ -111,9 +113,10 @@ storage; it is not the canonical runtime-test environment.
 
 ### Lintian regression policy
 
-This remains an upstream CPack convenience package rather than a Debian archive submission. Known CPack findings are
-therefore reviewed and recorded by tag, but they are no longer silently ignored. A newly introduced Lintian tag fails
-the package matrix and requires either a fix or an explicit, documented baseline decision.
+This remains an upstream CPack convenience package rather than a Debian archive submission. The project corrects
+metadata and documentation it owns, while legacy-encoding, parser-linkage, and manual-page-layout findings inherited
+from upstream are reviewed by tag. A new Lintian tag fails the matrix and requires either a fix or an explicit baseline
+decision.
 
 ### Candidate-first automation
 

@@ -19,6 +19,7 @@ README = REPO / "README.md"
 BUILD_SH = REPO / "build.sh"
 TEST_SH = REPO / "test.sh"
 CONTAINERFILE = REPO / "Containerfile"
+DOCKERIGNORE = REPO / ".dockerignore"
 BUILD_DEPS = REPO / "deps" / "ubuntu-build-deps.txt"
 CI_EXTRA_DEPS = REPO / "deps" / "ubuntu-ci-extra-deps.txt"
 
@@ -84,6 +85,7 @@ def main() -> int:
     build_sh_text = BUILD_SH.read_text()
     test_sh_text = TEST_SH.read_text()
     container_text = CONTAINERFILE.read_text()
+    dockerignore_text = DOCKERIGNORE.read_text()
 
     ensure(
         "git clone" in build_sh_text,
@@ -121,6 +123,16 @@ def main() -> int:
         "FAIL: Containerfile must install deps/ubuntu-ci-extra-deps.txt",
         errors,
     )
+    for required_context_path in (
+        "!build.sh",
+        "!deps/**",
+        "!scripts/install-package-docs.cmake",
+    ):
+        ensure(
+            required_context_path in dockerignore_text,
+            f"FAIL: .dockerignore must retain {required_context_path.removeprefix('!')}",
+            errors,
+        )
 
     overlap = sorted(build_set & ci_extra_set)
     ensure(

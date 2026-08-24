@@ -140,6 +140,15 @@ jobs:
             --repository-commit "$GITHUB_SHA" \
             --output "BUILD-METADATA-${DEB_ARCH}.json"
 
+      - name: Generate package SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          file: output/${{ matrix.deb_file }}
+          format: spdx-json
+          output-file: output/SBOM-${{ matrix.deb_arch }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
       - name: Test package
         run: |
           DEB_NAME="${{ matrix.deb_file }}"
@@ -171,4 +180,5 @@ jobs:
             output/*.deb
             output/SHA256SUMS-*
             output/BUILD-METADATA-*.json
+            output/SBOM-*.spdx.json
           retention-days: ${{ inputs.retention_days }}

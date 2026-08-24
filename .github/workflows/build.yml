@@ -17,8 +17,8 @@ on:
       - '.gitignore'
       - '.githooks/**'
       - '.github/dependabot.yml'
-      - '.github/workflows/**'
       - '.mailmap'
+      - '.mdfmtignore'
       - 'pyproject.toml'
       - 'requirements-dev.txt'
       - 'tests/**'
@@ -39,8 +39,8 @@ on:
       - '.gitignore'
       - '.githooks/**'
       - '.github/dependabot.yml'
-      - '.github/workflows/**'
       - '.mailmap'
+      - '.mdfmtignore'
       - 'pyproject.toml'
       - 'requirements-dev.txt'
       - 'tests/**'
@@ -163,6 +163,8 @@ jobs:
             nvim-linux-arm64.deb
             BUILD-METADATA-amd64.json
             BUILD-METADATA-arm64.json
+            SBOM-amd64.spdx.json
+            SBOM-arm64.spdx.json
           )
           shopt -s nullglob
           actual=(./*.deb)
@@ -189,6 +191,18 @@ jobs:
         with:
           subject-path: '*.deb'
 
+      - name: Attest amd64 package SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: nvim-linux-x86_64.deb
+          sbom-path: SBOM-amd64.spdx.json
+
+      - name: Attest arm64 package SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: nvim-linux-arm64.deb
+          sbom-path: SBOM-arm64.spdx.json
+
       - name: Prepare release notes
         env:
           RELEASE_TAG: ${{ needs.plan.outputs.tag }}
@@ -209,6 +223,8 @@ jobs:
           \`\`\`bash
           sha256sum --ignore-missing -c SHA256SUMS
           gh attestation verify nvim-linux-<arch>.deb -R ${GITHUB_REPOSITORY}
+          gh attestation verify nvim-linux-<arch>.deb -R ${GITHUB_REPOSITORY} \
+            --predicate-type https://spdx.dev/Document/v2.3
           \`\`\`
 
           - [Upstream release notes](https://github.com/neovim/neovim/releases/tag/v${UPSTREAM_VERSION})
@@ -227,6 +243,8 @@ jobs:
             SHA256SUMS
             BUILD-METADATA-amd64.json
             BUILD-METADATA-arm64.json
+            SBOM-amd64.spdx.json
+            SBOM-arm64.spdx.json
           )
           if state=$(gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' 2>/dev/null); then
             if [[ "$state" != true ]]; then
@@ -288,7 +306,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'new-release'
+              labels: 'new-release',
+              per_page: 100
             });
             const existing = issues.find(issue => issue.title === title);
             if (existing) {
@@ -328,7 +347,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'new-release'
+              labels: 'new-release',
+              per_page: 100
             });
             for (const issue of issues.filter(issue => issue.title === title)) {
               await github.rest.issues.createComment({

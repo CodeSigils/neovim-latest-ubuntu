@@ -27,6 +27,7 @@ jobs:
   analyze:
     name: Analyze (GitHub Actions)
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 20
     permissions:
       security-events: write
       packages: read

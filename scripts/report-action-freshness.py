@@ -14,10 +14,19 @@ from pathlib import Path
 PINNED = re.compile(r"uses:\s*([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@([0-9a-f]{40})\s+#\s*v?([0-9]+)")
 
 
+def stable_tag_version(name: str, major: str) -> tuple[int, int, int] | None:
+    """Parse a stable action tag in the requested major line."""
+    match = re.fullmatch(rf"v{re.escape(major)}\.(\d+)(?:\.(\d+))?", name)
+    if not match:
+        return None
+    return int(major), int(match.group(1)), int(match.group(2) or 0)
+
+
 def latest_sha(repo: str, major: str, token: str) -> str:
     """Return the SHA for the highest semantic tag in the requested major line."""
     headers = {
         "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "neovim-latest-ubuntu-action-freshness",
         **({"Authorization": f"Bearer {token}"} if token else {}),
     }
@@ -33,11 +42,11 @@ def latest_sha(repo: str, major: str, token: str) -> str:
             break
         for tag in tags:
             name = tag.get("name", "")
-            match = re.fullmatch(rf"v{re.escape(major)}\.(\d+)(?:\.(\d+))?(?:[-+].*)?", name)
-            if match:
-                minor = int(match.group(1))
-                patch = int(match.group(2) or 0)
-                candidates.append(((int(major), minor, patch), tag["commit"]["sha"]))
+            # Release-candidate/beta tags must never become the maintenance
+            # target for production workflow dependencies.
+            version = stable_tag_version(name, major)
+            if version:
+                candidates.append((version, tag["commit"]["sha"]))
     if not candidates:
         raise ValueError(f"no tag found for major v{major}")
     return max(candidates, key=lambda item: item[0])[1]

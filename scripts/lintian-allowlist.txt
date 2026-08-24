@@ -1,8 +1,11 @@
-extended-description-is-empty
-malformed-contact
+# Neovim runtime keymaps intentionally preserve legacy encodings.
 national-encoding
-no-changelog
-no-copyright-file
+# The authoritative upstream license inventory includes the full Apache 2.0
+# and Vim license texts instead of Debian-specific common-license references.
+copyright-file-contains-full-apache-2-license
+copyright-not-using-common-license-for-lgpl
+copyright-without-copyright-notice
+# Some bundled tree-sitter parsers intentionally have no external linkage.
 shared-library-lacks-prerequisites
+# Upstream installs the cross-platform nvim.1 source without Debian gzip policy.
 uncompressed-manual-page
-unstripped-binary-or-object

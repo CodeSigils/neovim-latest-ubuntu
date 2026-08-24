@@ -1,0 +1,7 @@
+*
+!Containerfile
+!build.sh
+!deps/
+!deps/**
+!scripts/
+!scripts/install-package-docs.cmake

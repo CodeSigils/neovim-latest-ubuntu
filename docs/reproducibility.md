@@ -1,22 +1,18 @@
 # Reproducibility — Neovim Latest deb Package
 
-**Document type:** Explanation (Diataxis) **Status:** Implemented and verified **Last updated:** 2026-08
+**Document type:** Explanation (Diataxis) **Status:** Implemented **Last reviewed:** 2026-08
 
 ## What "Reproducible" Means Here
 
 This project produces a `.deb` package from Neovim source code. **Reproducibility** means:
 
-> Given the same exact Neovim source commit, target architecture, pinned base image, and equivalent resolved build
-> dependencies, the pipeline produces a functionally equivalent `.deb` that passes the same verification checks.
+> Given the same exact Neovim source commit, target architecture, base image, and resolved build dependencies, the
+> pipeline is intended to produce a functionally equivalent `.deb` that passes the same verification checks.
 
-This is **functional reproducibility** — not byte-for-byte binary reproducibility. Two builds with the same inputs will
-not produce identical SHA256 hashes, but they will produce packages that install, run, and behave identically.
-(These correspond to the "reproducible behavior" rather than "reproducible build" variants discussed by the
-[Reproducible Builds project](https://reproducible-builds.org/).)
-
-**Why not byte-for-byte?** Neovim's upstream CPack configuration embeds build timestamps into the package metadata. The
-compiler may also produce slightly different machine code based on host CPU features. These differences are benign —
-they don't affect correctness or functionality.
+This is a **functional-replayability goal**, not a claim of byte-for-byte reproducibility. The pipeline now derives
+`SOURCE_DATE_EPOCH` from the exact upstream commit and CPack uses it for Debian archive timestamps, but Ubuntu apt
+packages remain rolling unless a snapshot is selected. Independent rebuild comparisons are required before describing
+the package as reproducible in the strict [Reproducible Builds](https://reproducible-builds.org/) sense.
 
 ## How the Pipeline Achieves Reproducibility
 
@@ -31,22 +27,24 @@ ARG UBUNTU_APT_SNAPSHOT=""
 FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
 ```
 
-The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values are sourced from repo-level variables (`vars.UBUNTU_VERSION`, `vars.UBUNTU_SHA256`, etc.) with fallbacks in the Containerfile. `UBUNTU_APT_SNAPSHOT` is an optional local/release-build argument and is intentionally not a repository variable.
+The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values come from repository variables in CI, with public
+fallbacks in the workflow and `Containerfile`. `UBUNTU_APT_SNAPSHOT` is an optional build argument rather than a
+long-lived repository variable because snapshots are an operator-selected replay input.
 
 ### 2. Parameterized Build Script
 
 `build.sh` accepts positional or environment inputs for the package identity and output. CI also supplies an exact
 source commit. The default `latest` version and Ubuntu apt indexes intentionally remain rolling:
 
-| Parameter       | Source                                    | Default                             |
-| --------------- | ----------------------------------------- | ----------------------------------- |
-| `VERSION`       | First arg or env var; `latest` auto-detects current stable | `latest` |
-| `OUTPUT_DIR`    | Second arg or env var                     | `.` in `build.sh`; `/output` in the container |
-| `PACKAGE_REVISION` | Third arg or env var                   | Empty (upstream package version)    |
-| `SOURCE_COMMIT` | Environment only; stable CI resolves the release tag | Empty (clone by tag/channel) |
-| Build type      | Selected by release channel               | Stable: `Release`; nightly: `RelWithDebInfo` |
-| CMake generator | Upstream Makefile                         | Auto-detects Ninja                  |
-| CPack config    | Upstream `cmake.packaging/CMakeLists.txt` | Ships with Neovim                   |
+| Parameter          | Source                                                     | Default                                       |
+| ------------------ | ---------------------------------------------------------- | --------------------------------------------- |
+| `VERSION`          | First arg or env var; `latest` auto-detects current stable | `latest`                                      |
+| `OUTPUT_DIR`       | Second arg or env var                                      | `.` in `build.sh`; `/output` in the container |
+| `PACKAGE_REVISION` | Third arg or env var                                       | Empty (upstream package version)              |
+| `SOURCE_COMMIT`    | Environment only; stable CI resolves the release tag       | Empty (clone by tag/channel)                  |
+| Build type         | Selected by release channel                                | Stable: `Release`; nightly: `RelWithDebInfo`  |
+| CMake generator    | Upstream Makefile                                          | Auto-detects Ninja                            |
+| CPack config       | Upstream `cmake.packaging/CMakeLists.txt`                  | Ships with Neovim                             |
 
 Building inside the container eliminates host-specific variation: all build prerequisites (ninja, cmake, gettext, curl,
 gcc) come from the pinned Ubuntu image's apt repositories. The base image is reproducible by digest, but apt package
@@ -61,6 +59,11 @@ resolved version and commit into the token-free build boundary.
 Stable CI first resolves the published upstream tag to its final 40-character commit SHA. `build.sh` fetches and
 verifies that exact commit through `SOURCE_COMMIT`; tag names are retained as human-facing version identifiers rather
 than used as the final source-integrity boundary.
+
+After checkout, `build.sh` exports the exact upstream commit timestamp as `SOURCE_DATE_EPOCH`. Stable packages use
+CPack's standard strip option and explicitly strip generated parser-library copies that upstream installs as data.
+Package documentation is installed through a CPack install script, so metadata fixes do not require unpacking and
+repacking the finished archive.
 
 ### 3. CI Lint Layer
 
@@ -82,7 +85,7 @@ Every stable `.deb` passes the same eight checks before it's considered valid:
 4. **Smoke test**: `nvim --headless +q` starts and exits cleanly
 5. **Runtime health**: `nvim --headless +checkhealth +q` runs without crash
 6. **Library deps**: `ldd` shows no unresolved shared libraries
-7. **Alternatives**: `update-alternatives` registers nvim for `vi`
+7. **Alternatives**: `update-alternatives` registers nvim for `vi`, `vim`, and `view`
 8. **Cleanup**: `dpkg -r "$(dpkg-deb -f <deb-file> Package)"` removes the package cleanly
 
 The same test suite runs on every build, regardless of architecture or trigger.
@@ -102,39 +105,39 @@ The pipeline never relies on implicit paths or auto-detected locations:
 - Per-architecture artifacts include `SHA256SUMS-<arch>`; publication regenerates one combined `SHA256SUMS`
 - `BUILD-METADATA-<arch>.json` binds each package hash to its upstream commit, packaging commit, architecture, package
   version, and Ubuntu image digest
+- `SBOM-<arch>.spdx.json` inventories the package in SPDX 2.3 format; publication creates a separate SBOM attestation
+  binding each SBOM to its package
 
 ## Reproducibility Guarantees
 
 ### What Is Guaranteed
 
-- **Recorded inputs support functional replay**: Two builds using the same exact source, target architecture, base image,
-  and equivalent resolved dependencies should pass identical verification checks and behave equivalently at runtime.
-- **No manual steps required**: The CI pipeline is fully automated. Every build follows the same process: lint → build →
-  verify → checksum → (optionally) release.
+- **Recorded inputs support functional replay**: Builds using the same exact source, target architecture, base image,
+  and equivalent resolved dependencies should pass the same verification checks and behave equivalently at runtime.
+- **Automated construction**: Every package follows the same lint → build → verify → inventory → checksum process.
+  Feature-release publication still requires the documented environment approval.
 - **Cross-architecture consistency**: The same build runs for x86_64 and ARM64. The verification checklist is identical.
   Both must pass their respective checks.
 
 ### What Is NOT Guaranteed
 
-| Variation                                 | Cause                                                                          | Impact                                       |
-| ----------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| SHA256 hash differs                       | CPack embedded timestamps, compiler timestamps                                 | None — functional equivalence unaffected     |
-| Binary size varies slightly               | Compiler optimisations, linker alignment                                       | None — difference is typically bytes         |
-| Bundled dep versions pinned at clone time | Dep version configs (Build*.cmake in `cmake.deps/`) are cloned with the source; actual downloads happen via CMake ExternalProject during build | Low — Neovim pins exact dep revisions        |
-| Host CPU instruction set                  | Compiler auto-detects microarchitecture                                        | Low — Neovim targets baseline x86_64/ARM64v8 |
+| Variation           | Cause                                               | Impact                                           |
+| ------------------- | --------------------------------------------------- | ------------------------------------------------ |
+| SHA256 hash differs | Unrecorded apt state or other upstream build inputs | Investigate before treating builds as equivalent |
+| Binary size differs | Toolchain, dependency, or source variation          | Investigate rather than assuming it is benign    |
 
 ### Degraded Reproducibility Outside the Container
 
-Building outside the container (running `build.sh` directly on a host system) is reproducible only if the host OS and
-toolchain versions match the pinned container. Differences in `gcc`, `cmake`, `ninja`, or system library versions may
-produce packages with different dependency requirements or slightly different code generation.
+Building outside the container (running `build.sh` directly on a host system) has additional uncontrolled inputs even
+if the host resembles the pinned container. Differences in `gcc`, `cmake`, `ninja`, or system libraries may change
+dependency requirements or code generation.
 
 This is why the **containerized build is the canonical build method**. Local builds outside the container are for
 development and testing only.
 
-## Verifying Reproducibility
+## Replaying the build and verification contract
 
-To verify that your build matches the canonical output:
+To replay the canonical environment and run the same functional checks:
 
 ```bash
 # 1. Build inside the pinned container
@@ -152,21 +155,21 @@ docker run --rm \
 sha256sum output/*.deb
 ```
 
-If `test.sh` passes all checks, the build is functionally reproducible according to the guarantees above.
+If `test.sh` passes, the package meets the functional verification contract. That result alone does not prove that two
+builds used identical inputs or produced identical bytes.
 
 ## Cross-Architecture Considerations
 
 The CI runs on GitHub Actions runners with the build and test executed inside a reproducible `ubuntu:26.04` container.
-The runner OS does not need to match the target OS: x86_64 runners are sourced from the repo-level variable
+The runner OS does not need to match the target OS: x86_64 runners are selected through the repository variable
 `RUNNER_X86_64` (default: `ubuntu-latest`); ARM64 runners come from `RUNNER_AARCH64` (default:
-`ubuntu-24.04-arm`, as no `ubuntu-26.04-arm` runner is available yet). The container provides the actual
-build and test environment.
+`ubuntu-24.04-arm`). The container provides the actual build and test environment.
 
 The CI matrix builds on two architectures:
 
-| Architecture    | CI Runner (via repo variable)                          | `.deb` filename         |
-| --------------- | ------------------------------------------------------- | ----------------------- |
-| x86_64          | `${{ vars.RUNNER_X86_64 }}` (default `ubuntu-latest`)  | `nvim-linux-x86_64.deb` |
+| Architecture    | CI Runner (via repo variable)                             | `.deb` filename         |
+| --------------- | --------------------------------------------------------- | ----------------------- |
+| x86_64          | `${{ vars.RUNNER_X86_64 }}` (default `ubuntu-latest`)     | `nvim-linux-x86_64.deb` |
 | aarch64 / ARM64 | `${{ vars.RUNNER_AARCH64 }}` (default `ubuntu-24.04-arm`) | `nvim-linux-arm64.deb`  |
 
 The ARM runner/build matrix uses the `aarch64` architecture label, while the generated CPack `.deb` filename and Debian
@@ -179,9 +182,9 @@ for the target ISA.
 ### Verification runs inside the build container
 
 Test verification (`test.sh`) runs **inside the same container** that built the `.deb`, not on the host runner. This is
-intentional: the container's runtime libraries match the build environment's. If the `.deb` declares `libc6 >= 2.43`
-(from Ubuntu 26.04), the test environment has exactly that version. Without this pattern, runner-side testing would fail
-because the x86_64 runner (`vars.RUNNER_X86_64`, default `ubuntu-latest`) and ARM64 runner (`vars.RUNNER_AARCH64`, default `ubuntu-24.04-arm`) may have a different glibc than the container's target (2.43).
+intentional: the container's runtime libraries match the build environment's. The generated `Depends` field is the
+authority for the actual glibc and libgcc minima. Runner-side testing could otherwise fail when hosted-runner libraries
+differ from the target container.
 
 The CI workflow achieves this with:
 
@@ -198,17 +201,9 @@ The CI workflow achieves this with:
         "$(cat output/EXPECTED_PACKAGE_VERSION)"
 ```
 
-### Future: ubuntu-26.04 runner adoption
-
-When GitHub releases `ubuntu-26.04-arm` runner images, update:
-
-1. Set the repo-level variable `RUNNER_AARCH64` to `ubuntu-26.04-arm` (Settings → Secrets and Variables → Actions → Variables).
-   All workflows pick it up immediately — no per-file changes needed.
-2. `ubuntu-latest` will auto-roll to `ubuntu-26.04` once GitHub updates the alias; no action required unless
-   you want to pin explicitly (set `RUNNER_X86_64` to `ubuntu-26.04`).
-3. This file: update the runner table to remove the `(no ... runner is available yet)` notation.
-
-Monitor: https://github.com/actions/runner-images
+Runner upgrades are operational configuration changes: verify the desired labels in
+[actions/runner-images](https://github.com/actions/runner-images), update `RUNNER_X86_64` or `RUNNER_AARCH64`, and let
+the native matrix validate them. Prose does not track anticipated future labels.
 
 ## References
 
