@@ -101,6 +101,7 @@ class ReleaseReadinessTests(unittest.TestCase):
             set -euo pipefail
             case "${{1:-}} ${{2:-}}" in
               "auth status") exit 0 ;;
+              "api repos/neovim/neovim/releases/latest") exit 1 ;;
               # Mock fixture — values are placeholders, not assertions.
             # The script only checks that these variables EXIST, not their values.
             "variable list") printf '{variables}'; exit 0 ;;
