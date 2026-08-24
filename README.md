@@ -26,13 +26,14 @@ curl -LO https://github.com/CodeSigils/neovim-latest-ubuntu/releases/latest/down
 sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-On ARM64 systems, use `nvim-linux-arm64.deb` instead. Releases produced by the current pipeline pass the native x86_64
-and ARM64 matrix and include checksums, build metadata, SPDX SBOMs, and GitHub build-provenance and SBOM attestations.
+On ARM64 systems, use `nvim-linux-arm64.deb` instead. New releases created by the current pipeline pass the native
+x86_64 and ARM64 matrix and include checksums, build metadata, SPDX SBOMs, and GitHub build-provenance and SBOM
+attestations. The legacy `v0.12.5` release predates that expanded asset contract.
 
 That's it! Neovim is now installed system-wide with `update-alternatives` registration for `vi`, `vim`, and
 `view` commands.
 
-> For custom versions or reproducible builds, see [Compilation Instructions](#compilation-instructions).
+> For custom versions or replay-oriented builds, see [Compilation Instructions](#compilation-instructions).
 
 ### Package replacement and apt behavior
 
@@ -58,12 +59,12 @@ sudo apt-mark unhold neovim
 
 Neovim upstream stopped shipping `.deb` packages in v0.9. The alternatives all have trade-offs:
 
-| Approach                   | Drawback                                                              |
-| -------------------------- | --------------------------------------------------------------------- |
-| `apt install neovim`       | Often lags behind latest release by months                            |
-| Official AppImage          | No package-manager ownership or system-wide alternatives integration  |
-| Snap (`snap install nvim`) | Classic confinement (no sandbox), but slower startup than native .deb |
-| Build from source manually | No package manager tracking, no clean uninstall                       |
+| Approach                   | Drawback                                                                 |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `apt install neovim`       | Tracks Ubuntu's selected version rather than necessarily latest upstream |
+| Official AppImage          | No package-manager ownership or system-wide alternatives integration     |
+| Snap (`snap install nvim`) | Snap-managed installation and refreshes; uses classic confinement        |
+| Build from source manually | No package manager tracking or automatic clean uninstall                 |
 
 This project gives you the latest Neovim as a proper system package — `update-alternatives` registration, clean
 uninstall, dependency tracking.
@@ -89,7 +90,7 @@ git sparse-checkout set --no-cone '/*' '!wallpapers/'
 
 ## Compilation Instructions
 
-For custom builds, reproducible builds, or building newer/older versions of Neovim.
+For custom builds, replay-oriented builds, or building newer/older versions of Neovim.
 
 ### Prerequisites
 
@@ -119,10 +120,10 @@ git clone --depth 1 --branch v<VERSION> https://github.com/neovim/neovim && cd n
 make CMAKE_BUILD_TYPE=Release && cd build && cpack -G DEB && sudo dpkg -i nvim-linux-x86_64.deb
 ```
 
-### Containerized Build (Recommended for Reproducibility)
+### Containerized Build (Recommended for Repeatability)
 
 Build inside a Podman (or Docker) container matching the target OS. This isolates the build from most host state and is
-the canonical way to reproduce the project environment:
+the canonical way to replay the project environment:
 
 ```bash
 # Build the container image (bakes build.sh into the image)
@@ -227,10 +228,9 @@ gh attestation verify nvim-linux-x86_64.deb \
 
 ## License
 
-Copyright Neovim contributors. All rights reserved.
-
-Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0). See
-[`LICENSE`](./LICENSE) for the full text.
+The packaging automation in this repository is licensed under the
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0); see [`LICENSE`](./LICENSE). Generated
+packages contain Neovim, which retains its upstream copyright notices and Apache 2.0 license.
 
 ---
 
@@ -242,13 +242,13 @@ Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses
 | **Base OS**      | Ubuntu LTS (defined in Containerfile via `ARG UBUNTU_VERSION`)                                                 |
 | **Build system** | Ninja (auto-detected by Neovim's Makefile)                                                                     |
 | **Dependencies** | Upstream-pinned bundled dependencies plus CPack-derived Ubuntu runtime dependencies                            |
-| **CI/CD**        | GitHub Actions with container reproducibility                                                                  |
+| **CI/CD**        | GitHub Actions with a pinned, containerized build environment                                                  |
 | **Verification** | 8-point automated test suite (install, package/runtime versions, smoke, health, deps, alternatives, uninstall) |
 
 ## Documentation
 
 - **[docs/architecture.md](./docs/architecture.md)** — Architectural invariants and code map (read this first)
-- **[docs/reproducibility.md](./docs/reproducibility.md)** — Build reproducibility approach, guarantees, and limitations
+- **[docs/reproducibility.md](./docs/reproducibility.md)** — Functional replayability approach, guarantees, and limits
 - **[docs/resources.md](./docs/resources.md)** — Authoritative upstream, packaging, and automation references
 - **[RELEASING.md](./RELEASING.md)** — Release process guide for maintainers
 - **[SECURITY.md](./SECURITY.md)** — Security policy, scanners, distribution boundaries

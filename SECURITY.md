@@ -23,11 +23,12 @@ vulnerability reporting**:
 2. Click **"Report a vulnerability"**
 3. Provide a description, steps to reproduce, and impact
 
-Reports are acknowledged within 72 hours. You should receive a timeline for review within 5 business days.
+Reports are acknowledged and triaged as maintainer availability permits. Keep vulnerability details private until a fix
+or coordinated disclosure plan is available.
 
 ## Build Pipeline Security
 
-All `.deb` artifacts are built inside a **containerised, pinned build environment**:
+Published `.deb` artifacts are built inside a **containerised, pinned build environment**:
 
 - **Pinned base image** — `Containerfile` uses a specific Ubuntu LTS image pinned via SHA256 digest, with repo-level
   variables able to override `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` in CI. This pins the base image;
@@ -35,16 +36,18 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 - **Parameterised base image** — `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` are governed by repo-level
   variables in CI, with public hardcoded fallbacks for fork compatibility.
 - **Optional apt snapshot** — release operators can pass `UBUNTU_APT_SNAPSHOT` to pin Ubuntu package indexes for a
-  reproducibility-focused build; normal scheduled builds intentionally follow the current Ubuntu repositories.
-- **Container isolation** — compilation and packaging run inside `docker build` then `docker run`, limiting their access
-  to the hosted runner. Repository lint and orchestration scripts still execute on the host runner with read-only
-  repository permissions.
+  replay-focused build; normal scheduled builds intentionally follow the current Ubuntu repositories.
+- **Build-environment isolation** — compilation and packaging run inside `docker build` then `docker run`, reducing
+  coupling to hosted-runner state. The container is not treated as a security sandbox for untrusted upstream code.
+  Quality jobs use read-only repository permissions; publication and failure-reporting jobs receive only their explicit
+  release, attestation, or issue permissions.
 - **Verification inside the container** — `test.sh` runs inside the same container that built the `.deb`, ensuring
   runtime library versions match the build environment. The 8-check test suite covers install, package and runtime
   version matches, smoke test, runtime health, library dependencies, `update-alternatives` registration, and clean
   uninstall.
-- **Integrity and inventory** — new releases publish `SHA256SUMS`, per-architecture build metadata, and SPDX SBOMs.
-  `actions/attest` creates separate build-provenance and SBOM attestations using GitHub OIDC and Sigstore.
+- **Integrity and inventory** — releases produced by the current pipeline publish `SHA256SUMS`, per-architecture build
+  metadata, and SPDX SBOMs. `actions/attest` creates separate build-provenance and SBOM attestations using GitHub OIDC
+  and Sigstore. The legacy `v0.12.5` release predates this expanded asset contract.
 - **Exact upstream source** — stable release tags are dereferenced through the authenticated GitHub API and the build
   fetches the resulting full commit SHA rather than trusting a mutable tag name during compilation. Nightly builds
   likewise resolve and record the exact `master` commit before starting.
@@ -52,8 +55,8 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
   executes upstream build code. Checkout credentials are not persisted in any job workspace.
 - **Build metadata** — releases produced by the current pipeline record upstream and packaging commits, target image
   digest, architecture, package version, and artifact hash. Publication recomputes and verifies those bindings.
-- **Package policy** — stable packages use standard CPack metadata, documentation, reproducible timestamps, and
-  stripping. The remaining reviewed upstream-content Lintian findings stay visible; any new tag blocks publication.
+- **Package policy** — stable packages use standard CPack metadata, documentation, commit-derived package timestamps,
+  and stripping. The remaining reviewed upstream-content Lintian findings stay visible; any new tag blocks publication.
 
 ## Automated Scanners & Agents
 
@@ -72,7 +75,7 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 | **Dependency consistency**     | README, manifest files, Containerfile, and scripts agree on prerequisites                   | Every applicable policy/package gate                           | Yes                                                        |
 | **Release planner**            | Published upstream release, exact source commit, published local assets, and approval class | Daily and on stable CI                                         | Yes                                                        |
 | **Release readiness gate**     | Emergency tag-path preflight: upstream tag, release absence, clean synchronized git state   | Manual recovery only                                           | No (outside CI)                                            |
-| **Author attribution guard**   | All commits authored by canonical human maintainer identity; no AI-agent trailers           | Every push and pull request                                    | Yes                                                        |
+| **Author attribution guard**   | Commits use the canonical human maintainer identity and contain no AI-agent trailers        | Pushes to `main` and pull requests targeting `main`            | Yes                                                        |
 | **Build matrix**               | x86_64 + aarch64 both must pass; release is blocked if either fails                         | Every build                                                    | Yes                                                        |
 
 ## Distribution & Package Policy
@@ -82,14 +85,15 @@ All `.deb` artifacts are built inside a **containerised, pinned build environmen
 - **Single installable package** — upstream-pinned bundled dependencies are built with Neovim. CPack derives and
   declares the remaining target-Ubuntu shared-library dependencies; the current package is not described as fully
   static.
-- **No distro interference** — the package uses the name `neovim` (matching Ubuntu's archive package) so `apt-mark`
-  can hold/pin it cleanly. It does not overwrite or shadow system files outside Neovim's installation path.
+- **Package-manager ownership** — the package uses the name `neovim`, matching Ubuntu's archive package, so apt can
+  track, replace, hold, and remove it normally. Its maintainer scripts register and unregister the documented
+  `update-alternatives` entries.
 - **Candidate-first releases** — scheduled or explicitly requested publication builds and verifies both architectures
   before creating a draft release and tag. Tag pushes remain an emergency compatibility path. Published tags and
   assets created after immutable releases were enabled are protected by repository enforcement. The legacy `v0.12.5`
   release predates the setting and is not retroactively immutable.
-- **HTTPS-only distribution** — all artifacts are served via TLS from GitHub Releases or Actions artifacts. There is
-  no plain-HTTP mirror, no PPA, no custom repository endpoint.
+- **HTTPS-only distribution** — published release and workflow artifacts are served via TLS from GitHub. There is no
+  plain-HTTP mirror, no PPA, and no custom repository endpoint.
 - **Fork compatibility** — all CI expressions have hardcoded fallbacks so forks work without configuring repo-level
   variables. No secrets or privileged credentials are baked into the pipeline.
 
@@ -115,7 +119,7 @@ gate.
 The full build pipeline is defined in this repository and readable by anyone:
 
 - `build.sh` — parameterised build script
-- `Containerfile` — reproducible build environment
+- `Containerfile` — pinned, containerized build environment
 - `test.sh` — 8-check verification
 - `.github/workflows/build.yml` — stable detection and release orchestration
 - `.github/workflows/package.yml` — reusable native build and verification matrix

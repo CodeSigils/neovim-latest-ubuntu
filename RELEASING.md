@@ -153,8 +153,8 @@ maintainer session additionally verifies the admin-only immutable-release settin
 ### Stable workflow says the release already exists
 
 The planner found a published release satisfying the asset contract, so it correctly skipped the expensive build. The
-immutable legacy `v0.12.5` release has an explicit historical core-asset contract; all newer releases require metadata
-and SBOMs too. Use a package-revision version for a packaging rebuild; do not mutate a published release.
+legacy `v0.12.5` release has an explicit historical core-asset contract; all newer releases require metadata and SBOMs
+too. Use a package-revision version for a packaging rebuild; do not mutate a published release.
 
 ### Release job is waiting
 

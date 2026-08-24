@@ -22,8 +22,8 @@ REQUIRED_ASSETS = CORE_ASSETS | {
     "SBOM-amd64.spdx.json",
     "SBOM-arm64.spdx.json",
 }
-# This release predates metadata/SBOM publication and is immutable. Keep its
-# historical contract explicit without weakening validation for new releases.
+# This release predates metadata/SBOM publication. Keep its historical contract
+# explicit without weakening validation for new releases.
 LEGACY_RELEASE_ASSETS = {"v0.12.5": CORE_ASSETS}
 HTTP_NOT_FOUND = 404
 

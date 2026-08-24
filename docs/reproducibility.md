@@ -1,6 +1,8 @@
 # Reproducibility — Neovim Latest deb Package
 
-**Document type:** Explanation (Diataxis) **Status:** Implemented **Last reviewed:** 2026-08
+**Document type:** Explanation (Diataxis)
+
+**Status:** Implemented
 
 ## What "Reproducible" Means Here
 
@@ -14,22 +16,17 @@ This is a **functional-replayability goal**, not a claim of byte-for-byte reprod
 packages remain rolling unless a snapshot is selected. Independent rebuild comparisons are required before describing
 the package as reproducible in the strict [Reproducible Builds](https://reproducible-builds.org/) sense.
 
-## How the Pipeline Achieves Reproducibility
+## How the Pipeline Supports Functional Replay
 
 ### 1. Pinned Base Image
 
-The `Containerfile` pins the base image to a specific SHA256 digest of the current Ubuntu LTS, using a repo-level variable so the version and digest can be updated together:
+The [`Containerfile`](../Containerfile) pins the current Ubuntu LTS base image to a specific multi-architecture SHA256
+digest. The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values come from repository variables in CI, with
+public fallbacks in the reusable package workflow and `Containerfile`. Those executable files are the source of truth
+for the current values.
 
-```dockerfile
-ARG UBUNTU_VERSION=26.04
-ARG UBUNTU_SHA256=f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
-ARG UBUNTU_APT_SNAPSHOT=""
-FROM ubuntu:${UBUNTU_VERSION}@sha256:${UBUNTU_SHA256}
-```
-
-The `UBUNTU_VERSION`, `UBUNTU_CODENAME`, and `UBUNTU_SHA256` values come from repository variables in CI, with public
-fallbacks in the workflow and `Containerfile`. `UBUNTU_APT_SNAPSHOT` is an optional build argument rather than a
-long-lived repository variable because snapshots are an operator-selected replay input.
+`UBUNTU_APT_SNAPSHOT` is an optional build argument rather than a long-lived repository variable because snapshots are
+an operator-selected replay input.
 
 ### 2. Parameterized Build Script
 
@@ -46,11 +43,11 @@ source commit. The default `latest` version and Ubuntu apt indexes intentionally
 | CMake generator    | Upstream Makefile                                          | Auto-detects Ninja                            |
 | CPack config       | Upstream `cmake.packaging/CMakeLists.txt`                  | Ships with Neovim                             |
 
-Building inside the container eliminates host-specific variation: all build prerequisites (ninja, cmake, gettext, curl,
-gcc) come from the pinned Ubuntu image's apt repositories. The base image is reproducible by digest, but apt package
-indexes are rolling by default. Set the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ` build argument to use a dated
-Ubuntu snapshot and record that timestamp when stronger replayability is required. A snapshot removes one rolling
-input; it does not by itself make the output byte-for-byte reproducible.
+Building inside the container reduces host-specific variation: all build prerequisites come from the selected Ubuntu
+image's apt repositories. The digest fixes the base-image identity, but apt package indexes are rolling by default. Set
+the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ` build argument to use a dated Ubuntu snapshot and record that
+timestamp when stronger replayability is required. A snapshot removes one rolling input; it does not by itself make the
+output byte-for-byte reproducible.
 
 Local builds using `VERSION=latest` query the upstream GitHub API and can set `GH_TOKEN` to avoid unauthenticated rate
 limits. CI resolves stable versions and nightly commits in an authenticated orchestration step, then passes only the
@@ -65,15 +62,12 @@ CPack's standard strip option and explicitly strip generated parser-library copi
 Package documentation is installed through a CPack install script, so metadata fixes do not require unpacking and
 repacking the finished archive.
 
-### 3. CI Lint Layer
+### 3. Shared Quality Gate
 
-Before any build runs, the CI workflow validates:
-
-- **shellcheck** on `build.sh`, `test.sh`, and `scripts/*.sh` — catches scripting errors
-- **hadolint** on `Containerfile` — catches container anti-patterns
-
-These lints ensure the build scripts are deterministic and well-formed. A ShellCheck-clean script is much less likely to
-depend on accidental shell behavior.
+Before any package build, the reusable workflow runs the repository's
+[shared quality gate](../.github/actions/quality-gates/action.yml). It covers shell and container linting, Python quality
+and tests, workflow syntax and security, dependency consistency, and release-policy regressions. The shared action is
+the source of truth for the exact tools and commands, avoiding a duplicated checklist here.
 
 ### 4. Verification Checklist (test.sh)
 
@@ -96,7 +90,7 @@ version from package metadata when explicit expectations are omitted.
 
 ### 5. Explicit Artifact Handling
 
-The pipeline never relies on implicit paths or auto-detected locations:
+Package artifacts use explicit paths and identity checks:
 
 - `cpack -B /output` writes the `.deb` to an explicit directory
 - CI mounts `/output` from the container to `$PWD/output/` on the host
@@ -108,7 +102,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 - `SBOM-<arch>.spdx.json` inventories the package in SPDX 2.3 format; publication creates a separate SBOM attestation
   binding each SBOM to its package
 
-## Reproducibility Guarantees
+## Replayability Guarantees and Limits
 
 ### What Is Guaranteed
 
@@ -126,7 +120,7 @@ The pipeline never relies on implicit paths or auto-detected locations:
 | SHA256 hash differs | Unrecorded apt state or other upstream build inputs | Investigate before treating builds as equivalent |
 | Binary size differs | Toolchain, dependency, or source variation          | Investigate rather than assuming it is benign    |
 
-### Degraded Reproducibility Outside the Container
+### Additional Variation Outside the Container
 
 Building outside the container (running `build.sh` directly on a host system) has additional uncontrolled inputs even
 if the host resembles the pinned container. Differences in `gcc`, `cmake`, `ninja`, or system libraries may change
@@ -137,40 +131,55 @@ development and testing only.
 
 ## Replaying the build and verification contract
 
-To replay the canonical environment and run the same functional checks:
+To replay the recorded source and packaging inputs and run the same functional checks, first use a worktree at the exact
+packaging-repository commit in the release metadata. Then take the upstream version, source commit, and optional package
+revision from that metadata. Do not use `VERSION=latest`, because it intentionally follows the moving upstream release:
 
 ```bash
-# 1. Build inside the pinned container
-docker build -t neovim-builder -f Containerfile .
-docker run --rm -e VERSION=latest -v "$PWD/output:/output" neovim-builder
+# Replace these values with those recorded for the release being replayed.
+VERSION=X.Y.Z
+SOURCE_COMMIT=0123456789abcdef0123456789abcdef01234567
+PACKAGE_REVISION=
 
-# 2. Test inside the disposable target container (auto-detects package version)
+# 1. Build inside the pinned container.
+docker build -t neovim-builder -f Containerfile .
+mkdir -p output
+docker run --rm \
+  -e "VERSION=$VERSION" \
+  -e "SOURCE_COMMIT=$SOURCE_COMMIT" \
+  -e "PACKAGE_REVISION=$PACKAGE_REVISION" \
+  -v "$PWD/output:/output" \
+  neovim-builder
+
+# 2. Test inside the disposable target container with independent expectations.
 docker run --rm \
   -v "$PWD/test.sh:/tmp/test.sh:ro" \
   -v "$PWD/output:/output:ro" \
   neovim-builder \
-  bash /tmp/test.sh /output/nvim-linux-x86_64.deb
+  bash /tmp/test.sh /output/nvim-linux-x86_64.deb \
+    "$(cat output/EXPECTED_SOURCE_VERSION)" \
+    "$(cat output/EXPECTED_PACKAGE_VERSION)"
 
-# 3. Compare checksum style (not exact values — timestamps differ)
+# 3. Record the resulting checksum for comparison.
 sha256sum output/*.deb
 ```
 
 If `test.sh` passes, the package meets the functional verification contract. That result alone does not prove that two
-builds used identical inputs or produced identical bytes.
+builds used identical inputs or produced identical bytes. A different checksum can result from rolling apt state,
+toolchain changes, or another unresolved build input even though package timestamps use `SOURCE_DATE_EPOCH`.
 
 ## Cross-Architecture Considerations
 
-The CI runs on GitHub Actions runners with the build and test executed inside a reproducible `ubuntu:26.04` container.
-The runner OS does not need to match the target OS: x86_64 runners are selected through the repository variable
-`RUNNER_X86_64` (default: `ubuntu-latest`); ARM64 runners come from `RUNNER_AARCH64` (default:
-`ubuntu-24.04-arm`). The container provides the actual build and test environment.
+The CI runs on GitHub Actions runners with the build and test executed inside the digest-pinned target-Ubuntu container.
+The runner OS does not need to match the target OS. `RUNNER_X86_64` and `RUNNER_AARCH64` select the native hosts; the
+reusable package workflow contains the public fallback labels and the container provides the build and test environment.
 
 The CI matrix builds on two architectures:
 
-| Architecture    | CI Runner (via repo variable)                             | `.deb` filename         |
-| --------------- | --------------------------------------------------------- | ----------------------- |
-| x86_64          | `${{ vars.RUNNER_X86_64 }}` (default `ubuntu-latest`)     | `nvim-linux-x86_64.deb` |
-| aarch64 / ARM64 | `${{ vars.RUNNER_AARCH64 }}` (default `ubuntu-24.04-arm`) | `nvim-linux-arm64.deb`  |
+| Architecture    | Runner variable  | `.deb` filename         |
+| --------------- | ---------------- | ----------------------- |
+| x86_64          | `RUNNER_X86_64`  | `nvim-linux-x86_64.deb` |
+| aarch64 / ARM64 | `RUNNER_AARCH64` | `nvim-linux-arm64.deb`  |
 
 The ARM runner/build matrix uses the `aarch64` architecture label, while the generated CPack `.deb` filename and Debian
 package metadata both use the Debian/Ubuntu architecture name `arm64`.
@@ -186,20 +195,8 @@ intentional: the container's runtime libraries match the build environment's. Th
 authority for the actual glibc and libgcc minima. Runner-side testing could otherwise fail when hosted-runner libraries
 differ from the target container.
 
-The CI workflow achieves this with:
-
-```yaml
-- name: Test .deb package
-  run: |
-    DEB_NAME="${{ matrix.deb_file }}"
-    docker run --rm \
-      -v "$PWD/test.sh:/tmp/test.sh:ro" \
-      -v "$PWD/output:/output:ro" \
-      neovim-builder \
-      bash /tmp/test.sh "/output/$DEB_NAME" \
-        "$(cat output/EXPECTED_SOURCE_VERSION)" \
-        "$(cat output/EXPECTED_PACKAGE_VERSION)"
-```
+The test invocation and architecture matrix in
+[`.github/workflows/package.yml`](../.github/workflows/package.yml) are authoritative for the current implementation.
 
 Runner upgrades are operational configuration changes: verify the desired labels in
 [actions/runner-images](https://github.com/actions/runner-images), update `RUNNER_X86_64` or `RUNNER_AARCH64`, and let

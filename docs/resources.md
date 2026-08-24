@@ -68,7 +68,7 @@ also release assets so verification does not depend on a single interface.
 - [Deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
   — feature-release approval gates.
 - [GitHub-hosted runner images](https://github.com/actions/runner-images) — available x86_64 and ARM64 labels.
-- [Immutable releases](https://docs.github.com/en/code-security/supply-chain-security/end-to-end-supply-chain/securing-accounts#immutable-releases)
+- [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
   — release immutability behavior.
 
 Do not copy runner-image package versions into prose. The workflow variables and actual run metadata are the authority.
