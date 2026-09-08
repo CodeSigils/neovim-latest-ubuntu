@@ -70,6 +70,8 @@ metadata, and the SBOMs are also release assets so verification does not depend 
 - [GitHub-hosted runner images](https://github.com/actions/runner-images) — available x86_64 and ARM64 labels.
 - [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
   — release immutability behavior.
+- [Automation identities and permissions](automation-identities.md) — repository-specific bot boundaries and
+  least-privilege notes.
 
 Do not copy runner-image package versions into prose. The workflow variables and actual run metadata are the authority.
 GitHub does not apply path filters to tag pushes, so the emergency tag path always runs the stable workflow.

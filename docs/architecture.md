@@ -39,6 +39,7 @@ Use it to answer two questions quickly:
 - `scripts/check-lintian.sh`, `scripts/lintian-allowlist.txt` — package-policy regression baseline.
 - `requirements-dev.txt`, `pyproject.toml` — pinned repository-validation tools and Python quality policy; CI installs
   them with uv.
+- `docs/automation-identities.md` — current bot identities, permissions, trigger boundaries, and manual controls.
 - `docs/` — implemented architecture and replayability guidance, the temporary automation roadmap, and curated
   reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.
@@ -114,16 +115,16 @@ maintainer.
 The regression suite currently contains **58 tests** and is run with `python3 -m unittest discover -s tests -p 'test_*.py'`
 in the shared quality gate.
 
-| Automated | Manual maintainer action |
-| --- | --- |
-| Daily stable-release detection, exact source resolution, and candidate builds on x86_64 and ARM64 | Approve feature-release publication in `release-reviewed` |
-| Lint, Python quality, ShellCheck, Actionlint, Zizmor, Hadolint, YAML, dependency, regression, and package checks | Review and merge Dependabot pull requests; native auto-merge is disabled |
-| Checksums, build metadata, SPDX SBOMs, attestations, and post-publication verification | Decide whether workflow, packaging, script, container, permission, or test changes are safe |
-| Automatic maintenance-release publication after all gates pass | Investigate failed or ambiguous releases and apply remediation |
-| Nightly artifact builds and failure/success issue maintenance | Review stale branches, superseded PRs, and repository-maintenance reports |
-| CodeQL and author-attribution checks on pushes, pull requests, and scheduled runs | Respond to vulnerabilities and change release, target, architecture, or branch policies |
-| Dependabot proposals, action-freshness checks, settings audits, and stale-branch reports | Use and validate the emergency tag-based release path when required |
-| Deletion of merged branches and protection against main deletion or force-pushes | No manual action |
+| Automated                                                                                                        | Manual maintainer action                                                                    |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Daily stable-release detection, exact source resolution, and candidate builds on x86_64 and ARM64                | Approve feature-release publication in `release-reviewed`                                   |
+| Lint, Python quality, ShellCheck, Actionlint, Zizmor, Hadolint, YAML, dependency, regression, and package checks | Review and merge Dependabot pull requests; native auto-merge is disabled                    |
+| Checksums, build metadata, SPDX SBOMs, attestations, and post-publication verification                           | Decide whether workflow, packaging, script, container, permission, or test changes are safe |
+| Automatic maintenance-release publication after all gates pass                                                   | Investigate failed or ambiguous releases and apply remediation                              |
+| Nightly artifact builds and failure/success issue maintenance                                                    | Review stale branches, superseded PRs, and repository-maintenance reports                   |
+| CodeQL and author-attribution checks on pushes, pull requests, and scheduled runs                                | Respond to vulnerabilities and change release, target, architecture, or branch policies     |
+| Dependabot proposals, action-freshness checks, settings audits, and stale-branch reports                         | Use and validate the emergency tag-based release path when required                         |
+| Deletion of merged branches and protection against main deletion or force-pushes                                 | No manual action                                                                            |
 
 The Dependabot classifier reports both dimensions when they apply: a sensitive-path update can also be marked
 `waiting-for-checks` or `checks-failed`. The action-freshness monitor retries transient GitHub failures and records an
