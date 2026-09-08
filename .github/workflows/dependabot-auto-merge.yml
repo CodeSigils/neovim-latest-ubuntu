@@ -1,7 +1,9 @@
 name: Dependabot safe auto-merge
 
 on:
-  pull_request_target:
+  # This workflow never checks out or executes PR content; it reads changed
+  # paths through the GitHub API and only handles Dependabot-authored branches.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [opened, reopened, synchronize, ready_for_review]
 
 env:
