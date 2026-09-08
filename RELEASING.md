@@ -141,7 +141,7 @@ The policy workflow is authoritative. To run its Python and workflow-security ch
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements-dev.txt
+uv pip install --system --requirement requirements-dev.txt
 ruff check scripts tests
 ruff format --check scripts tests
 python -m unittest discover -s tests -p 'test_*.py'

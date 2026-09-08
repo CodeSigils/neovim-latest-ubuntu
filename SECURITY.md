@@ -106,9 +106,9 @@ The workflows are designed so that every code or workflow change has a directly 
   that can affect generated packages also run the native package matrix; documentation and validation-only changes do
   not spend package-build minutes.
 - Workflow changes run CodeQL and the author-attribution guard.
-- Low-risk Dependabot updates may be queued for native GitHub auto-merge after required checks pass. The workflow
-  allowlist excludes release, packaging, scripts, container, permission, and test changes; unsupported paths require a
-  maintainer decision.
+- Dependabot pull requests are not merged by a repository workflow. A maintainer may queue GitHub's native auto-merge
+  only for a reviewed, low-risk update after required checks pass; release, packaging, scripts, container, permission,
+  and test changes require an explicit manual decision.
 
 Repository branch-protection settings are managed in GitHub rather than in this repository. Maintainers should require
 the applicable validation checks before merging, while allowing documentation-only changes to use the lightweight gate.
