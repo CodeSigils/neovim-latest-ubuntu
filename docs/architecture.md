@@ -37,7 +37,8 @@ Use it to answer two questions quickly:
   and tag target after publication.
 - `scripts/install-package-docs.cmake` — Debian copyright and changelog files added during CPack staging.
 - `scripts/check-lintian.sh`, `scripts/lintian-allowlist.txt` — package-policy regression baseline.
-- `requirements-dev.txt`, `pyproject.toml` — pinned repository-validation tools and Python quality policy.
+- `requirements-dev.txt`, `pyproject.toml` — pinned repository-validation tools and Python quality policy; CI installs
+  them with uv.
 - `docs/` — implemented architecture and replayability guidance, the temporary automation roadmap, and curated
   reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.

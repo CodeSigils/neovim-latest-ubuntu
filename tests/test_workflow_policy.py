@@ -174,6 +174,9 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("python3 -m unittest discover", quality)
         self.assertIn("ruff check", quality)
         self.assertIn("zizmor --offline", quality)
+        self.assertIn("astral-sh/setup-uv@", quality)
+        self.assertIn("uv pip install --system", quality)
+        self.assertNotIn("cache: pip", quality)
         self.assertIn(".githooks/prepare-commit-msg", quality)
 
     def test_validation_only_changes_do_not_start_native_package_builds(self) -> None:
