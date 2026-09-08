@@ -168,6 +168,29 @@ class MaintenanceToolTests(unittest.TestCase):
                 dependabot_report.classify("owner/repo"), ["#8 waiting-for-checks: deps (files=0)"]
             )
 
+    def test_dependabot_classifier_keeps_sensitive_and_failed_visible(self) -> None:
+        responses = {
+            "repos/owner/repo/pulls?state=open&per_page=100": [
+                {
+                    "number": 9,
+                    "user": {"login": "dependabot[bot]"},
+                    "head": {"ref": "deps", "sha": "c"},
+                }
+            ],
+            "repos/owner/repo/pulls/9/files?per_page=100": [{"filename": "scripts/check.py"}],
+            "repos/owner/repo/commits/c/check-runs?per_page=100": {
+                "check_runs": [{"name": "policy", "status": "completed", "conclusion": "failure"}]
+            },
+        }
+        with (
+            patch.object(dependabot_report, "gh_json_pages", side_effect=responses.__getitem__),
+            patch.object(dependabot_report, "gh_json", side_effect=responses.__getitem__),
+        ):
+            self.assertEqual(
+                dependabot_report.classify("owner/repo"),
+                ["#9 manual-review-sensitive-path; checks-failed: deps (files=1)"],
+            )
+
     def test_stale_report_excludes_main_and_open_pr_heads(self) -> None:
         old = "2000-01-01T00:00:00Z"
         responses = {

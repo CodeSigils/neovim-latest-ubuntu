@@ -41,6 +41,10 @@ def classify(repository: str) -> list[str]:
         ]
         if sensitive:
             state = "manual-review-sensitive-path"
+            if pending:
+                state += "; waiting-for-checks"
+            elif failed:
+                state += "; checks-failed"
         elif pending:
             state = "waiting-for-checks"
         elif failed:

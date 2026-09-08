@@ -92,7 +92,7 @@ def main() -> int:
         if cache_key not in latest_cache:
             try:
                 latest_cache[cache_key] = latest_sha(repo, major, token)
-            except (OSError, ValueError, KeyError, urllib.error.HTTPError) as error:
+            except (OSError, RuntimeError, ValueError, KeyError, urllib.error.HTTPError) as error:
                 latest_cache[cache_key] = error
         result = latest_cache[cache_key]
         if isinstance(result, Exception):

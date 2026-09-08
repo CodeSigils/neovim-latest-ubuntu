@@ -111,7 +111,7 @@ Use it to answer two questions quickly:
 The repository automates repeatable build and evidence checks while reserving policy decisions and remediation for the
 maintainer.
 
-The regression suite currently contains **57 tests** and is run with `python3 -m unittest discover -s tests -p 'test_*.py'`
+The regression suite currently contains **58 tests** and is run with `python3 -m unittest discover -s tests -p 'test_*.py'`
 in the shared quality gate.
 
 | Automated | Manual maintainer action |
