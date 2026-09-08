@@ -78,6 +78,18 @@ Published `.deb` artifacts are built inside a **containerised, pinned build envi
 | **Author attribution guard**   | Commits use the canonical human maintainer identity and contain no AI-agent trailers        | Pushes to `main` and pull requests targeting `main`            | Yes                                                        |
 | **Build matrix**               | x86_64 + aarch64 both must pass; release is blocked if either fails                         | Every build                                                    | Yes                                                        |
 
+## Automation identity boundaries
+
+The `github-actions[bot]` identity uses a short-lived, job-scoped `GITHUB_TOKEN`. Most jobs are read-only; only the
+release publication job can write release contents and attestations, and only failure-reporting jobs can write issues.
+The post-publication verifier is read-only. No workflow can merge, rebase, close, or delete pull requests, and native
+Dependabot auto-merge is disabled.
+
+Dependabot runs are treated as untrusted dependency changes: their workflows use read-only tokens and do not receive
+ordinary repository secrets by default. Merged source branches are removed by GitHub's repository setting, not by a
+privileged workflow. See [`docs/automation-identities.md`](docs/automation-identities.md) for the complete permission
+matrix, trigger behavior, and official references.
+
 ## Distribution & Package Policy
 
 - **No apt repository mixing** — this project does not instruct users to add third-party apt sources, PPAs, or Debian
