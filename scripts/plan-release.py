@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -26,6 +27,8 @@ REQUIRED_ASSETS = CORE_ASSETS | {
 # explicit without weakening validation for new releases.
 LEGACY_RELEASE_ASSETS = {"v0.12.5": CORE_ASSETS}
 HTTP_NOT_FOUND = 404
+MAX_API_ATTEMPTS = 3
+RETRYABLE_HTTP = {500, 502, 503, 504}
 
 
 @dataclass(frozen=True)
@@ -68,9 +71,20 @@ class GitHub:
         }
 
     def get(self, path: str) -> dict:
-        request = urllib.request.Request(f"https://api.github.com/{path}", headers=self.headers)
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return json.load(response)
+        for attempt in range(MAX_API_ATTEMPTS):
+            request = urllib.request.Request(f"https://api.github.com/{path}", headers=self.headers)
+            try:
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError as error:
+                if error.code not in RETRYABLE_HTTP:
+                    raise
+                delay = int(error.headers.get("Retry-After", "0") or 0) or 2**attempt
+            except urllib.error.URLError:
+                delay = 2**attempt
+            if attempt >= MAX_API_ATTEMPTS - 1:
+                raise RuntimeError(f"GitHub API request failed after {MAX_API_ATTEMPTS} attempts: {path}")
+            time.sleep(delay)
 
     def optional(self, path: str) -> dict | None:
         try:

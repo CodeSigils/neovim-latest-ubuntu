@@ -74,6 +74,10 @@ metadata, and the SBOMs are also release assets so verification does not depend 
 Do not copy runner-image package versions into prose. The workflow variables and actual run metadata are the authority.
 GitHub does not apply path filters to tag pushes, so the emergency tag path always runs the stable workflow.
 
+API consumers use bounded retries for transport and 5xx failures. Authentication, authorization, not-found, and
+rate-limit responses fail closed; rate limits must follow GitHub's `Retry-After` or reset guidance rather than being
+hammered with retries.
+
 ## Container tooling
 
 - [Podman build manual](https://docs.podman.io/en/latest/markdown/podman-build.1.html)

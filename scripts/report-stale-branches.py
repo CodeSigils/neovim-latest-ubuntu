@@ -12,13 +12,22 @@ import datetime as dt
 import json
 import subprocess
 import sys
+import time
+
+MAX_API_ATTEMPTS = 3
 
 
 def gh_json(path: str) -> list | dict:
-    result = subprocess.run(["gh", "api", path], capture_output=True, text=True, check=False)
-    if result.returncode:
-        raise RuntimeError(result.stderr.strip() or f"gh api failed: {path}")
-    return json.loads(result.stdout)
+    for attempt in range(MAX_API_ATTEMPTS):
+        result = subprocess.run(["gh", "api", path], capture_output=True, text=True, check=False)
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+        error = result.stderr.strip() or f"gh api failed: {path}"
+        lowered = error.lower()
+        transient = any(term in lowered for term in ("connection", "timeout", "temporarily", "could not resolve"))
+        if not transient or attempt >= MAX_API_ATTEMPTS - 1:
+            raise RuntimeError(error)
+        time.sleep(2**attempt)
 
 
 def report(repository: str, days: int) -> list[str]:
