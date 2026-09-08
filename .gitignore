@@ -104,6 +104,8 @@ notes.txt
 tmp/
 .tmp/
 *.log
+.coverage
+htmlcov/
 
 # Agent runtime data (user-local, not repo config)
 .agents/

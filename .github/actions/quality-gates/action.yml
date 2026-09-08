@@ -42,7 +42,10 @@ runs:
       run: zizmor --offline --min-severity medium --min-confidence medium .
     - name: Run regression tests
       shell: bash
-      run: python3 -m unittest discover -s tests -p 'test_*.py'
+      run: |
+        # Equivalent command: python3 -m unittest discover -s tests -p 'test_*.py'
+        python3 -m coverage run --source=scripts -m unittest discover -s tests -p 'test_*.py'
+        python3 -m coverage report --show-missing
     - name: Run hadolint
       uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
       with:
