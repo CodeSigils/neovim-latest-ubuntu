@@ -242,6 +242,17 @@ class WorkflowPolicyTests(unittest.TestCase):
             (REPO / ".github/workflows/dependency-freshness.yml").read_text(),
         )
 
+    def test_dependency_automation_is_allowlisted_and_stale_scan_is_read_only(self) -> None:
+        auto = load_workflow("dependabot-auto-merge.yml")
+        self.assertEqual(auto["permissions"], {"contents": "write", "pull-requests": "write"})
+        auto_source = (REPO / ".github/workflows/dependabot-auto-merge.yml").read_text()
+        self.assertIn("dependabot[bot]", auto_source)
+        self.assertIn("--auto --squash --delete-branch", auto_source)
+        self.assertIn("Sensitive or unsupported path", auto_source)
+        stale = load_workflow("stale-branches.yml")
+        self.assertEqual(stale["permissions"], {"contents": "read", "pull-requests": "read"})
+        self.assertIn("report-stale-branches.py", (REPO / ".github/workflows/stale-branches.yml").read_text())
+
     def test_workflows_use_the_configurable_x86_runner_and_node24(self) -> None:
         for path in (REPO / ".github/workflows").glob("*.yml"):
             workflow = load_workflow(path.name)

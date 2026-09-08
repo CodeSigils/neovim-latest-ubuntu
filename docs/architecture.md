@@ -26,6 +26,8 @@ Use it to answer two questions quickly:
 - `.github/workflows/codeql.yml`, `.github/workflows/check-author.yml` — security scanning and repository guardrails.
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
 - `.github/workflows/dependency-freshness.yml` — weekly action-freshness and token-readable release-configuration audit.
+- `.github/workflows/dependabot-auto-merge.yml` — allowlisted, check-gated Dependabot auto-merge queue.
+- `.github/workflows/stale-branches.yml` — weekly report-only inactive-branch monitor.
 - `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and local admin
   immutability drift gate.
 - `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
@@ -99,6 +101,8 @@ Use it to answer two questions quickly:
     - Maintenance releases publish automatically. Feature releases use the protected `release-reviewed` environment.
     - Routine release/nightly success creates no issue; release/nightly failures create a self-healing maintainer issue.
     - The post-publication verifier runs with read-only contents/attestation permissions; success reporting waits for it.
+    - Dependency automation can queue only allowlisted low-risk updates; branch cleanup is report-only except for
+      GitHub's automatic delete-after-merge setting.
 
 ## Design rationale
 
