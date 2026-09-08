@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest.mock import patch
 
@@ -92,6 +93,35 @@ class MaintenanceToolTests(unittest.TestCase):
         self.assertEqual(action_freshness.stable_tag_version("v7.2", "7"), (7, 2, 0))
         self.assertIsNone(action_freshness.stable_tag_version("v7.3.0-rc.1", "7"))
         self.assertIsNone(action_freshness.stable_tag_version("v8.0.0", "7"))
+
+    def test_action_freshness_retries_transient_http_failure(self) -> None:
+        class Response:
+            def __init__(self, body):
+                self.body = body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return self.body
+
+        error = urllib.error.URLError("temporary network failure")
+        with (
+            patch.object(
+                action_freshness.urllib.request,
+                "urlopen",
+                side_effect=[
+                    error,
+                    Response(b'[{"name":"v7.2.1","commit":{"sha":"abc"}}]'),
+                    Response(b"[]"),
+                ],
+            ),
+            patch.object(action_freshness.time, "sleep"),
+        ):
+            self.assertEqual(action_freshness.latest_sha("owner/action", "7", ""), "abc")
 
     def test_dependabot_classifier_reports_failed_checks(self) -> None:
         responses = {

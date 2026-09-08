@@ -7,11 +7,35 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 PINNED = re.compile(r"uses:\s*([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@([0-9a-f]{40})\s+#\s*v?([0-9]+)")
+MAX_API_ATTEMPTS = 3
+RETRYABLE_HTTP = {500, 502, 503, 504}
+
+
+def fetch_tags(request: urllib.request.Request) -> list[dict]:
+    """Fetch one tag page with bounded retries for transient failures."""
+    for attempt in range(MAX_API_ATTEMPTS):
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                tags = json.load(response)
+            if not isinstance(tags, list):
+                raise ValueError("GitHub tags response was not an array")
+            return tags
+        except urllib.error.HTTPError as error:
+            if error.code not in RETRYABLE_HTTP:
+                raise
+            delay = int(error.headers.get("Retry-After", "0") or 0) or 2**attempt
+        except urllib.error.URLError:
+            delay = 2**attempt
+        if attempt >= MAX_API_ATTEMPTS - 1:
+            raise RuntimeError(f"GitHub tags request failed after {MAX_API_ATTEMPTS} attempts")
+        time.sleep(delay)
+    raise AssertionError("unreachable")
 
 
 def stable_tag_version(name: str, major: str) -> tuple[int, int, int] | None:
@@ -36,8 +60,7 @@ def latest_sha(repo: str, major: str, token: str) -> str:
             f"https://api.github.com/repos/{repo}/tags?per_page=100&page={page}",
             headers=headers,
         )
-        with urllib.request.urlopen(request, timeout=20) as response:
-            tags = json.load(response)
+        tags = fetch_tags(request)
         if not tags:
             break
         for tag in tags:
