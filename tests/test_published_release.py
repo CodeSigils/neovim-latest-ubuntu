@@ -8,7 +8,9 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-SPEC = importlib.util.spec_from_file_location("published", REPO / "scripts/verify-published-release.py")
+SPEC = importlib.util.spec_from_file_location(
+    "published", REPO / "scripts/verify-published-release.py"
+)
 published = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader
 SPEC.loader.exec_module(published)
@@ -31,7 +33,9 @@ class PublishedReleaseTests(unittest.TestCase):
             "draft": False,
             "prerelease": False,
             "target_commitish": self.commit,
-            "assets": [{"name": name, "state": "uploaded", "size": 1} for name in published.EXPECTED_ASSETS],
+            "assets": [
+                {"name": name, "state": "uploaded", "size": 1} for name in published.EXPECTED_ASSETS
+            ],
         }
         self.tag = {"object": {"type": "commit", "sha": self.commit}}
 
@@ -39,17 +43,35 @@ class PublishedReleaseTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_valid_public_release(self) -> None:
-        published.verify(release=self.release, tag=self.tag, asset_dir=self.directory, expected_tag="v1.2.3", expected_commit=self.commit)
+        published.verify(
+            release=self.release,
+            tag=self.tag,
+            asset_dir=self.directory,
+            expected_tag="v1.2.3",
+            expected_commit=self.commit,
+        )
 
     def test_rejects_extra_remote_asset(self) -> None:
         self.release["assets"].append({"name": "unexpected.txt", "state": "uploaded", "size": 1})
         with self.assertRaisesRegex(ValueError, "unexpected release assets"):
-            published.verify(release=self.release, tag=self.tag, asset_dir=self.directory, expected_tag="v1.2.3", expected_commit=self.commit)
+            published.verify(
+                release=self.release,
+                tag=self.tag,
+                asset_dir=self.directory,
+                expected_tag="v1.2.3",
+                expected_commit=self.commit,
+            )
 
     def test_rejects_tag_drift_and_checksum_mismatch(self) -> None:
         self.tag["object"]["sha"] = "b" * 40
         with self.assertRaisesRegex(ValueError, "tag does not resolve"):
-            published.verify(release=self.release, tag=self.tag, asset_dir=self.directory, expected_tag="v1.2.3", expected_commit=self.commit)
+            published.verify(
+                release=self.release,
+                tag=self.tag,
+                asset_dir=self.directory,
+                expected_tag="v1.2.3",
+                expected_commit=self.commit,
+            )
 
     def test_cli_fixtures_are_json_objects(self) -> None:
         path = self.directory / "release.json"

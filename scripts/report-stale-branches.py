@@ -24,7 +24,10 @@ def gh_json(path: str) -> list | dict:
             return json.loads(result.stdout)
         error = result.stderr.strip() or f"gh api failed: {path}"
         lowered = error.lower()
-        transient = any(term in lowered for term in ("connection", "timeout", "temporarily", "could not resolve"))
+        transient = any(
+            term in lowered
+            for term in ("connection", "timeout", "temporarily", "could not resolve")
+        )
         if not transient or attempt >= MAX_API_ATTEMPTS - 1:
             raise RuntimeError(error)
         time.sleep(2**attempt)

@@ -61,8 +61,12 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertEqual(verify["permissions"], {"contents": "read", "attestations": "read"})
         self.assertIn("verify-published-release.py", source)
         self.assertIn("gh attestation verify", source)
-        self.assertIn("needs.verify-published.result == 'success'", workflow["jobs"]["report-success"]["if"])
-        self.assertIn("needs.verify-published.result == 'failure'", workflow["jobs"]["report-failure"]["if"])
+        self.assertIn(
+            "needs.verify-published.result == 'success'", workflow["jobs"]["report-success"]["if"]
+        )
+        self.assertIn(
+            "needs.verify-published.result == 'failure'", workflow["jobs"]["report-failure"]["if"]
+        )
 
     def test_packaging_matrix_is_shared_by_stable_and_nightly(self) -> None:
         package = load_workflow("package.yml")
@@ -251,7 +255,9 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("Sensitive or unsupported path", auto_source)
         stale = load_workflow("stale-branches.yml")
         self.assertEqual(stale["permissions"], {"contents": "read", "pull-requests": "read"})
-        self.assertIn("report-stale-branches.py", (REPO / ".github/workflows/stale-branches.yml").read_text())
+        self.assertIn(
+            "report-stale-branches.py", (REPO / ".github/workflows/stale-branches.yml").read_text()
+        )
 
     def test_workflows_use_the_configurable_x86_runner_and_node24(self) -> None:
         for path in (REPO / ".github/workflows").glob("*.yml"):

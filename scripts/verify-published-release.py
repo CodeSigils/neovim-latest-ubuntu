@@ -78,7 +78,9 @@ def verify(  # noqa: PLR0912
 
     local_names = {path.name for path in asset_dir.iterdir() if path.is_file()}
     if local_names != EXPECTED_ASSETS:
-        raise ValueError(f"downloaded asset set differs from release: {sorted(local_names ^ EXPECTED_ASSETS)}")
+        raise ValueError(
+            f"downloaded asset set differs from release: {sorted(local_names ^ EXPECTED_ASSETS)}"
+        )
 
 
 def parse_args() -> argparse.Namespace:
