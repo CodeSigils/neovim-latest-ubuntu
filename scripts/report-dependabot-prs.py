@@ -4,12 +4,10 @@
 from __future__ import annotations
 
 import argparse
-import json
-import subprocess
 import sys
-import time
 
-MAX_API_ATTEMPTS = 3
+from github_api import gh_json
+
 SENSITIVE_PREFIXES = (
     ".github/workflows/build.yml",
     ".github/workflows/package.yml",
@@ -20,23 +18,6 @@ SENSITIVE_PREFIXES = (
     "build.sh",
     "test.sh",
 )
-
-
-def gh_json(path: str) -> dict | list:
-    for attempt in range(MAX_API_ATTEMPTS):
-        result = subprocess.run(["gh", "api", path], capture_output=True, text=True, check=False)
-        if result.returncode == 0:
-            return json.loads(result.stdout)
-        error = result.stderr.strip() or f"gh api failed: {path}"
-        lowered = error.lower()
-        transient = any(
-            term in lowered
-            for term in ("connection", "timeout", "temporarily", "could not resolve")
-        )
-        if not transient or attempt >= MAX_API_ATTEMPTS - 1:
-            raise RuntimeError(error)
-        time.sleep(2**attempt)
-    raise AssertionError("unreachable")
 
 
 def classify(repository: str) -> list[str]:
@@ -76,7 +57,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         report = classify(args.repository)
-    except (OSError, RuntimeError, KeyError, json.JSONDecodeError) as error:
+    except (OSError, RuntimeError, KeyError) as error:
         print(f"FAIL: could not classify Dependabot PRs: {error}", file=sys.stderr)
         return 1
     print("Dependabot triage (report only):")

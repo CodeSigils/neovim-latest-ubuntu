@@ -9,8 +9,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "scripts"))
 
 
 def load_script(module_name: str, filename: str):
@@ -24,6 +26,8 @@ def load_script(module_name: str, filename: str):
 
 markdown_links = load_script("markdown_links", "check-markdown-links.py")
 action_freshness = load_script("action_freshness", "report-action-freshness.py")
+dependabot_report = load_script("dependabot_report", "report-dependabot-prs.py")
+stale_report = load_script("stale_report", "report-stale-branches.py")
 
 
 class MaintenanceToolTests(unittest.TestCase):
@@ -51,6 +55,40 @@ class MaintenanceToolTests(unittest.TestCase):
         self.assertEqual(action_freshness.stable_tag_version("v7.2", "7"), (7, 2, 0))
         self.assertIsNone(action_freshness.stable_tag_version("v7.3.0-rc.1", "7"))
         self.assertIsNone(action_freshness.stable_tag_version("v8.0.0", "7"))
+
+    def test_dependabot_classifier_reports_failed_checks(self) -> None:
+        responses = {
+            "repos/owner/repo/pulls?state=open&per_page=100": [
+                {
+                    "number": 7,
+                    "user": {"login": "dependabot[bot]"},
+                    "head": {"ref": "deps", "sha": "a"},
+                }
+            ],
+            "repos/owner/repo/pulls/7/files?per_page=100": [{"filename": "requirements-dev.txt"}],
+            "repos/owner/repo/commits/a/check-runs?per_page=100": {
+                "check_runs": [{"name": "policy", "status": "completed", "conclusion": "failure"}]
+            },
+        }
+        with patch.object(dependabot_report, "gh_json", side_effect=responses.__getitem__):
+            self.assertEqual(
+                dependabot_report.classify("owner/repo"), ["#7 checks-failed: deps (files=1)"]
+            )
+
+    def test_stale_report_excludes_main_and_open_pr_heads(self) -> None:
+        old = "2000-01-01T00:00:00Z"
+        responses = {
+            "repos/owner/repo/branches?per_page=100": [
+                {"name": "main", "commit": {"sha": "main-sha"}},
+                {"name": "open", "commit": {"sha": "open-sha"}},
+                {"name": "stale", "commit": {"sha": "stale-sha"}},
+            ],
+            "repos/owner/repo/pulls?state=open&per_page=100": [{"head": {"ref": "open"}}],
+            "repos/owner/repo/commits/stale-sha": {"commit": {"committer": {"date": old}}},
+        }
+        with patch.object(stale_report, "gh_json", side_effect=responses.__getitem__):
+            result = stale_report.report("owner/repo", days=30)
+        self.assertEqual(result, [f"stale (last commit {old})"])
 
 
 if __name__ == "__main__":

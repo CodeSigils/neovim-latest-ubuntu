@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import subprocess
 import sys
+
+from github_api import gh_json
 
 REQUIRED_LABELS = {"dependencies", "github-actions", "new-release", "nightly"}
 REQUIRED_VARIABLES = {
@@ -39,17 +40,6 @@ def repository_name() -> str:
     if not match:
         raise RuntimeError("origin remote is not a GitHub repository URL")
     return match.group(1)
-
-
-def gh_json(path: str) -> dict | list:
-    command = ["gh", "api", path]
-    result = run(command)
-    if result.returncode != 0:
-        raise RuntimeError(f"GitHub API request failed for {path}: {result.stderr.strip()}")
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(f"GitHub returned invalid JSON for {path}: {error}") from error
 
 
 def audit(
