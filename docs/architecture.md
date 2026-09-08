@@ -106,6 +106,22 @@ Use it to answer two questions quickly:
       Branch cleanup is automatic after merge through GitHub's delete-after-merge setting.
     - Dependabot triage observes checks and paths but never mutates PRs or branches.
 
+## Automation and maintainer boundaries
+
+The repository automates repeatable build and evidence checks while reserving policy decisions and remediation for the
+maintainer.
+
+| Automated | Manual maintainer action |
+| --- | --- |
+| Daily stable-release detection, exact source resolution, and candidate builds on x86_64 and ARM64 | Approve feature-release publication in `release-reviewed` |
+| Lint, Python quality, ShellCheck, Actionlint, Zizmor, Hadolint, YAML, dependency, regression, and package checks | Review and merge Dependabot pull requests; native auto-merge is disabled |
+| Checksums, build metadata, SPDX SBOMs, attestations, and post-publication verification | Decide whether workflow, packaging, script, container, permission, or test changes are safe |
+| Automatic maintenance-release publication after all gates pass | Investigate failed or ambiguous releases and apply remediation |
+| Nightly artifact builds and failure/success issue maintenance | Review stale branches, superseded PRs, and repository-maintenance reports |
+| CodeQL and author-attribution checks on pushes, pull requests, and scheduled runs | Respond to vulnerabilities and change release, target, architecture, or branch policies |
+| Dependabot proposals, action-freshness checks, settings audits, and stale-branch reports | Use and validate the emergency tag-based release path when required |
+| Deletion of merged branches and protection against main deletion or force-pushes | No manual action |
+
 ## Design rationale
 
 ### Upstream CPack instead of a Debian packaging tree
