@@ -27,6 +27,7 @@ Use it to answer two questions quickly:
 - `.github/dependabot.yml` — automated dependency updates for GitHub Actions.
 - `.github/workflows/dependency-freshness.yml` — weekly action-freshness and token-readable release-configuration audit.
 - `.github/workflows/stale-branches.yml` — weekly report-only inactive-branch monitor.
+- `.github/workflows/dependabot-triage.yml` — weekly report-only Dependabot readiness classifier.
 - `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and local admin
   immutability drift gate.
 - `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
@@ -103,6 +104,7 @@ Use it to answer two questions quickly:
     - The post-publication verifier runs with read-only contents/attestation permissions; success reporting waits for it.
     - Dependency updates remain maintainer-queued through GitHub native auto-merge; branch cleanup is report-only except
       for GitHub's automatic delete-after-merge setting.
+    - Dependabot triage observes checks and paths but never mutates PRs or branches.
 
 ## Design rationale
 

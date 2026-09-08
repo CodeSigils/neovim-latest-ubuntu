@@ -256,6 +256,17 @@ class WorkflowPolicyTests(unittest.TestCase):
             "report-stale-branches.py", (REPO / ".github/workflows/stale-branches.yml").read_text()
         )
 
+    def test_dependabot_triage_is_read_only(self) -> None:
+        workflow = load_workflow("dependabot-triage.yml")
+        self.assertEqual(
+            workflow["permissions"], {"contents": "read", "pull-requests": "read", "checks": "read"}
+        )
+        source = (REPO / ".github/workflows/dependabot-triage.yml").read_text()
+        self.assertIn("report-dependabot-prs.py", source)
+        classifier = (REPO / "scripts/report-dependabot-prs.py").read_text()
+        self.assertIn("report only", classifier)
+        self.assertNotIn("gh pr merge", classifier)
+
     def test_workflows_use_the_configurable_x86_runner_and_node24(self) -> None:
         for path in (REPO / ".github/workflows").glob("*.yml"):
             workflow = load_workflow(path.name)
