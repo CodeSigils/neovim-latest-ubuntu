@@ -88,7 +88,7 @@ show that a file was inspected.
 
 ## Stage 1 — Verify the published release (implemented)
 
-**Status:** Planned
+**Status:** Implemented
 
 Add a post-publication job that consumes the release through its public interface rather than trusting only the local
 release workspace.

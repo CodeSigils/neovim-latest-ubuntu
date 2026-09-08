@@ -102,8 +102,8 @@ Use it to answer two questions quickly:
     - Maintenance releases publish automatically. Feature releases use the protected `release-reviewed` environment.
     - Routine release/nightly success creates no issue; release/nightly failures create a self-healing maintainer issue.
     - The post-publication verifier runs with read-only contents/attestation permissions; success reporting waits for it.
-    - Dependency updates remain maintainer-queued through GitHub native auto-merge; branch cleanup is report-only except
-      for GitHub's automatic delete-after-merge setting.
+    - Dependency updates remain maintainer-reviewed and manually merged; GitHub native auto-merge is currently disabled.
+      Branch cleanup is automatic after merge through GitHub's delete-after-merge setting.
     - Dependabot triage observes checks and paths but never mutates PRs or branches.
 
 ## Design rationale
