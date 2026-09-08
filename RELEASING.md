@@ -123,8 +123,9 @@ Lintian. Project-owned packaging findings are fixed, reviewed upstream-content t
 | Lintian baseline              | `scripts/lintian-allowlist.txt` with a reason for each inherited tag | Both stable architectures; never add a tag solely to make CI green |
 | Release asset contract        | Planner, package workflow, release workflow, and tests               | Full stable candidate build                                        |
 
-The weekly repository-maintenance workflow reports action freshness and configuration drift. It does not mutate
-repository variables or merge dependency updates. For an Ubuntu image refresh, verify that the selected digest is a
+The weekly repository-maintenance workflow reports action freshness and configuration drift. It retries transient
+GitHub failures, reports freshness as `unknown` when verification remains unavailable, and does not mutate repository
+variables or merge dependency updates. For an Ubuntu image refresh, verify that the selected digest is a
 multi-architecture manifest containing both amd64 and arm64 before updating the three public fallbacks and remote
 variables together.
 

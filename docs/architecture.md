@@ -125,6 +125,10 @@ in the shared quality gate.
 | Dependabot proposals, action-freshness checks, settings audits, and stale-branch reports | Use and validate the emergency tag-based release path when required |
 | Deletion of merged branches and protection against main deletion or force-pushes | No manual action |
 
+The Dependabot classifier reports both dimensions when they apply: a sensitive-path update can also be marked
+`waiting-for-checks` or `checks-failed`. The action-freshness monitor retries transient GitHub failures and records an
+`unknown` result after exhaustion; it remains report-only and does not block releases.
+
 ## Design rationale
 
 ### Upstream CPack instead of a Debian packaging tree
