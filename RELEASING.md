@@ -19,6 +19,9 @@ build automatically but the publish job uses the protected `release-reviewed` en
 approval. Routine detections do not open issues; failures create or update a `new-release` issue and a later successful
 run closes it.
 
+The proposed move from semver-based approval to exception-based approval is tracked in
+[`docs/roadmap.md`](docs/roadmap.md). Until those stages are implemented, the policy above remains authoritative.
+
 The published GitHub Release—not a Git tag—is the source of truth for whether a version shipped. Repository-level
 immutable-release enforcement protects releases published after the setting was enabled. The legacy `v0.12.5` release
 predates that enforcement and is not retroactively immutable.
@@ -87,6 +90,11 @@ Each metadata document records the upstream ref and exact commit, packaging repo
 digest, Debian architecture, package version, and package SHA256. Publication independently verifies all of those
 bindings and refuses draft releases containing missing or unexpected assets. The SBOM attestation independently binds
 each SPDX inventory to the corresponding architecture package.
+
+After publication, the read-only `verify-published` job downloads the public assets to a clean runner and checks the
+exact inventory, checksums, tag target, and both attestation types. It retries transient asset propagation, then opens
+or updates the existing failure issue if the remote contract is not met. It never mutates a published release, and the
+workflow reports success only after this check passes.
 
 ## Package gates
 

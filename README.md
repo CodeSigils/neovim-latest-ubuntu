@@ -248,6 +248,7 @@ packages contain Neovim, which retains its upstream copyright notices and Apache
 ## Documentation
 
 - **[docs/architecture.md](./docs/architecture.md)** — Architectural invariants and code map (read this first)
+- **[docs/roadmap.md](./docs/roadmap.md)** — Exception-based stable-release automation roadmap and stage status
 - **[docs/reproducibility.md](./docs/reproducibility.md)** — Functional replayability approach, guarantees, and limits
 - **[docs/resources.md](./docs/resources.md)** — Authoritative upstream, packaging, and automation references
 - **[RELEASING.md](./RELEASING.md)** — Release process guide for maintainers

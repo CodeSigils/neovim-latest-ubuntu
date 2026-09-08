@@ -53,6 +53,17 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("verify-release-candidate.py", build)
         self.assertIn("unexpected or incomplete asset set", build)
 
+    def test_publication_is_verified_before_success_reporting(self) -> None:
+        workflow = load_workflow("build.yml")
+        source = (REPO / ".github/workflows/build.yml").read_text()
+        verify = workflow["jobs"]["verify-published"]
+        self.assertEqual(verify["needs"], ["plan", "release"])
+        self.assertEqual(verify["permissions"], {"contents": "read", "attestations": "read"})
+        self.assertIn("verify-published-release.py", source)
+        self.assertIn("gh attestation verify", source)
+        self.assertIn("needs.verify-published.result == 'success'", workflow["jobs"]["report-success"]["if"])
+        self.assertIn("needs.verify-published.result == 'failure'", workflow["jobs"]["report-failure"]["if"])
+
     def test_packaging_matrix_is_shared_by_stable_and_nightly(self) -> None:
         package = load_workflow("package.yml")
         matrix = package["jobs"]["build"]["strategy"]["matrix"]["include"]

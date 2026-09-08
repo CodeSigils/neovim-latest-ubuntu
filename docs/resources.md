@@ -56,8 +56,8 @@ variation. They do not establish byte-for-byte reproducibility until independent
 - [Anchore SBOM action](https://github.com/anchore/sbom-action) — Syft-based SPDX generation used by the package matrix.
 - [SPDX 2.3 specification](https://spdx.github.io/spdx-spec/v2.3/) — published SBOM format.
 
-Release packages have separate build-provenance and SBOM attestations. `SHA256SUMS`, build metadata, and the SBOMs are
-also release assets so verification does not depend on a single interface.
+Releases created by the current pipeline have separate build-provenance and SBOM attestations. `SHA256SUMS`, build
+metadata, and the SBOMs are also release assets so verification does not depend on a single interface.
 
 ## GitHub Actions and runners
 

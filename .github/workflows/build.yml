@@ -274,13 +274,99 @@ jobs:
           url=$(gh release view "$RELEASE_TAG" --json url --jq '.url')
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+  verify-published:
+    name: Verify published release
+    needs: [plan, release]
+    if: needs.plan.outputs.publish == 'true' && needs.release.result == 'success'
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      attestations: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Download and verify public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          workdir="$RUNNER_TEMP/release-verification"
+          rm -rf "$workdir"
+          mkdir -p "$workdir"
+          for attempt in 1 2 3; do
+            rm -rf "$workdir/assets"
+            mkdir "$workdir/assets"
+            if gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*' --dir "$workdir/assets"; then
+              gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$workdir/release.json"
+              gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" > "$workdir/tag.json"
+              if python3 scripts/verify-published-release.py \
+                --release-json "$workdir/release.json" \
+                --tag-json "$workdir/tag.json" \
+                --asset-dir "$workdir/assets" \
+                --tag "$RELEASE_TAG" \
+                --commit "$EXPECTED_COMMIT"; then
+                break
+              fi
+            fi
+            if [[ "$attempt" == 3 ]]; then
+              echo 'Public release did not satisfy the asset, checksum, or tag contract.' >&2
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
+      - name: Verify build-provenance attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          verify_attestation() {
+            local package="$1" predicate="${2:-}"
+            for attempt in 1 2 3; do
+              if [[ -n "$predicate" ]]; then
+                gh attestation verify "$RUNNER_TEMP/release-verification/assets/$package" \
+                  --repo "$GITHUB_REPOSITORY" --predicate-type "$predicate" && return 0
+              elif gh attestation verify "$RUNNER_TEMP/release-verification/assets/$package" \
+                --repo "$GITHUB_REPOSITORY"; then
+                return 0
+              fi
+              [[ "$attempt" == 3 ]] || sleep $((attempt * 10))
+            done
+            return 1
+          }
+          for package in nvim-linux-x86_64.deb nvim-linux-arm64.deb; do
+            verify_attestation "$package"
+          done
+      - name: Verify SPDX SBOM attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for package in nvim-linux-x86_64.deb nvim-linux-arm64.deb; do
+            verified=0
+            for attempt in 1 2 3; do
+              if gh attestation verify "$RUNNER_TEMP/release-verification/assets/$package" \
+                --repo "$GITHUB_REPOSITORY" --predicate-type https://spdx.dev/Document/v2.3; then
+                verified=1
+                break
+              fi
+              [[ "$attempt" == 3 ]] || sleep $((attempt * 10))
+            done
+            [[ "$verified" == 1 ]] || exit 1
+          done
+
   report-failure:
-    needs: [plan, package, release]
+    needs: [plan, package, release, verify-published]
     if: >-
       always() &&
       (needs.plan.result == 'failure' ||
       (needs.plan.outputs.publish == 'true' &&
-      (needs.package.result == 'failure' || needs.release.result == 'failure')))
+      (needs.package.result == 'failure' || needs.release.result == 'failure' ||
+      needs.verify-published.result == 'failure')))
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:
@@ -301,6 +387,7 @@ jobs:
               `- **Plan:** ${{ needs.plan.result }}`,
               `- **Package:** ${{ needs.package.result }}`,
               `- **Release:** ${{ needs.release.result }}`,
+              `- **Published verification:** ${{ needs.verify-published.result }}`,
             ].join('\n');
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -328,8 +415,8 @@ jobs:
             }
 
   report-success:
-    needs: [plan, release]
-    if: needs.plan.outputs.publish == 'true' && needs.release.result == 'success'
+    needs: [plan, release, verify-published]
+    if: needs.plan.outputs.publish == 'true' && needs.release.result == 'success' && needs.verify-published.result == 'success'
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:

@@ -31,10 +31,13 @@ Use it to answer two questions quickly:
 - `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
 - `scripts/write-build-metadata.py` — deterministic per-architecture provenance metadata.
 - `scripts/verify-release-candidate.py` — independent package/metadata binding and combined-checksum gate.
+- `scripts/verify-published-release.py` — fixture-driven, read-only verification of public release assets, checksums,
+  and tag target after publication.
 - `scripts/install-package-docs.cmake` — Debian copyright and changelog files added during CPack staging.
 - `scripts/check-lintian.sh`, `scripts/lintian-allowlist.txt` — package-policy regression baseline.
 - `requirements-dev.txt`, `pyproject.toml` — pinned repository-validation tools and Python quality policy.
-- `docs/` — architecture, reproducibility, and curated reference material.
+- `docs/` — implemented architecture and replayability guidance, the temporary automation roadmap, and curated
+  reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.
 
 ## Architectural invariants
@@ -55,7 +58,8 @@ Use it to answer two questions quickly:
 4. **Explicit artifact paths**
    - CPack output must go to an explicit directory (`/output` in container, `output/` on host).
    - Each architecture fails fast if its expected `.deb` artifact is missing.
-   - Published releases require both packages, combined checksums, per-architecture build metadata, and SPDX SBOMs.
+   - Releases created by the current pipeline require both packages, combined checksums, per-architecture build
+     metadata, and SPDX SBOMs.
 
 5. **Deterministic scripting**
    - `build.sh` and `test.sh` must remain ShellCheck-clean and avoid host-dependent behavior.
@@ -94,6 +98,7 @@ Use it to answer two questions quickly:
     - A draft with an unexpected or incomplete asset set is never published.
     - Maintenance releases publish automatically. Feature releases use the protected `release-reviewed` environment.
     - Routine release/nightly success creates no issue; release/nightly failures create a self-healing maintainer issue.
+    - The post-publication verifier runs with read-only contents/attestation permissions; success reporting waits for it.
 
 ## Design rationale
 
