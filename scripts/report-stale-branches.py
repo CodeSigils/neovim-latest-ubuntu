@@ -11,12 +11,12 @@ import argparse
 import datetime as dt
 import sys
 
-from github_api import gh_json
+from github_api import gh_json, gh_json_pages
 
 
 def report(repository: str, days: int) -> list[str]:
-    branches = gh_json(f"repos/{repository}/branches?per_page=100")
-    pulls = gh_json(f"repos/{repository}/pulls?state=open&per_page=100")
+    branches = gh_json_pages(f"repos/{repository}/branches?per_page=100")
+    pulls = gh_json_pages(f"repos/{repository}/pulls?state=open&per_page=100")
     open_heads = {item["head"]["ref"] for item in pulls}
     cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
     stale: list[str] = []

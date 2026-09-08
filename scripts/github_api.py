@@ -27,3 +27,35 @@ def gh_json(path: str) -> dict | list:
             raise RuntimeError(error)
         time.sleep(2**attempt)
     raise AssertionError("unreachable")
+
+
+def gh_json_pages(path: str) -> list:
+    """Fetch every REST page and flatten array responses."""
+    for attempt in range(MAX_API_ATTEMPTS):
+        result = subprocess.run(
+            ["gh", "api", "--paginate", "--slurp", path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            try:
+                pages = json.loads(result.stdout)
+            except json.JSONDecodeError as error:
+                raise RuntimeError(f"GitHub returned invalid JSON for {path}: {error}") from error
+            if not isinstance(pages, list):
+                raise RuntimeError(f"GitHub pagination returned a non-list for {path}")
+            flattened: list = []
+            for page in pages:
+                if not isinstance(page, list):
+                    raise RuntimeError(f"GitHub pagination returned a non-array page for {path}")
+                flattened.extend(page)
+            return flattened
+
+        error = result.stderr.strip() or f"gh api failed: {path}"
+        if not any(term in error.lower() for term in TRANSIENT_ERRORS):
+            raise RuntimeError(error)
+        if attempt >= MAX_API_ATTEMPTS - 1:
+            raise RuntimeError(error)
+        time.sleep(2**attempt)
+    raise AssertionError("unreachable")

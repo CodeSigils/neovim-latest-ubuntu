@@ -28,9 +28,21 @@ markdown_links = load_script("markdown_links", "check-markdown-links.py")
 action_freshness = load_script("action_freshness", "report-action-freshness.py")
 dependabot_report = load_script("dependabot_report", "report-dependabot-prs.py")
 stale_report = load_script("stale_report", "report-stale-branches.py")
+github_api = load_script("github_api_test", "github_api.py")
 
 
 class MaintenanceToolTests(unittest.TestCase):
+    def test_paginated_api_results_are_flattened(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=["gh"], returncode=0, stdout='[[{"id": 1}], [{"id": 2}]]', stderr=""
+        )
+        with patch.object(github_api.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(
+                github_api.gh_json_pages("repos/owner/repo/items"), [{"id": 1}, {"id": 2}]
+            )
+        self.assertIn("--paginate", run.call_args.args[0])
+        self.assertIn("--slurp", run.call_args.args[0])
+
     def test_markdown_enumeration_respects_gitignore(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -70,7 +82,10 @@ class MaintenanceToolTests(unittest.TestCase):
                 "check_runs": [{"name": "policy", "status": "completed", "conclusion": "failure"}]
             },
         }
-        with patch.object(dependabot_report, "gh_json", side_effect=responses.__getitem__):
+        with (
+            patch.object(dependabot_report, "gh_json_pages", side_effect=responses.__getitem__),
+            patch.object(dependabot_report, "gh_json", side_effect=responses.__getitem__),
+        ):
             self.assertEqual(
                 dependabot_report.classify("owner/repo"), ["#7 checks-failed: deps (files=1)"]
             )
@@ -86,7 +101,10 @@ class MaintenanceToolTests(unittest.TestCase):
             "repos/owner/repo/pulls?state=open&per_page=100": [{"head": {"ref": "open"}}],
             "repos/owner/repo/commits/stale-sha": {"commit": {"committer": {"date": old}}},
         }
-        with patch.object(stale_report, "gh_json", side_effect=responses.__getitem__):
+        with (
+            patch.object(stale_report, "gh_json_pages", side_effect=responses.__getitem__),
+            patch.object(stale_report, "gh_json", side_effect=responses.__getitem__),
+        ):
             result = stale_report.report("owner/repo", days=30)
         self.assertEqual(result, [f"stale (last commit {old})"])
 

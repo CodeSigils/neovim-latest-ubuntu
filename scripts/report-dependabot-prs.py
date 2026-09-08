@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from github_api import gh_json
+from github_api import gh_json, gh_json_pages
 
 SENSITIVE_PREFIXES = (
     ".github/workflows/build.yml",
@@ -21,13 +21,13 @@ SENSITIVE_PREFIXES = (
 
 
 def classify(repository: str) -> list[str]:
-    pulls = gh_json(f"repos/{repository}/pulls?state=open&per_page=100")
+    pulls = gh_json_pages(f"repos/{repository}/pulls?state=open&per_page=100")
     report: list[str] = []
     for pull in pulls:
         if pull.get("user", {}).get("login") != "dependabot[bot]":
             continue
         number = pull["number"]
-        files = gh_json(f"repos/{repository}/pulls/{number}/files?per_page=100")
+        files = gh_json_pages(f"repos/{repository}/pulls/{number}/files?per_page=100")
         names = [item["filename"] for item in files]
         sensitive = [name for name in names if name.startswith(SENSITIVE_PREFIXES)]
         checks = gh_json(
