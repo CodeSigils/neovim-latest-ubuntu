@@ -83,7 +83,9 @@ class GitHub:
             except urllib.error.URLError:
                 delay = 2**attempt
             if attempt >= MAX_API_ATTEMPTS - 1:
-                raise RuntimeError(f"GitHub API request failed after {MAX_API_ATTEMPTS} attempts: {path}")
+                raise RuntimeError(
+                    f"GitHub API request failed after {MAX_API_ATTEMPTS} attempts: {path}"
+                )
             time.sleep(delay)
 
     def optional(self, path: str) -> dict | None:
