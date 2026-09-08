@@ -43,6 +43,31 @@ class MaintenanceToolTests(unittest.TestCase):
         self.assertIn("--paginate", run.call_args.args[0])
         self.assertIn("--slurp", run.call_args.args[0])
 
+    def test_paginated_api_retries_transient_cli_failure(self) -> None:
+        responses = [
+            subprocess.CompletedProcess(
+                args=["gh"], returncode=1, stdout="", stderr="connection reset"
+            ),
+            subprocess.CompletedProcess(
+                args=["gh"], returncode=0, stdout='[[{"id": 1}]]', stderr=""
+            ),
+        ]
+        with (
+            patch.object(github_api.subprocess, "run", side_effect=responses),
+            patch.object(github_api.time, "sleep"),
+        ):
+            self.assertEqual(github_api.gh_json_pages("repos/owner/repo/items"), [{"id": 1}])
+
+    def test_paginated_api_rejects_non_array_page(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=["gh"], returncode=0, stdout='[{"id": 1}]', stderr=""
+        )
+        with (
+            patch.object(github_api.subprocess, "run", return_value=completed),
+            self.assertRaisesRegex(RuntimeError, "non-array page"),
+        ):
+            github_api.gh_json_pages("repos/owner/repo/items")
+
     def test_markdown_enumeration_respects_gitignore(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -88,6 +113,29 @@ class MaintenanceToolTests(unittest.TestCase):
         ):
             self.assertEqual(
                 dependabot_report.classify("owner/repo"), ["#7 checks-failed: deps (files=1)"]
+            )
+
+    def test_dependabot_classifier_reports_pending_checks(self) -> None:
+        responses = {
+            "repos/owner/repo/pulls?state=open&per_page=100": [
+                {
+                    "number": 8,
+                    "user": {"login": "dependabot[bot]"},
+                    "head": {"ref": "deps", "sha": "b"},
+                }
+            ],
+            "repos/owner/repo/pulls/8/files?state=open&per_page=100": [],
+            "repos/owner/repo/pulls/8/files?per_page=100": [],
+            "repos/owner/repo/commits/b/check-runs?per_page=100": {
+                "check_runs": [{"name": "build", "status": "in_progress", "conclusion": None}]
+            },
+        }
+        with (
+            patch.object(dependabot_report, "gh_json_pages", side_effect=responses.__getitem__),
+            patch.object(dependabot_report, "gh_json", side_effect=responses.__getitem__),
+        ):
+            self.assertEqual(
+                dependabot_report.classify("owner/repo"), ["#8 waiting-for-checks: deps (files=0)"]
             )
 
     def test_stale_report_excludes_main_and_open_pr_heads(self) -> None:
