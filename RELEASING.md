@@ -142,17 +142,20 @@ The policy workflow is authoritative. To run its Python and workflow-security ch
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-uv pip install --system --requirement requirements-dev.txt
+uv pip install --requirement requirements-dev.txt
 ruff check scripts tests
 ruff format --check scripts tests
 python -m unittest discover -s tests -p 'test_*.py'
 zizmor --offline --min-severity medium --min-confidence medium .
 shellcheck build.sh test.sh scripts/*.sh .githooks/prepare-commit-msg
 python3 scripts/check-dependencies.py
+python3 scripts/check-yaml-syntax.py
 python3 scripts/check-markdown-links.py
 ```
 
-CI additionally runs Actionlint and Hadolint from pinned tools. The weekly repository-maintenance workflow audits
+CI additionally runs Actionlint and Hadolint from pinned tools, and `scripts/check-yaml-syntax.py` is a required gate
+rather than a convenience: dependabot edits workflow files frequently, so a malformed workflow is the most likely
+local-only failure. The weekly repository-maintenance workflow audits
 remote labels, Actions variables, release-environment protection, and action freshness rather than coupling every local
 code check to GitHub API availability. Running `scripts/check-repository-settings.py` locally with an authenticated
 maintainer session additionally verifies the admin-only immutable-release setting.
