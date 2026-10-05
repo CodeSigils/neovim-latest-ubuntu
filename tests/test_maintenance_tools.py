@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-import urllib.error
 from pathlib import Path
 from unittest.mock import patch
 
@@ -35,23 +34,40 @@ github_api = load_script("github_api_test", "github_api.py")
 class MaintenanceToolTests(unittest.TestCase):
     def test_paginated_api_results_are_flattened(self) -> None:
         completed = subprocess.CompletedProcess(
-            args=["gh"], returncode=0, stdout='[[{"id": 1}], [{"id": 2}]]', stderr=""
+            args=["gh"], returncode=0, stdout='[{"id": 1}][{"id": 2}]', stderr=""
         )
         with patch.object(github_api.subprocess, "run", return_value=completed) as run:
             self.assertEqual(
                 github_api.gh_json_pages("repos/owner/repo/items"), [{"id": 1}, {"id": 2}]
             )
         self.assertIn("--paginate", run.call_args.args[0])
-        self.assertIn("--slurp", run.call_args.args[0])
+        self.assertNotIn("--slurp", run.call_args.args[0])
+
+    def test_paginated_api_accepts_concatenated_documents(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=["gh"], returncode=0, stdout='[{"id": 1}][{"id": 2}]', stderr=""
+        )
+        with patch.object(github_api.subprocess, "run", return_value=completed):
+            self.assertEqual(
+                github_api.gh_json_pages("repos/owner/repo/items"), [{"id": 1}, {"id": 2}]
+            )
+
+    def test_paginated_api_rejects_truncated_document(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=["gh"], returncode=0, stdout='[{"id": 1}] [{"id"', stderr=""
+        )
+        with (
+            patch.object(github_api.subprocess, "run", return_value=completed),
+            self.assertRaisesRegex(RuntimeError, "invalid JSON"),
+        ):
+            github_api.gh_json_pages("repos/owner/repo/items")
 
     def test_paginated_api_retries_transient_cli_failure(self) -> None:
         responses = [
             subprocess.CompletedProcess(
                 args=["gh"], returncode=1, stdout="", stderr="connection reset"
             ),
-            subprocess.CompletedProcess(
-                args=["gh"], returncode=0, stdout='[[{"id": 1}]]', stderr=""
-            ),
+            subprocess.CompletedProcess(args=["gh"], returncode=0, stdout='[{"id": 1}]', stderr=""),
         ]
         with (
             patch.object(github_api.subprocess, "run", side_effect=responses),
@@ -61,7 +77,7 @@ class MaintenanceToolTests(unittest.TestCase):
 
     def test_paginated_api_rejects_non_array_page(self) -> None:
         completed = subprocess.CompletedProcess(
-            args=["gh"], returncode=0, stdout='[{"id": 1}]', stderr=""
+            args=["gh"], returncode=0, stdout='{"id": 1}', stderr=""
         )
         with (
             patch.object(github_api.subprocess, "run", return_value=completed),
@@ -94,34 +110,22 @@ class MaintenanceToolTests(unittest.TestCase):
         self.assertIsNone(action_freshness.stable_tag_version("v7.3.0-rc.1", "7"))
         self.assertIsNone(action_freshness.stable_tag_version("v8.0.0", "7"))
 
-    def test_action_freshness_retries_transient_http_failure(self) -> None:
-        class Response:
-            def __init__(self, body):
-                self.body = body
+    def test_action_freshness_selects_highest_stable_tag(self) -> None:
+        tags = [
+            {"name": "v7.1.0", "commit": {"sha": "older"}},
+            {"name": "v7.3.0-rc.1", "commit": {"sha": "prerelease"}},
+            {"name": "v7.2.1", "commit": {"sha": "abc"}},
+        ]
+        with patch.object(action_freshness.github_api, "gh_json_pages", return_value=tags) as fetch:
+            self.assertEqual(action_freshness.latest_sha("owner/action", "7"), "abc")
+        fetch.assert_called_once_with("repos/owner/action/tags?per_page=100")
 
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *args):
-                return False
-
-            def read(self):
-                return self.body
-
-        error = urllib.error.URLError("temporary network failure")
+    def test_action_freshness_reports_missing_major(self) -> None:
         with (
-            patch.object(
-                action_freshness.urllib.request,
-                "urlopen",
-                side_effect=[
-                    error,
-                    Response(b'[{"name":"v7.2.1","commit":{"sha":"abc"}}]'),
-                    Response(b"[]"),
-                ],
-            ),
-            patch.object(action_freshness.time, "sleep"),
+            patch.object(action_freshness.github_api, "gh_json_pages", return_value=[]),
+            self.assertRaisesRegex(ValueError, "no tag found for major v7"),
         ):
-            self.assertEqual(action_freshness.latest_sha("owner/action", "7", ""), "abc")
+            action_freshness.latest_sha("owner/action", "7")
 
     def test_dependabot_classifier_reports_failed_checks(self) -> None:
         responses = {

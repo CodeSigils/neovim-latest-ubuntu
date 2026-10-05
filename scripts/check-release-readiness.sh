@@ -145,17 +145,15 @@ fi
 
 if command_exists curl && command_exists python3; then
   upstream_tag=""
-  # Prefer the authenticated GitHub CLI to avoid the low unauthenticated API
-  # rate limit. Keep curl as a portable fallback for local fixtures and forks.
+  # Prefer the authenticated GitHub CLI: locally it uses the credential in your
+  # keyring, in CI the job's automatic token. No token is read from the
+  # environment. Keep curl as a portable fallback for local fixtures and forks.
   if command_exists gh && gh auth status >/dev/null 2>&1; then
     upstream_tag="$(gh api repos/neovim/neovim/releases/latest --jq '.tag_name' 2>/dev/null || true)"
   fi
   if [[ -z "$upstream_tag" ]]; then
-    curl_args=(-fsSL -H 'Accept: application/vnd.github+json')
-    if [[ -n "${GH_TOKEN:-}" ]]; then
-      curl_args+=(-H "Authorization: Bearer ${GH_TOKEN}")
-    fi
-    upstream_tag="$(curl "${curl_args[@]}" https://api.github.com/repos/neovim/neovim/releases/latest \
+    upstream_tag="$(curl -fsSL -H 'Accept: application/vnd.github+json' \
+      https://api.github.com/repos/neovim/neovim/releases/latest \
       | python3 -c 'import json,sys; print(json.load(sys.stdin).get("tag_name", ""))' 2>/dev/null || true)"
   fi
   if [[ -z "$upstream_tag" ]]; then

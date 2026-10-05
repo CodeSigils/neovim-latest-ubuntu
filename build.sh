@@ -71,30 +71,32 @@ elif [[ "$VERSION" == "latest" ]]; then
     echo "Error: jq is required to resolve VERSION=latest" >&2
     exit 1
   fi
-  github_headers=(
-    -H 'Accept: application/vnd.github+json'
-    -H 'X-GitHub-Api-Version: 2022-11-28'
-  )
-  if [[ -n "${GH_TOKEN:-}" ]]; then
-    github_headers+=(-H "Authorization: Bearer ${GH_TOKEN}")
-  fi
+  # Prefer the authenticated GitHub CLI: locally it uses the credential in
+  # your keyring, in CI it uses the job's automatic token. No token is read
+  # from the environment here, so a build never depends on an exported
+  # secret. Fall back to an unauthenticated request when gh is unavailable.
   API_ERROR_FILE="$(mktemp)"
-  if ! response="$(curl --fail --silent --show-error --location \
-    --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
-    "${github_headers[@]}" \
-    https://api.github.com/repos/neovim/neovim/releases/latest 2>"$API_ERROR_FILE")"; then
-    echo "Error: GitHub API request failed while resolving VERSION=latest." >&2
-    cat "$API_ERROR_FILE" >&2
-    if [[ -n "${GH_TOKEN:-}" ]]; then
-      echo "Hint: verify the token has not expired and that GitHub API access is available." >&2
-    else
-      echo "Hint: check network/DNS access or set GH_TOKEN to avoid unauthenticated API rate limits." >&2
+  response=""
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    response="$(gh api repos/neovim/neovim/releases/latest --jq '.tag_name' 2>"$API_ERROR_FILE" || true)"
+  fi
+  if [[ -z "$response" ]]; then
+    if ! response="$(curl --fail --silent --show-error --location \
+      --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
+      -H 'Accept: application/vnd.github+json' \
+      -H 'X-GitHub-Api-Version: 2022-11-28' \
+      https://api.github.com/repos/neovim/neovim/releases/latest 2>"$API_ERROR_FILE")"; then
+      echo "Error: GitHub API request failed while resolving VERSION=latest." >&2
+      cat "$API_ERROR_FILE" >&2
+      echo "Hint: check network/DNS access, or install and authenticate the GitHub CLI." >&2
+      exit 1
     fi
-    exit 1
+    VERSION="$(jq -r '.tag_name // empty' <<<"$response")"
+  else
+    VERSION="$response"
   fi
   rm -f "$API_ERROR_FILE"
   API_ERROR_FILE=""
-  VERSION="$(jq -r '.tag_name // empty' <<<"$response")"
   if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "Error: GitHub API returned an invalid latest release tag: ${VERSION:-<empty>}" >&2
     exit 1

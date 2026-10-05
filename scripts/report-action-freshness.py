@@ -3,39 +3,14 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
-import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
+import github_api
+
 PINNED = re.compile(r"uses:\s*([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@([0-9a-f]{40})\s+#\s*v?([0-9]+)")
-MAX_API_ATTEMPTS = 3
-RETRYABLE_HTTP = {500, 502, 503, 504}
-
-
-def fetch_tags(request: urllib.request.Request) -> list[dict]:
-    """Fetch one tag page with bounded retries for transient failures."""
-    for attempt in range(MAX_API_ATTEMPTS):
-        try:
-            with urllib.request.urlopen(request, timeout=20) as response:
-                tags = json.load(response)
-            if not isinstance(tags, list):
-                raise ValueError("GitHub tags response was not an array")
-            return tags
-        except urllib.error.HTTPError as error:
-            if error.code not in RETRYABLE_HTTP:
-                raise
-            delay = int(error.headers.get("Retry-After", "0") or 0) or 2**attempt
-        except urllib.error.URLError:
-            delay = 2**attempt
-        if attempt >= MAX_API_ATTEMPTS - 1:
-            raise RuntimeError(f"GitHub tags request failed after {MAX_API_ATTEMPTS} attempts")
-        time.sleep(delay)
-    raise AssertionError("unreachable")
 
 
 def stable_tag_version(name: str, major: str) -> tuple[int, int, int] | None:
@@ -46,38 +21,25 @@ def stable_tag_version(name: str, major: str) -> tuple[int, int, int] | None:
     return int(major), int(match.group(1)), int(match.group(2) or 0)
 
 
-def latest_sha(repo: str, major: str, token: str) -> str:
+def latest_sha(repo: str, major: str) -> str:
     """Return the SHA for the highest semantic tag in the requested major line."""
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "neovim-latest-ubuntu-action-freshness",
-        **({"Authorization": f"Bearer {token}"} if token else {}),
-    }
     candidates: list[tuple[tuple[int, int, int], str]] = []
-    for page in range(1, 21):
-        request = urllib.request.Request(
-            f"https://api.github.com/repos/{repo}/tags?per_page=100&page={page}",
-            headers=headers,
-        )
-        tags = fetch_tags(request)
-        if not tags:
-            break
-        for tag in tags:
-            name = tag.get("name", "")
-            # Release-candidate/beta tags must never become the maintenance
-            # target for production workflow dependencies.
-            version = stable_tag_version(name, major)
-            if version:
-                candidates.append((version, tag["commit"]["sha"]))
+    # The GitHub CLI holds the credential, so no token is read from the
+    # environment. --paginate fetches every tag page, which also keeps this
+    # inside a single authenticated request budget.
+    for tag in github_api.gh_json_pages(f"repos/{repo}/tags?per_page=100"):
+        # Release-candidate/beta tags must never become the maintenance
+        # target for production workflow dependencies.
+        version = stable_tag_version(tag.get("name", ""), major)
+        if version:
+            candidates.append((version, tag["commit"]["sha"]))
     if not candidates:
         raise ValueError(f"no tag found for major v{major}")
     return max(candidates, key=lambda item: item[0])[1]
 
 
 def main() -> int:
-    token = os.environ.get("GH_TOKEN", "")
-    entries: list[tuple[str, str, str, str]] = []
+    entries: list[tuple[str, str, str, str, str]] = []
     for path in sorted(Path(".github").rglob("*.yml")):
         for line_number, line in enumerate(path.read_text().splitlines(), 1):
             match = PINNED.search(line)
@@ -91,8 +53,8 @@ def main() -> int:
         cache_key = (repo, major)
         if cache_key not in latest_cache:
             try:
-                latest_cache[cache_key] = latest_sha(repo, major, token)
-            except (OSError, RuntimeError, ValueError, KeyError, urllib.error.HTTPError) as error:
+                latest_cache[cache_key] = latest_sha(repo, major)
+            except (OSError, RuntimeError, ValueError, KeyError) as error:
                 latest_cache[cache_key] = error
         result = latest_cache[cache_key]
         if isinstance(result, Exception):

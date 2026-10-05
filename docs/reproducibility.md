@@ -49,9 +49,11 @@ the optional `UBUNTU_APT_SNAPSHOT=YYYYMMDDTHHMMSSZ` build argument to use a date
 timestamp when stronger replayability is required. A snapshot removes one rolling input; it does not by itself make the
 output byte-for-byte reproducible.
 
-Local builds using `VERSION=latest` query the upstream GitHub API and can set `GH_TOKEN` to avoid unauthenticated rate
-limits. CI resolves stable versions and nightly commits in an authenticated orchestration step, then passes only the
-resolved version and commit into the token-free build boundary.
+Local builds using `VERSION=latest` resolve the upstream release through the GitHub CLI, which supplies the credential
+from your own login. When `gh` is unavailable the build falls back to an unauthenticated request, which GitHub rate
+limits per IP address. No token is read from the environment, so a build never depends on an exported secret. CI
+resolves stable versions and nightly commits in an authenticated orchestration step, then passes only the resolved
+version and commit into the token-free build boundary.
 
 Stable CI first resolves the published upstream tag to its final 40-character commit SHA. `build.sh` fetches and
 verifies that exact commit through `SOURCE_COMMIT`; tag names are retained as human-facing version identifiers rather
