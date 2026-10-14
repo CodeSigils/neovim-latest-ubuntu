@@ -20,6 +20,20 @@ artifacts-only and never replace the stable GitHub Release.
 Routine merges to `main` do not start a stable package build; scheduled checks, manual dispatches, and emergency
 release-tag pushes are the only publication-capable triggers.
 
+## Release automation at a glance
+
+- Stable Neovim releases are checked every 15 minutes.
+- Each candidate resolves an exact upstream tag commit and must pass native x86_64 and ARM64 package builds.
+- Low-risk releases publish automatically only after package, checksum, metadata, SPDX SBOM, and attestation gates pass.
+- Upstream CMake, CPack, or bundled-dependency changes require approval in `release-reviewed`.
+- Missing comparison evidence fails closed to review rather than publishing automatically.
+- Published releases are independently downloaded and verified before the workflow reports success.
+- Failures create or update one actionable issue; a later successful run closes it.
+- Nightly builds are artifact-only and never replace the stable GitHub Release.
+- Routine merges to `main` do not start stable package builds; scheduled, manual, and emergency tag runs do.
+- `main` requires author, policy, and workflow-CodeQL checks; its protections apply to administrators and reject
+  force-pushes and deletion.
+
 ## Quick Start
 
 Install the latest pre-built Neovim as a system package:
