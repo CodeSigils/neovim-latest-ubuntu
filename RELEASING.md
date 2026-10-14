@@ -5,7 +5,7 @@ not define an LTS channel; `master`/nightly and stable releases are handled sepa
 
 ## Stable-release policy
 
-The daily stable workflow is candidate-first:
+The 15-minute stable workflow is candidate-first:
 
 1. Resolve GitHub's latest published upstream Neovim release.
 2. Resolve its tag to an exact upstream commit SHA.
@@ -14,10 +14,14 @@ The daily stable workflow is candidate-first:
 5. Create a draft release, attach packages, checksums, build metadata, and SPDX SBOMs, attest both packages, then
    publish.
 
-Maintenance releases (`X.Y.Z` where `Z > 0`) publish automatically after all gates pass. Feature releases (`X.Y.0`)
-build automatically but the publish job uses the protected `release-reviewed` environment and waits for maintainer
-approval. Routine detections do not open issues; failures create or update a `new-release` issue and a later successful
-run closes it.
+Routine pushes to `main` do not run this workflow. This keeps repository maintenance from occupying the stable-release
+concurrency lane; only scheduled runs, manual dispatches, and emergency release-tag pushes can compile or publish a
+stable package.
+
+Every stable release publishes automatically after all gates pass unless the upstream comparison finds a change to
+Neovim's CMake, CPack, or bundled-dependency inputs. Those changes route the publish job to the protected
+`release-reviewed` environment for maintainer approval. Routine detections do not open issues; failures create or
+update a `new-release` issue and a later successful run closes it.
 
 The proposed move from semver-based approval to exception-based approval is tracked in
 [`docs/roadmap.md`](docs/roadmap.md). Until those stages are implemented, the policy above remains authoritative.
@@ -32,11 +36,11 @@ No maintainer action is required for a maintenance release. Monitor the
 [`Build and release stable Neovim`](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
 workflow only when it reports a failure.
 
-For a feature release:
+When a release is waiting for review:
 
 1. Open the pending `release-reviewed` deployment in the workflow run.
 2. Review upstream release notes and the successful package matrix.
-3. Approve the environment deployment to publish.
+3. Approve the environment deployment to publish after confirming the packaging-impacting upstream changes.
 
 The release job resumes an existing draft release safely, which makes asset-upload failures retryable without moving or
 reusing a published tag.
@@ -48,7 +52,7 @@ Run the stable workflow from the Actions tab with:
 - `version`: an upstream stable version without `v`; empty means latest.
 - `publish`: leave disabled for an artifact-only candidate build; enable it to publish after verification.
 
-Manual publication follows the same feature-release approval policy as scheduled publication. Pre-releases and nightly
+Manual publication follows the same risk-based approval policy as scheduled publication. Pre-releases and nightly
 versions are intentionally rejected by the stable release planner.
 
 Tag pushes matching `v*` remain supported as an emergency compatibility path. Before using that path, run:
@@ -170,7 +174,8 @@ too. Use a package-revision version for a packaging rebuild; do not mutate a pub
 
 ### Release job is waiting
 
-Feature releases wait on the `release-reviewed` environment. Review and approve the deployment in GitHub Actions.
+Packaging-critical upstream changes wait on the `release-reviewed` environment. Review and approve the deployment in
+GitHub Actions.
 
 ### A draft release remains after failure
 

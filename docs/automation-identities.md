@@ -9,7 +9,7 @@ permissions are the source of truth; this page explains what those permissions m
 | -------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `github-actions[bot]` / `GITHUB_TOKEN` | Runs workflows and authenticates GitHub API calls | Release publication, asset upload, attestations, and failure-issue maintenance only in explicitly scoped jobs |
 | `dependabot[bot]`                      | Opens grouped dependency-update pull requests     | Its workflow runs receive read-only repository access by default and do not receive ordinary Actions secrets  |
-| Human maintainer                       | Reviews changes and policy exceptions             | Merges pull requests, approves feature releases, resolves incidents, and changes repository settings          |
+| Human maintainer                       | Reviews changes and policy exceptions             | Merges pull requests, approves packaging-critical releases, resolves incidents, and changes repository settings |
 
 `GITHUB_TOKEN` is a short-lived GitHub App installation token created for each job. Its effective permissions are set by
 the workflow and job-level `permissions` blocks; unspecified permissions are not granted.
@@ -32,7 +32,8 @@ the workflow and job-level `permissions` blocks; unspecified permissions are not
 - The repository has no workflow that creates, merges, rebases, closes, or deletes pull requests.
 - Native Dependabot auto-merge is disabled. A maintainer reviews and merges dependency updates.
 - Merged source branches are deleted by GitHub's repository setting, not by a privileged workflow.
-- Protected `release-reviewed` approval remains a human decision.
+- Protected `release-reviewed` approval remains a human decision for candidates whose upstream comparison includes
+  packaging-critical paths.
 
 ## Security guidance
 

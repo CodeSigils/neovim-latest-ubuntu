@@ -27,6 +27,16 @@ def configured_response(path: str) -> dict | list:
         return {
             "protection_rules": [{"type": "required_reviewers", "reviewers": [{"type": "User"}]}]
         }
+    if path.endswith("/branches/main/protection"):
+        return {
+            "required_status_checks": {
+                "strict": True,
+                "contexts": list(repository_settings.REQUIRED_MAIN_CHECKS),
+            },
+            "enforce_admins": {"enabled": True},
+            "allow_force_pushes": {"enabled": False},
+            "allow_deletions": {"enabled": False},
+        }
     raise AssertionError(f"unexpected API path: {path}")
 
 
@@ -54,6 +64,24 @@ class RepositorySettingsTests(unittest.TestCase):
 
         self.assertIn("release-reviewed must require at least one reviewer", errors)
         self.assertIn("immutable releases must be enabled", errors)
+
+    def test_main_protection_drift_is_reported(self) -> None:
+        def drifted(path: str) -> dict | list:
+            result = configured_response(path)
+            if path.endswith("/branches/main/protection"):
+                return {"required_status_checks": {"strict": False, "contexts": []}}
+            return result
+
+        with patch.object(repository_settings, "gh_json", side_effect=drifted):
+            errors = repository_settings.audit(
+                "owner/repo", repository_settings.REQUIRED_VARIABLES, True
+            )
+
+        self.assertIn(
+            "main is missing required checks: Analyze (GitHub Actions), Check Commit Authorship, validate",
+            errors,
+        )
+        self.assertIn("main must require branches to be up to date before merging", errors)
 
 
 if __name__ == "__main__":

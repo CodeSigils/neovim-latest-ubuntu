@@ -11,6 +11,7 @@ import sys
 import urllib.parse
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Final
 
 import github_api
 
@@ -25,6 +26,11 @@ REQUIRED_ASSETS = CORE_ASSETS | {
 # This release predates metadata/SBOM publication. Keep its historical contract
 # explicit without weakening validation for new releases.
 LEGACY_RELEASE_ASSETS = {"v0.12.5": CORE_ASSETS}
+RISK_PATHS: Final = (
+    "CMakeLists.txt",
+    "cmake/**",
+    "cmake.deps/**",
+)
 
 
 @dataclass(frozen=True)
@@ -45,6 +51,12 @@ class Plan:
     source_commit: str
     tag: str
     version: str
+
+
+@dataclass(frozen=True)
+class RiskAssessment:
+    requires_review: bool
+    summary: str
 
 
 def parse_version(value: str) -> Version:
@@ -71,6 +83,9 @@ class GitHub:
         if not isinstance(result, dict):
             raise ValueError(f"GitHub returned a non-object response for {path}")
         return result
+
+    def text(self, path: str) -> str:
+        return github_api.gh_text(path)
 
 
 def upstream_commit(client: GitHub, tag: str) -> str:
@@ -103,6 +118,66 @@ def release_is_complete(client: GitHub, repository: str, tag: str) -> bool:
     )
 
 
+def source_commit_from_release(client: GitHub, repository: str) -> str:
+    """Read the exact upstream commit from the most recent published package."""
+    release = client.get(f"repos/{repository}/releases/latest")
+    assets = release.get("assets")
+    if not isinstance(assets, list):
+        raise ValueError("published release does not contain an asset list")
+    for asset in assets:
+        if not isinstance(asset, dict) or asset.get("name") != "BUILD-METADATA-amd64.json":
+            continue
+        asset_id = asset.get("id")
+        if not isinstance(asset_id, int):
+            raise ValueError("build metadata asset has no numeric ID")
+        metadata = json.loads(client.text(f"repos/{repository}/releases/assets/{asset_id}"))
+        if not isinstance(metadata, dict):
+            raise ValueError("build metadata is not a JSON object")
+        upstream = metadata.get("upstream")
+        if not isinstance(upstream, dict):
+            raise ValueError("build metadata has no upstream record")
+        commit = upstream.get("commit")
+        if isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit):
+            return commit
+        raise ValueError("build metadata has an invalid upstream commit")
+
+    tag = release.get("tag_name")
+    if not isinstance(tag, str):
+        raise ValueError("published release has no tag")
+    return upstream_commit(client, f"v{parse_version(tag).base}")
+
+
+def requires_risk_review(client: GitHub, repository: str, candidate_commit: str) -> RiskAssessment:
+    """Classify upstream changes that can alter the package build or installation."""
+    try:
+        baseline_commit = source_commit_from_release(client, repository)
+        comparison = client.get(
+            f"repos/neovim/neovim/compare/{baseline_commit}...{candidate_commit}"
+        )
+        files = comparison.get("files")
+        if not isinstance(files, list):
+            raise ValueError("upstream comparison did not include changed files")
+        risk_files = [
+            filename
+            for change in files
+            if isinstance(change, dict)
+            and isinstance(filename := change.get("filename"), str)
+            and any(Path(filename).match(pattern) for pattern in RISK_PATHS)
+        ]
+    except (json.JSONDecodeError, KeyError, OSError, RuntimeError, ValueError) as error:
+        return RiskAssessment(True, f"review required: unable to classify upstream risk ({error})")
+
+    comparison_label = f"{baseline_commit[:12]}...{candidate_commit[:12]}"
+    if risk_files:
+        return RiskAssessment(
+            True,
+            f"review required: {comparison_label} changes packaging-critical paths: {', '.join(risk_files)}",
+        )
+    return RiskAssessment(
+        False, f"auto-publish: {comparison_label} has no packaging-critical changes"
+    )
+
+
 def make_plan(
     *,
     client: GitHub,
@@ -126,16 +201,20 @@ def make_plan(
     publish = mode in {"scheduled", "tag"} or publish_requested
     complete = release_is_complete(client, repository, version.tag)
     should_build = not (publish and complete)
-    reason = (
-        "release already published with required assets" if not should_build else "build candidate"
-    )
+    source_commit = upstream_commit(client, upstream_tag)
+    if publish and should_build:
+        assessment = requires_risk_review(client, repository, source_commit)
+    elif should_build:
+        assessment = RiskAssessment(False, "build candidate")
+    else:
+        assessment = RiskAssessment(False, "release already published with required assets")
     return Plan(
         package_revision=version.package_revision,
         publish=publish,
-        reason=reason,
-        requires_review=publish and version.feature_release,
+        reason=assessment.summary,
+        requires_review=publish and should_build and assessment.requires_review,
         should_build=should_build,
-        source_commit=upstream_commit(client, upstream_tag),
+        source_commit=source_commit,
         tag=version.tag,
         version=version.base,
     )

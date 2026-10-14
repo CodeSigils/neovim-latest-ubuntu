@@ -100,12 +100,17 @@ Use it to answer two questions quickly:
     - Candidate metadata is independently matched to package hashes and build inputs before publication.
     - SPDX SBOMs are published and separately attested against their architecture-specific packages.
     - A draft with an unexpected or incomplete asset set is never published.
-    - Maintenance releases publish automatically. Feature releases use the protected `release-reviewed` environment.
+    - Stable releases publish automatically unless the upstream comparison finds a change to CMake, CPack, or bundled
+      dependencies; those candidates use the protected `release-reviewed` environment.
+    - Routine `main` pushes do not start stable package builds; scheduled, manual, and emergency tag-triggered runs
+      retain independent release lanes.
     - Routine release/nightly success creates no issue; release/nightly failures create a self-healing maintainer issue.
     - The post-publication verifier runs with read-only contents/attestation permissions; success reporting waits for it.
     - Dependency updates remain maintainer-reviewed and manually merged; GitHub native auto-merge is currently disabled.
       Branch cleanup is automatic after merge through GitHub's delete-after-merge setting.
     - Dependabot triage observes checks and paths but never mutates PRs or branches.
+    - `main` requires the author-attribution, policy, and workflow-CodeQL checks; protections apply to administrators,
+      reject force pushes, and reject deletion.
 
 ## Automation and maintainer boundaries
 
@@ -117,7 +122,7 @@ in the shared quality gate.
 
 | Automated                                                                                                        | Manual maintainer action                                                                    |
 | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Daily stable-release detection, exact source resolution, and candidate builds on x86_64 and ARM64                | Approve feature-release publication in `release-reviewed`                                   |
+| 15-minute stable-release detection, exact source resolution, risk classification, and candidate builds on x86_64 and ARM64 | Approve packaging-critical publication in `release-reviewed`                         |
 | Lint, Python quality, ShellCheck, Actionlint, Zizmor, Hadolint, YAML, dependency, regression, and package checks | Review and merge Dependabot pull requests; native auto-merge is disabled                    |
 | Checksums, build metadata, SPDX SBOMs, attestations, and post-publication verification                           | Decide whether workflow, packaging, script, container, permission, or test changes are safe |
 | Automatic maintenance-release publication after all gates pass                                                   | Investigate failed or ambiguous releases and apply remediation                              |

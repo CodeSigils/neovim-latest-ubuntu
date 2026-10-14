@@ -2,7 +2,7 @@
 
 **Document type:** Roadmap (temporary)
 
-**Status:** Stage 1 implemented; later stages remain planned
+**Status:** Stages 1 through 3 implemented; Stage 4 remains planned
 
 ## Purpose
 
@@ -47,8 +47,8 @@ Apply these rules to every roadmap stage:
 
 1. **Keep stages independently revertible.** Implement and verify one stage before activating the next. Do not combine
    multiple policy transitions in one change.
-2. **Preserve current publication behavior until replacement gates pass.** In particular, keep feature-release approval
-   enabled until Stages 1 and 2 meet their acceptance criteria.
+2. **Preserve current publication behavior until replacement gates pass.** Do not broaden automatic publication beyond
+   the tested risk classifier without a new, reviewable policy change.
 3. **Test policy before wiring publication.** Add fixtures and unit tests for success, failure, ambiguous state, API
    failure, and retry behavior before a new decision can affect a release.
 4. **Do not experiment with production releases.** Use unit fixtures and artifact-only workflow runs for development.
@@ -115,7 +115,7 @@ The verifier uses read-only `contents` and `attestations` permissions; only the 
 
 ## Stage 2 — Classify upstream packaging risk
 
-**Status:** Planned
+**Status:** Implemented
 
 Compare the candidate's exact upstream commit with the source commit from the most recent published package. The first
 comparison after the legacy `v0.12.5` release may resolve that upstream tag directly because its release lacks build
@@ -131,7 +131,7 @@ The classifier should emit:
 - A short human-readable summary containing the compared commits and risk reasons.
 - A fail-closed result when the previous source, comparison, or policy cannot be resolved.
 
-Acceptance criteria:
+Implemented acceptance criteria:
 
 - Unit tests cover low-risk, high-risk, missing-baseline, API-failure, and annotated-tag cases.
 - The workflow summary explains every review decision without requiring log inspection.
@@ -139,7 +139,7 @@ Acceptance criteria:
 
 ## Stage 3 — Enable exception-based publication
 
-**Status:** Planned
+**Status:** Implemented
 
 Replace the current `patch == 0` approval rule only after Stages 1 and 2 are operational.
 
@@ -148,7 +148,7 @@ Replace the current `patch == 0` approval rule only after Stages 1 and 2 are ope
 - Prereleases, drafts, nightlies, and unsupported version formats remain ineligible for stable publication.
 - Approval changes only publication policy; it never bypasses build, verification, inventory, or attestation gates.
 
-Acceptance criteria:
+Implemented acceptance criteria:
 
 - A low-risk `X.Y.0` candidate can publish without human intervention.
 - A high-risk `X.Y.Z` candidate waits for review.
