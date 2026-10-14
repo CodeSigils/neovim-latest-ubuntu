@@ -20,6 +20,11 @@ runs:
       run: |
         ruff check scripts tests
         ruff format --check scripts tests
+    - name: Audit Python types
+      continue-on-error: true
+      shell: bash
+      run: |
+        ty check scripts
     - name: Run dependency consistency check
       shell: bash
       run: python3 scripts/check-dependencies.py

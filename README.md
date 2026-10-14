@@ -20,6 +20,15 @@ artifacts-only and never replace the stable GitHub Release.
 Routine merges to `main` do not start a stable package build; scheduled checks, manual dispatches, and emergency
 release-tag pushes are the only publication-capable triggers.
 
+## Release automation at a glance
+
+- Stable Neovim releases are checked every 15 minutes.
+- Low-risk releases publish automatically after the complete native build and verification matrix passes.
+- Upstream CMake, CPack, or bundled-dependency changes require approval in `release-reviewed`.
+- Missing comparison evidence fails closed to review rather than publishing automatically.
+- `main` requires author, policy, and workflow-CodeQL checks; its protections apply to administrators and reject
+  force-pushes and deletion.
+
 ## Quick Start
 
 Install the latest pre-built Neovim as a system package:

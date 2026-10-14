@@ -172,9 +172,17 @@ class WorkflowPolicyTests(unittest.TestCase):
         for event in ("push", "pull_request"):
             self.assertEqual(set(triggers[event]["paths"]), expected)
         quality = (REPO / ".github/actions/quality-gates/action.yml").read_text()
+        quality_workflow = yaml.safe_load(quality)
+        type_check = next(
+            step
+            for step in quality_workflow["runs"]["steps"]
+            if step["name"] == "Audit Python types"
+        )
         self.assertIn("actionlint@sha256:", quality)
         self.assertIn("python3 -m unittest discover", quality)
         self.assertIn("ruff check", quality)
+        self.assertTrue(type_check["continue-on-error"])
+        self.assertIn("ty check scripts", quality)
         self.assertIn("zizmor --offline", quality)
         self.assertIn("astral-sh/setup-uv@", quality)
         self.assertIn("uv pip install --system", quality)
