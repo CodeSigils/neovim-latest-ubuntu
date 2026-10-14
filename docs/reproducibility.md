@@ -200,9 +200,9 @@ differ from the target container.
 The test invocation and architecture matrix in
 [`.github/workflows/package.yml`](../.github/workflows/package.yml) are authoritative for the current implementation.
 
-Runner upgrades are operational configuration changes: verify the desired labels in
-[actions/runner-images](https://github.com/actions/runner-images), update `RUNNER_X86_64` or `RUNNER_AARCH64`, and let
-the native matrix validate them. Prose does not track anticipated future labels.
+The default x86_64 host is explicitly pinned to `ubuntu-26.04`; the ARM64 host remains explicitly pinned to
+`ubuntu-24.04-arm`. `RUNNER_X86_64` and `RUNNER_AARCH64` can override those defaults for a controlled runner
+validation without changing the Ubuntu 26.04 package-container target.
 
 ## References
 
