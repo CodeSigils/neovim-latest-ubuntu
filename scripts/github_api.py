@@ -60,6 +60,22 @@ def gh_json_optional(path: str) -> dict | list | None:
         raise
 
 
+def gh_text(path: str) -> str:
+    """Fetch a text asset through the GitHub API with bounded retries."""
+    for attempt in range(MAX_API_ATTEMPTS):
+        output, error = _run(["gh", "api", "-H", "Accept: application/octet-stream", path], path)
+        if output is not None:
+            return output
+
+        assert error is not None
+        if not any(term in error.lower() for term in TRANSIENT_ERRORS):
+            raise RuntimeError(error)
+        if attempt >= MAX_API_ATTEMPTS - 1:
+            raise RuntimeError(error)
+        time.sleep(2**attempt)
+    raise AssertionError("unreachable")
+
+
 def _json_stream(text: str, path: str) -> list:
     """Decode the concatenated JSON documents that `gh api --paginate` emits."""
     decoder = json.JSONDecoder()

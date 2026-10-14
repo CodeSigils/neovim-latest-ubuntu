@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 import unittest
+from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -15,26 +16,44 @@ sys.modules[SPEC.name] = release_plan
 SPEC.loader.exec_module(release_plan)
 
 
+@dataclass
 class FakeGitHub:
-    def __init__(
-        self,
-        *,
-        latest: str = "v0.12.5",
-        existing: bool = False,
-        existing_assets: set[str] | None = None,
-    ) -> None:
-        self.latest = latest
-        self.existing = existing
-        self.existing_assets = existing_assets
+    latest: str = "v0.12.5"
+    existing: bool = False
+    existing_assets: set[str] | None = None
+    baseline_commit: str = "c" * 40
+    changed_files: list[str] | None = None
+    invalid_metadata: bool = False
+    metadata_available: bool = True
+    tag_requests: list[str] = field(default_factory=list)
 
     def get(self, path: str) -> dict:
-        if path.endswith("releases/latest"):
+        if path == "repos/neovim/neovim/releases/latest":
             return {"tag_name": self.latest}
         if "/git/ref/tags/" in path:
+            self.tag_requests.append(path)
             return {"object": {"type": "tag", "sha": "a" * 40}}
         if "/git/tags/" in path:
             return {"object": {"type": "commit", "sha": "b" * 40}}
+        if path.endswith("releases/latest"):
+            return {
+                "tag_name": "v0.12.5",
+                "assets": (
+                    [{"name": "BUILD-METADATA-amd64.json", "id": 1}]
+                    if self.metadata_available
+                    else []
+                ),
+            }
+        if "/compare/" in path:
+            return {"files": [{"filename": name} for name in self.changed_files or []]}
         raise AssertionError(f"unexpected API request: {path}")
+
+    def text(self, path: str) -> str:
+        if path.endswith("releases/assets/1"):
+            if self.invalid_metadata:
+                return "not json"
+            return '{"upstream": {"commit": "' + self.baseline_commit + '"}}'
+        raise AssertionError(f"unexpected asset request: {path}")
 
     def optional(self, path: str) -> dict | None:
         if path.startswith("repos/neovim/neovim/releases/tags/"):
@@ -79,7 +98,7 @@ class ReleasePlanTests(unittest.TestCase):
         self.assertFalse(plan.requires_review)
         self.assertEqual(plan.source_commit, "b" * 40)
 
-    def test_feature_release_requires_environment_review(self) -> None:
+    def test_low_risk_feature_release_auto_publishes(self) -> None:
         plan = release_plan.make_plan(
             client=FakeGitHub(latest="v0.13.0"),
             mode="scheduled",
@@ -87,7 +106,41 @@ class ReleasePlanTests(unittest.TestCase):
             publish_requested=False,
             repository="CodeSigils/neovim-latest-ubuntu",
         )
+        self.assertFalse(plan.requires_review)
+
+    def test_packaging_critical_upstream_change_requires_review(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(latest="v0.13.0", changed_files=["cmake/Install.cmake"]),
+            mode="scheduled",
+            requested="latest",
+            publish_requested=False,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
         self.assertTrue(plan.requires_review)
+        self.assertIn("cmake/Install.cmake", plan.reason)
+
+    def test_unavailable_risk_comparison_requires_review(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(invalid_metadata=True),
+            mode="scheduled",
+            requested="latest",
+            publish_requested=False,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
+        self.assertTrue(plan.requires_review)
+        self.assertIn("unable to classify", plan.reason)
+
+    def test_legacy_release_baseline_resolves_its_annotated_tag(self) -> None:
+        client = FakeGitHub(latest="v0.13.0", metadata_available=False)
+        plan = release_plan.make_plan(
+            client=client,
+            mode="scheduled",
+            requested="latest",
+            publish_requested=False,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
+        self.assertFalse(plan.requires_review)
+        self.assertIn("repos/neovim/neovim/git/ref/tags/v0.12.5", client.tag_requests)
 
     def test_existing_complete_release_skips_expensive_build(self) -> None:
         plan = release_plan.make_plan(

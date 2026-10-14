@@ -10,12 +10,15 @@
 Build the latest stable [Neovim](https://neovim.io/) as a `.deb` package for Ubuntu 26.04-based systems — no snaps, no
 Flatpaks, no AppImages. Just `dpkg -i` and it's installed system-wide.
 
-A [daily stable-release workflow](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
+A [15-minute stable-release workflow](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/build.yml)
 detects new upstream releases, resolves each release tag to an exact commit, builds and verifies both architectures,
-then publishes maintenance releases automatically. Feature releases build automatically and wait for approval at the
-publication step. Issues are created only when release automation fails. Neovim
+then publishes automatically unless the upstream comparison detects packaging-critical changes. Those candidates wait
+for approval at the publication step. Issues are created only when release automation fails. Neovim
 [`master` nightlies](https://github.com/CodeSigils/neovim-latest-ubuntu/actions/workflows/nightly.yml) remain
 artifacts-only and never replace the stable GitHub Release.
+
+Routine merges to `main` do not start a stable package build; scheduled checks, manual dispatches, and emergency
+release-tag pushes are the only publication-capable triggers.
 
 ## Quick Start
 

@@ -18,6 +18,11 @@ REQUIRED_VARIABLES = {
     "UBUNTU_SHA256",
     "UBUNTU_VERSION",
 }
+REQUIRED_MAIN_CHECKS = {
+    "Analyze (GitHub Actions)",
+    "Check Commit Authorship",
+    "validate",
+}
 
 
 def run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -73,6 +78,21 @@ def audit(
     if immutable_releases_enabled is False:
         errors.append("immutable releases must be enabled")
 
+    protection = gh_json(f"repos/{repository}/branches/main/protection")
+    checks = protection.get("required_status_checks") or {}
+    configured_checks = set(checks.get("contexts", []))
+    missing_checks = sorted(REQUIRED_MAIN_CHECKS - configured_checks)
+    if missing_checks:
+        errors.append("main is missing required checks: " + ", ".join(missing_checks))
+    if checks.get("strict") is not True:
+        errors.append("main must require branches to be up to date before merging")
+    if protection.get("enforce_admins", {}).get("enabled") is not True:
+        errors.append("main protection must apply to administrators")
+    if protection.get("allow_force_pushes", {}).get("enabled") is True:
+        errors.append("main must reject force pushes")
+    if protection.get("allow_deletions", {}).get("enabled") is True:
+        errors.append("main must reject deletion")
+
     return errors
 
 
@@ -100,7 +120,7 @@ def main() -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
 
-    checked = "labels, Actions variables, and release environments"
+    checked = "labels, Actions variables, release environments, and main protection"
     if immutable_releases_enabled is not None:
         checked += ", plus immutable-release enforcement"
     print(f"PASS: configured {checked}")

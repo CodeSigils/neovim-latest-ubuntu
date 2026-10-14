@@ -6,28 +6,7 @@ concurrency:
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
-    paths-ignore:
-      - '*.md'
-      - 'LICENSE'
-      - 'docs/**'
-      - 'wallpapers/**'
-      - '.gitattributes'
-      - '.gitignore'
-      - '.githooks/**'
-      - '.github/dependabot.yml'
-      - '.mailmap'
-      - '.mdfmtignore'
-      - 'pyproject.toml'
-      - 'requirements-dev.txt'
-      - 'tests/**'
-      - 'scripts/check-dependencies.py'
-      - 'scripts/check-markdown-links.py'
-      - 'scripts/check-release-readiness.sh'
-      - 'scripts/check-repository-settings.py'
-      - 'scripts/check-yaml-syntax.py'
-      - 'scripts/report-action-freshness.py'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -51,7 +30,7 @@ on:
       - 'scripts/check-yaml-syntax.py'
       - 'scripts/report-action-freshness.py'
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       version:

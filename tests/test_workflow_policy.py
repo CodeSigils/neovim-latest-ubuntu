@@ -19,9 +19,11 @@ class WorkflowPolicyTests(unittest.TestCase):
 
     def test_stable_release_is_candidate_first_and_uses_published_state(self) -> None:
         build = load_workflow("build.yml")
+        triggers = build.get("on", build.get(True))
         source = (REPO / ".github/workflows/build.yml").read_text()
         planner = (REPO / "scripts/plan-release.py").read_text()
-        self.assertIn("schedule", build.get("on", build.get(True)))
+        self.assertEqual(triggers["schedule"], [{"cron": "*/15 * * * *"}])
+        self.assertEqual(triggers["push"], {"tags": ["v*"]})
         self.assertEqual(build["jobs"]["package"]["uses"], "./.github/workflows/package.yml")
         self.assertIn("needs.package.result == 'success'", build["jobs"]["release"]["if"])
         self.assertIn("--draft", source)
@@ -30,11 +32,11 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertNotIn("git tag -l", source)
         self.assertFalse((REPO / ".github/workflows/check-upstream.yml").exists())
 
-    def test_maintenance_releases_auto_publish_and_feature_releases_require_review(self) -> None:
+    def test_release_review_is_based_on_upstream_packaging_risk(self) -> None:
         planner = (REPO / "scripts/plan-release.py").read_text()
         build = (REPO / ".github/workflows/build.yml").read_text()
         self.assertIn('mode in {"scheduled", "tag"}', planner)
-        self.assertIn("version.feature_release", planner)
+        self.assertIn("requires_risk_review", planner)
         self.assertIn("release-reviewed", build)
         self.assertIn("release-auto", build)
 
@@ -193,10 +195,10 @@ class WorkflowPolicyTests(unittest.TestCase):
             "scripts/check-yaml-syntax.py",
             "scripts/report-action-freshness.py",
         }
-        for event in ("push", "pull_request"):
-            ignored = set(triggers[event]["paths-ignore"])
-            self.assertTrue(expected_ignored <= ignored)
-            self.assertNotIn(".github/workflows/**", ignored)
+        self.assertNotIn("branches", triggers["push"])
+        ignored = set(triggers["pull_request"]["paths-ignore"])
+        self.assertTrue(expected_ignored <= ignored)
+        self.assertNotIn(".github/workflows/**", ignored)
 
     def test_failure_issues_are_exception_only_and_self_healing(self) -> None:
         stable = (REPO / ".github/workflows/build.yml").read_text()
