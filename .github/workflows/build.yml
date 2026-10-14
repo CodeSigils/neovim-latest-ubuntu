@@ -55,7 +55,7 @@ permissions:
 
 jobs:
   plan:
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 5
     outputs:
       package_revision: ${{ steps.plan.outputs.package_revision }}
@@ -113,7 +113,7 @@ jobs:
   release:
     needs: [plan, package]
     if: needs.plan.outputs.publish == 'true' && needs.package.result == 'success'
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 10
     environment:
       name: ${{ needs.plan.outputs.requires_review == 'true' && 'release-reviewed' || 'release-auto' }}
@@ -257,7 +257,7 @@ jobs:
     name: Verify published release
     needs: [plan, release]
     if: needs.plan.outputs.publish == 'true' && needs.release.result == 'success'
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -346,7 +346,7 @@ jobs:
       (needs.plan.outputs.publish == 'true' &&
       (needs.package.result == 'failure' || needs.release.result == 'failure' ||
       needs.verify-published.result == 'failure')))
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 5
     permissions:
       issues: write
@@ -396,7 +396,7 @@ jobs:
   report-success:
     needs: [plan, release, verify-published]
     if: needs.plan.outputs.publish == 'true' && needs.release.result == 'success' && needs.verify-published.result == 'success'
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 5
     permissions:
       issues: write

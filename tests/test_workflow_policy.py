@@ -78,7 +78,7 @@ class WorkflowPolicyTests(unittest.TestCase):
             [
                 {
                     "arch": "x86_64",
-                    "runner": "${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}",
+                    "runner": "${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}",
                     "deb_arch": "amd64",
                     "deb_file": "nvim-linux-x86_64.deb",
                 },

@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   lint:
-    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -60,7 +60,7 @@ jobs:
         arch: [x86_64, aarch64]
         include:
           - arch: x86_64
-            runner: ${{ vars.RUNNER_X86_64 || 'ubuntu-latest' }}
+            runner: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
             deb_arch: amd64
             deb_file: nvim-linux-x86_64.deb
           - arch: aarch64
