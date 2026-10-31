@@ -127,6 +127,28 @@ class MaintenanceToolTests(unittest.TestCase):
         ):
             action_freshness.latest_sha("owner/action", "7")
 
+    def test_action_freshness_ignores_non_step_pins(self) -> None:
+        sha = "a" * 40
+        with tempfile.TemporaryDirectory() as raw:
+            workflow_root = Path(raw)
+            (workflow_root / "ci.yml").write_text(
+                "\n".join(
+                    [
+                        "jobs:",
+                        "  validate:",
+                        "    steps:",
+                        f"      # - uses: actions/checkout@{sha} # v7",
+                        f'      - run: echo "uses: actions/checkout@{sha} # v7"',
+                        f"      - uses: actions/checkout@{sha} # v7",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            entries = action_freshness.pinned_entries(workflow_root)
+        self.assertEqual(
+            entries, [(str(workflow_root / "ci.yml"), "6", "actions/checkout", sha, "7")]
+        )
+
     def test_dependabot_classifier_reports_failed_checks(self) -> None:
         responses = {
             "repos/owner/repo/pulls?state=open&per_page=100": [
