@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "scripts"))
 SPEC = importlib.util.spec_from_file_location("release_plan", REPO / "scripts/plan-release.py")
 assert SPEC and SPEC.loader
 release_plan = importlib.util.module_from_spec(SPEC)
@@ -26,6 +27,8 @@ class FakeGitHub:
     invalid_metadata: bool = False
     metadata_available: bool = True
     tag_requests: list[str] = field(default_factory=list)
+    releases: list[dict] = field(default_factory=list)
+    existing_tags: set[str] = field(default_factory=set)
 
     def get(self, path: str) -> dict:
         if path == "repos/neovim/neovim/releases/latest":
@@ -55,9 +58,17 @@ class FakeGitHub:
             return '{"upstream": {"commit": "' + self.baseline_commit + '"}}'
         raise AssertionError(f"unexpected asset request: {path}")
 
+    def pages(self, path: str) -> list[dict]:
+        if path.endswith("/releases"):
+            return self.releases
+        raise AssertionError(f"unexpected paginated API request: {path}")
+
     def optional(self, path: str) -> dict | None:
         if path.startswith("repos/neovim/neovim/releases/tags/"):
             return {"draft": False, "prerelease": False}
+        if "/git/ref/tags/" in path:
+            tag = path.rsplit("/", 1)[-1]
+            return {} if tag in self.existing_tags else None
         if self.existing:
             assets = (
                 self.existing_assets
@@ -108,27 +119,111 @@ class ReleasePlanTests(unittest.TestCase):
         )
         self.assertFalse(plan.requires_review)
 
-    def test_packaging_revision_requires_review_before_publication(self) -> None:
+    def test_packaging_rebuild_requires_review_before_publication(self) -> None:
         plan = release_plan.make_plan(
             client=FakeGitHub(),
             mode="manual",
-            requested="0.12.5-2",
+            requested="",
             publish_requested=True,
             repository="CodeSigils/neovim-latest-ubuntu",
+            rebuild_reason="refresh package metadata",
         )
+        self.assertEqual(plan.package_revision, "1")
+        self.assertEqual(plan.tag, "v0.12.5-1")
         self.assertTrue(plan.requires_review)
-        self.assertIn("packaging-only revision v0.12.5-2", plan.reason)
+        self.assertIn("packaging-only revision v0.12.5-1", plan.reason)
+        self.assertIn("refresh package metadata", plan.reason)
+        self.assertEqual(plan.rebuild_reason, "refresh package metadata")
 
-    def test_packaging_revision_artifact_build_does_not_require_review(self) -> None:
+    def test_packaging_rebuild_artifact_build_does_not_require_review(self) -> None:
         plan = release_plan.make_plan(
             client=FakeGitHub(),
             mode="manual",
-            requested="0.12.5-2",
+            requested="",
             publish_requested=False,
             repository="CodeSigils/neovim-latest-ubuntu",
+            rebuild_reason="test a packaging change",
         )
         self.assertFalse(plan.publish)
         self.assertFalse(plan.requires_review)
+        self.assertEqual(plan.package_revision, "1")
+
+    def test_packaging_rebuild_uses_next_unclaimed_revision(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(
+                releases=[
+                    {"tag_name": "v0.12.5-1", "draft": False},
+                    {"tag_name": "v0.12.5-2", "draft": True},
+                ]
+            ),
+            mode="manual",
+            requested="",
+            publish_requested=True,
+            repository="CodeSigils/neovim-latest-ubuntu",
+            rebuild_reason="rebuild after draft claim",
+        )
+        self.assertEqual(plan.package_revision, "3")
+        self.assertEqual(plan.tag, "v0.12.5-3")
+
+    def test_manual_packaging_suffix_without_reason_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            release_plan.make_plan(
+                client=FakeGitHub(),
+                mode="manual",
+                requested="0.12.5-2",
+                publish_requested=True,
+                repository="CodeSigils/neovim-latest-ubuntu",
+            )
+
+    def test_rebuild_reason_rejects_an_explicit_version(self) -> None:
+        with self.assertRaises(ValueError):
+            release_plan.make_plan(
+                client=FakeGitHub(),
+                mode="manual",
+                requested="0.12.5",
+                publish_requested=True,
+                repository="CodeSigils/neovim-latest-ubuntu",
+                rebuild_reason="rebuild",
+            )
+
+    def test_rebuild_reason_requires_manual_mode(self) -> None:
+        with self.assertRaises(ValueError):
+            release_plan.make_plan(
+                client=FakeGitHub(),
+                mode="scheduled",
+                requested="latest",
+                publish_requested=False,
+                repository="CodeSigils/neovim-latest-ubuntu",
+                rebuild_reason="rebuild",
+            )
+
+    def test_rebuild_rejects_an_existing_git_tag(self) -> None:
+        with self.assertRaises(ValueError):
+            release_plan.make_plan(
+                client=FakeGitHub(existing_tags={"v0.12.5-1"}),
+                mode="manual",
+                requested="",
+                publish_requested=True,
+                repository="CodeSigils/neovim-latest-ubuntu",
+                rebuild_reason="rebuild",
+            )
+
+    def test_rebuild_fails_closed_when_release_state_is_unavailable(self) -> None:
+        client = FakeGitHub()
+
+        def unavailable(_path: str) -> list[dict]:
+            raise RuntimeError("release API unavailable")
+
+        client.pages = unavailable  # type: ignore[method-assign]
+        with self.assertRaises(RuntimeError):
+            release_plan.make_plan(
+                client=client,
+                mode="manual",
+                requested="",
+                publish_requested=True,
+                repository="CodeSigils/neovim-latest-ubuntu",
+                rebuild_reason="rebuild",
+            )
 
     def test_packaging_critical_upstream_change_requires_review(self) -> None:
         plan = release_plan.make_plan(

@@ -30,7 +30,9 @@ Use it to answer two questions quickly:
 - `.github/workflows/dependabot-triage.yml` — weekly report-only Dependabot readiness classifier.
 - `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and local admin
   immutability drift gate.
-- `scripts/plan-release.py` — authenticated upstream resolution and published-release state planning.
+- `scripts/plan-release.py` — authenticated upstream resolution, published-release state planning, and manual
+  packaging-rebuild selection.
+- `scripts/package_revision.py` — next Debian revision selection and fail-closed draft/tag claim verification.
 - `scripts/write-build-metadata.py` — deterministic per-architecture provenance metadata.
 - `scripts/verify-release-candidate.py` — independent package/metadata binding and combined-checksum gate.
 - `scripts/verify-published-release.py` — fixture-driven, read-only verification of public release assets, checksums,
@@ -103,6 +105,12 @@ Use it to answer two questions quickly:
     - A draft with an unexpected or incomplete asset set is never published.
     - Stable releases publish automatically unless the upstream comparison finds a change to CMake, CPack, or bundled
       dependencies; those candidates use the protected `release-reviewed` environment.
+    - Packaging-only rebuilds are a manual operation: the maintainer supplies a reason, and the planner selects the next
+      unused positive Debian revision from release state. Typed `X.Y.Z-N` suffixes are rejected in manual mode.
+    - The release job rechecks draft, published, and tag state immediately before creating the draft. GitHub only
+      exposes drafts to tokens with write access, so this check runs in the publication job; the planner remains
+      read-only. A rebuild resumes only its own run-marked draft and fails closed on every other claim.
+    - Packaging-only publications always use `release-reviewed`, even when the upstream risk comparison is clean.
     - Routine `main` pushes do not start stable package builds; scheduled, manual, and emergency tag-triggered runs
       retain independent release lanes.
     - Routine release/nightly success creates no issue; release/nightly failures create a self-healing maintainer issue.
@@ -126,6 +134,7 @@ The regression suite runs with `python3 -m unittest discover -s tests -p 'test_*
 | Lint, Python quality, ShellCheck, Actionlint, Zizmor, Hadolint, YAML, dependency, regression, and package checks | Review and merge Dependabot pull requests; native auto-merge is disabled                    |
 | Checksums, build metadata, SPDX SBOMs, attestations, and post-publication verification                           | Decide whether workflow, packaging, script, container, permission, or test changes are safe |
 | Automatic maintenance-release publication after all gates pass                                                   | Investigate failed or ambiguous releases and apply remediation                              |
+| Next-revision selection and pre-draft claim verification for packaging rebuilds                                  | Provide a human-readable rebuild reason; approve publishing rebuilds in `release-reviewed`  |
 | Nightly artifact builds and failure/success issue maintenance                                                    | Review stale branches, superseded PRs, and repository-maintenance reports                   |
 | CodeQL and author-attribution checks on pushes, pull requests, and scheduled runs                                | Respond to vulnerabilities and change release, target, architecture, or branch policies     |
 | Dependabot proposals, action-freshness checks, settings audits, and stale-branch reports                         | Use and validate the emergency tag-based release path when required                         |

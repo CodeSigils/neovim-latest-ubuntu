@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Final
 
 import github_api
+import package_revision
 
 STABLE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([1-9]\d*))?$")
 CORE_ASSETS = {"nvim-linux-x86_64.deb", "nvim-linux-arm64.deb", "SHA256SUMS"}
@@ -46,6 +47,7 @@ class Plan:
     package_revision: str
     publish: bool
     reason: str
+    rebuild_reason: str
     requires_review: bool
     should_build: bool
     source_commit: str
@@ -82,6 +84,12 @@ class GitHub:
             return None
         if not isinstance(result, dict):
             raise ValueError(f"GitHub returned a non-object response for {path}")
+        return result
+
+    def pages(self, path: str) -> list[dict]:
+        result = github_api.gh_json_pages(path)
+        if not isinstance(result, list) or not all(isinstance(item, dict) for item in result):
+            raise ValueError(f"GitHub returned a non-list response for {path}")
         return result
 
     def text(self, path: str) -> str:
@@ -178,18 +186,31 @@ def requires_risk_review(client: GitHub, repository: str, candidate_commit: str)
     )
 
 
-def make_plan(
+def make_plan(  # noqa: PLR0912, PLR0913
     *,
     client: GitHub,
     mode: str,
     requested: str,
     publish_requested: bool,
     repository: str,
+    rebuild_reason: str = "",
 ) -> Plan:
+    rebuild_reason = rebuild_reason.strip()
+    if rebuild_reason and mode != "manual":
+        raise ValueError("packaging rebuilds require an explicit manual dispatch")
+    if rebuild_reason and requested not in ("", "latest"):
+        raise ValueError(
+            "packaging rebuilds select the latest upstream release; do not specify a version"
+        )
+
     if requested in ("", "latest"):
         upstream = client.get("repos/neovim/neovim/releases/latest")
         requested = upstream.get("tag_name", "")
     version = parse_version(requested)
+    if version.package_revision and not rebuild_reason and mode == "manual":
+        raise ValueError(
+            "packaging revisions are selected by the rebuild workflow; provide a rebuild reason"
+        )
 
     # Explicit versions must correspond to an actual upstream stable release.
     upstream_tag = f"v{version.base}"
@@ -197,6 +218,20 @@ def make_plan(
     release = client.optional(f"repos/neovim/neovim/releases/tags/{encoded}")
     if not release or release.get("draft") or release.get("prerelease"):
         raise ValueError(f"{upstream_tag} is not a published upstream stable release")
+
+    if rebuild_reason:
+        releases = client.pages(f"repos/{repository}/releases")
+        revision = package_revision.select_next_revision(version.base, releases)
+        tag = f"v{version.base}-{revision}"
+        encoded_tag = urllib.parse.quote(tag, safe="")
+        if client.optional(f"repos/{repository}/git/ref/tags/{encoded_tag}") is not None:
+            raise ValueError(f"{tag} already exists as a git tag; refusing to reuse a revision")
+        version = Version(
+            base=version.base,
+            tag=tag,
+            package_revision=str(revision),
+            feature_release=version.feature_release,
+        )
 
     publish = mode in {"scheduled", "tag"} or publish_requested
     complete = release_is_complete(client, repository, version.tag)
@@ -209,14 +244,20 @@ def make_plan(
     else:
         assessment = RiskAssessment(False, "release already published with required assets")
     if version.package_revision and publish and should_build:
+        reason = f"review required: packaging-only revision {version.tag}"
+        if rebuild_reason:
+            reason = f"{reason} (reason: {rebuild_reason})"
+        assessment = RiskAssessment(True, f"{reason}; {assessment.summary}")
+    elif rebuild_reason and should_build:
         assessment = RiskAssessment(
-            True,
-            f"review required: packaging-only revision {version.tag}; {assessment.summary}",
+            False,
+            f"packaging-only revision {version.tag} ({rebuild_reason}); {assessment.summary}",
         )
     return Plan(
         package_revision=version.package_revision,
         publish=publish,
         reason=assessment.summary,
+        rebuild_reason=rebuild_reason,
         requires_review=publish and should_build and assessment.requires_review,
         should_build=should_build,
         source_commit=source_commit,
@@ -230,6 +271,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mode", choices=("ci", "scheduled", "manual", "tag"), required=True)
     parser.add_argument("--version", default="latest")
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--rebuild-reason", default="")
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--github-output", type=Path)
     return parser.parse_args()
@@ -247,6 +289,7 @@ def main() -> int:
             requested=args.version,
             publish_requested=args.publish,
             repository=args.repository,
+            rebuild_reason=args.rebuild_reason,
         )
     except (KeyError, OSError, ValueError, json.JSONDecodeError) as error:
         print(f"error: could not create release plan: {error}", file=sys.stderr)

@@ -48,9 +48,24 @@ Run the stable workflow from the Actions tab with:
 
 - `version`: an upstream stable version without `v`; empty means latest.
 - `publish`: leave disabled for an artifact-only candidate build; enable it to publish after verification.
+- `rebuild_reason`: a human-readable reason for a packaging-only rebuild; leave empty for a normal upstream release.
 
 Manual publication follows the same risk-based approval policy as scheduled publication. Pre-releases and nightly
 versions are intentionally rejected by the stable release planner.
+
+### Packaging-only rebuilds
+
+Use `rebuild_reason` when the upstream version is unchanged but this repository's packaging must be rebuilt. Leave
+`version` empty, enter the reason, and choose whether to publish. The planner resolves the latest upstream stable
+release, lists this repository's releases including drafts, and selects the next unused positive Debian revision
+(`X.Y.Z-N`). Do not calculate or type the suffix yourself; a manual `version` containing a suffix is rejected.
+
+Every publishing rebuild requires approval in `release-reviewed`, even when the upstream comparison finds no
+packaging-critical changes. The reason appears in the workflow summary and generated release notes. Immediately before
+creating the draft, the release job re-reads release state with write access, which is required because GitHub hides
+drafts from read-only tokens, and refuses the run if the revision was claimed by another run, published, or tagged
+meanwhile. A failed run can be retried with "Re-run failed jobs" to resume its own draft; a draft owned by a different
+run is never overwritten. Delete an abandoned draft only after deciding not to resume that run.
 
 Tag pushes matching `v*` remain supported as an emergency compatibility path. Before using that path, run:
 
@@ -61,7 +76,6 @@ git push origin vX.Y.Z
 ```
 
 Candidate-first scheduled or manual publication is preferred because it creates the tag only after both packages pass.
-Packaging-only revisions remain a planned roadmap operation: do not select an `X.Y.Z-N` suffix manually.
 
 ## Release verification
 
@@ -167,7 +181,8 @@ maintainer session additionally verifies the admin-only immutable-release settin
 
 The planner found a published release satisfying the asset contract, so it correctly skipped the expensive build. The
 legacy `v0.12.5` release has an explicit historical core-asset contract; all newer releases require metadata and SBOMs
-too. Use a package-revision version for a packaging rebuild; do not mutate a published release.
+too. For a packaging-only change, dispatch the workflow with `rebuild_reason` and let the planner select the next
+revision; do not enter a suffix manually or mutate a published release.
 
 ### Release job is waiting
 
@@ -176,8 +191,16 @@ GitHub Actions.
 
 ### A draft release remains after failure
 
-Fix the underlying failure and rerun the workflow. The release job uploads the verified assets with `--clobber`, updates
-the notes, and publishes the existing draft. Do not delete or recreate a published release.
+Fix the underlying failure and rerun the same workflow run. The release job uploads the verified assets with `--clobber`,
+updates the notes, and publishes the existing draft. A packaging rebuild only resumes a draft marked with its own run ID;
+if the draft belongs to another run, re-run that run or delete the abandoned draft after confirming it will not resume.
+Do not delete or recreate a published release.
+
+### A packaging rebuild was refused as a collision
+
+The selected revision is already a draft from another run, a published release, or an existing git tag. Re-run the
+original run to resume its draft, or choose a newer upstream stable release after confirming that the old run will not
+resume. Never force-overwrite a published release or reuse its tag.
 
 ### Upstream resolution fails
 

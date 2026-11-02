@@ -32,6 +32,24 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertNotIn("git tag -l", source)
         self.assertFalse((REPO / ".github/workflows/check-upstream.yml").exists())
 
+    def test_packaging_rebuild_is_manual_and_collision_checked(self) -> None:
+        build = load_workflow("build.yml")
+        triggers = build.get("on", build.get(True))
+        source = (REPO / ".github/workflows/build.yml").read_text()
+        planner = (REPO / "scripts/plan-release.py").read_text()
+        self.assertEqual(triggers["schedule"], [{"cron": "*/15 * * * *"}])
+        self.assertEqual(
+            triggers["workflow_dispatch"]["inputs"]["rebuild_reason"]["type"], "string"
+        )
+        self.assertIn("rebuild_reason", build["jobs"]["plan"]["outputs"])
+        self.assertIn("Summarize release plan", source)
+        self.assertIn("GITHUB_STEP_SUMMARY", source)
+        self.assertIn("packaging-rebuild-run", source)
+        self.assertEqual(source.count("scripts/package_revision.py"), 1)
+        self.assertIn("--rebuild-reason", source)
+        self.assertIn("rebuild_reason", planner)
+        self.assertIn("select_next_revision", planner)
+
     def test_release_review_is_based_on_upstream_packaging_risk(self) -> None:
         planner = (REPO / "scripts/plan-release.py").read_text()
         build = (REPO / ".github/workflows/build.yml").read_text()

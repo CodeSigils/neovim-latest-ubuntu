@@ -2,7 +2,7 @@
 
 **Document type:** Roadmap (temporary)
 
-**Status:** Stages 1 through 3 implemented; Stage 4 remains planned
+**Status:** Stages 1 through 4 implemented; final CI evidence required before removing this roadmap
 
 ## Purpose
 
@@ -158,19 +158,19 @@ Implemented acceptance criteria:
 
 ## Stage 4 — Simplify packaging-only revisions
 
-**Status:** Planned
+**Status:** Implemented
 
-Add an explicit manual operation that computes the next unused positive Debian revision for the latest upstream stable
-version. The maintainer should provide a reason, not calculate or enter `X.Y.Z-N` manually. Until that operation
-exists, a requested suffix is review-gated but is not the supported operator path.
+The stable workflow exposes a manual `rebuild_reason` input. The planner resolves the latest upstream stable release,
+lists this repository's releases including drafts, and selects the next unused positive Debian revision; maintainers
+provide a reason, never calculate or enter `X.Y.Z-N`. Manual suffix entry is rejected. The release job rechecks the
+claim immediately before draft creation and fails closed on another run's draft, a published release, or an existing
+tag. Packaging-only publication always requires `release-reviewed` approval. Candidate construction, exact-source
+resolution, native verification, immutable publication, and post-publication verification are unchanged.
 
-Packaging-only revisions should always require review because they publish repository-owned changes rather than a new
-upstream stable release. Candidate construction, exact-source resolution, native verification, immutable publication,
-and post-publication verification remain unchanged.
+Acceptance criteria (implemented):
 
-Acceptance criteria:
-
-- Revision selection rejects gaps, reuse, and races with an existing draft or published release.
+- Revision selection ignores malformed and legacy tags, never backfills gaps, and rejects reuse and races with an
+  existing draft, published release, or tag.
 - The reason is included in the workflow summary and generated release notes.
 - No tag or draft release is created before both architecture candidates pass.
 

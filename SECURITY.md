@@ -40,7 +40,8 @@ Published `.deb` artifacts are built inside a **containerised, pinned build envi
 - **Build-environment isolation** — compilation and packaging run inside `docker build` then `docker run`, reducing
   coupling to hosted-runner state. The container is not treated as a security sandbox for untrusted upstream code.
   Quality jobs use read-only repository permissions; publication and failure-reporting jobs receive only their explicit
-  release, attestation, or issue permissions.
+  release, attestation, or issue permissions. The publication job's write access is also what makes drafts visible to
+  the packaging-revision collision check; the release planner remains read-only.
 - **Verification inside the container** — `test.sh` runs inside the same container that built the `.deb`, ensuring
   runtime library versions match the build environment. The 8-check test suite covers install, package and runtime
   version matches, smoke test, runtime health, library dependencies, `update-alternatives` registration, and clean
@@ -73,7 +74,7 @@ Published `.deb` artifacts are built inside a **containerised, pinned build envi
 | **YAML syntax validation**     | Workflow files and local composite actions parse correctly                                  | Every applicable policy/package gate                           | Yes                                                        |
 | **actionlint**                 | GitHub Actions schema, expressions, shell fragments, and workflow semantics                 | Every policy/build gate                                        | Yes                                                        |
 | **Dependency consistency**     | README, manifest files, Containerfile, and scripts agree on prerequisites                   | Every applicable policy/package gate                           | Yes                                                        |
-| **Release planner**            | Published upstream release, exact source commit, published local assets, and approval class | Every 15 minutes and on stable CI                              | Yes                                                        |
+| **Release planner**            | Published upstream release, exact source commit, local release/draft state, next Debian revision, and approval class | Every 15 minutes and on stable CI                              | Yes                                                        |
 | **Release readiness gate**     | Emergency tag-path preflight: upstream tag, release absence, clean synchronized git state   | Manual recovery only                                           | No (outside CI)                                            |
 | **Author attribution guard**   | Commits use the canonical human maintainer identity and contain no AI-agent trailers        | Pushes to `main` and pull requests targeting `main`            | Yes                                                        |
 | **Build matrix**               | x86_64 + aarch64 both must pass; release is blocked if either fails                         | Every build                                                    | Yes                                                        |
@@ -82,8 +83,9 @@ Published `.deb` artifacts are built inside a **containerised, pinned build envi
 
 The `github-actions[bot]` identity uses a short-lived, job-scoped `GITHUB_TOKEN`. Most jobs are read-only; only the
 release publication job can write release contents and attestations, and only failure-reporting jobs can write issues.
-The post-publication verifier is read-only. No workflow can merge, rebase, close, or delete pull requests, and native
-Dependabot auto-merge is disabled.
+The post-publication verifier is read-only. The publication job uses its existing write scope to re-read draft state
+immediately before creating a packaging-revision draft; the read-only planner cannot see drafts. No workflow can merge,
+rebase, close, or delete pull requests, and native Dependabot auto-merge is disabled.
 
 Dependabot runs are treated as untrusted dependency changes: their workflows use read-only tokens and do not receive
 ordinary repository secrets by default. Merged source branches are removed by GitHub's repository setting, not by a
@@ -101,9 +103,11 @@ matrix, trigger behavior, and official references.
   track, replace, hold, and remove it normally. Its maintainer scripts register and unregister the documented
   `update-alternatives` entries.
 - **Candidate-first releases** — scheduled or explicitly requested publication builds and verifies both architectures
-  before creating a draft release and tag. Tag pushes remain an emergency compatibility path. Published tags and
-  assets created after immutable releases were enabled are protected by repository enforcement. The legacy `v0.12.5`
-  release predates the setting and is not retroactively immutable.
+  before creating a draft release and tag. Packaging-only rebuilds are manual, require a maintainer reason, compute the
+  next unused Debian revision from release state, and recheck that claim immediately before draft creation; publishing
+  one always uses `release-reviewed`. Tag pushes remain an emergency compatibility path. Published tags and assets
+  created after immutable releases were enabled are protected by repository enforcement. The legacy `v0.12.5` release
+  predates the setting and is not retroactively immutable.
 - **HTTPS-only distribution** — published release and workflow artifacts are served via TLS from GitHub. There is no
   plain-HTTP mirror, no PPA, and no custom repository endpoint.
 - **Fork compatibility** — all CI expressions have hardcoded fallbacks so forks work without configuring repo-level

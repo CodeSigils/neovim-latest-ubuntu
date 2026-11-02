@@ -43,6 +43,11 @@ on:
         required: false
         default: false
         type: boolean
+      rebuild_reason:
+        description: Human-readable reason for a packaging-only rebuild; selects the next Debian revision
+        required: false
+        default: ''
+        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -61,6 +66,7 @@ jobs:
       package_revision: ${{ steps.plan.outputs.package_revision }}
       publish: ${{ steps.plan.outputs.publish }}
       reason: ${{ steps.plan.outputs.reason }}
+      rebuild_reason: ${{ steps.plan.outputs.rebuild_reason }}
       requires_review: ${{ steps.plan.outputs.requires_review }}
       should_build: ${{ steps.plan.outputs.should_build }}
       source_commit: ${{ steps.plan.outputs.source_commit }}
@@ -76,17 +82,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INPUT_VERSION: ${{ github.event.inputs.version || '' }}
           INPUT_PUBLISH: ${{ github.event.inputs.publish || 'false' }}
+          INPUT_REBUILD_REASON: ${{ github.event.inputs.rebuild_reason || '' }}
         run: |
           mode=ci
           version=latest
           publish_arg=()
+          rebuild_arg=()
           if [[ "$GITHUB_EVENT_NAME" == schedule ]]; then
             mode=scheduled
           elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             mode=manual
+            if [[ -n "$INPUT_REBUILD_REASON" && -n "$INPUT_VERSION" ]]; then
+              echo "Error: rebuild_reason cannot be combined with version." >&2
+              exit 1
+            fi
             version="${INPUT_VERSION:-latest}"
             if [[ "$INPUT_PUBLISH" == true ]]; then
               publish_arg=(--publish)
+            fi
+            if [[ -n "$INPUT_REBUILD_REASON" ]]; then
+              rebuild_arg=(--rebuild-reason "$INPUT_REBUILD_REASON")
             fi
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             mode=tag
@@ -96,7 +111,33 @@ jobs:
             --mode "$mode" \
             --version "$version" \
             "${publish_arg[@]}" \
+            "${rebuild_arg[@]}" \
             --github-output "$GITHUB_OUTPUT"
+
+      - name: Summarize release plan
+        if: always()
+        env:
+          PLAN_VERSION: ${{ steps.plan.outputs.version }}
+          PLAN_TAG: ${{ steps.plan.outputs.tag }}
+          PLAN_PUBLISH: ${{ steps.plan.outputs.publish }}
+          PLAN_BUILD: ${{ steps.plan.outputs.should_build }}
+          PLAN_REVIEW: ${{ steps.plan.outputs.requires_review }}
+          PLAN_REASON: ${{ steps.plan.outputs.reason }}
+          REBUILD_REASON: ${{ steps.plan.outputs.rebuild_reason }}
+        run: |
+          {
+            echo "## Stable release plan"
+            echo ""
+            echo "- **Version:** ${PLAN_VERSION:-unknown}"
+            echo "- **Release tag:** ${PLAN_TAG:-unknown}"
+            echo "- **Publish:** ${PLAN_PUBLISH:-false}"
+            echo "- **Build candidate:** ${PLAN_BUILD:-false}"
+            echo "- **Review required:** ${PLAN_REVIEW:-false}"
+            echo "- **Reason:** ${PLAN_REASON:-planning failed}"
+            if [[ -n "$REBUILD_REASON" ]]; then
+              echo "- **Packaging rebuild reason:** ${REBUILD_REASON}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   package:
     needs: plan
@@ -186,6 +227,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ needs.plan.outputs.tag }}
           UPSTREAM_VERSION: ${{ needs.plan.outputs.version }}
+          REBUILD_REASON: ${{ needs.plan.outputs.rebuild_reason }}
         run: |
           cat > release-notes.md <<EOF
           Neovim ${RELEASE_TAG} packaged as a native \`.deb\` for Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})-based systems.
@@ -209,13 +251,30 @@ jobs:
           - [Upstream release notes](https://github.com/neovim/neovim/releases/tag/v${UPSTREAM_VERSION})
           - Build metadata is included for both architectures.
           EOF
+          if [[ -n "${REBUILD_REASON:-}" ]]; then
+            {
+              printf '\n**Packaging-only rebuild:** %s\n\n' "$REBUILD_REASON"
+              printf 'This release is a repository-owned Debian revision of Neovim %s; it is not a new upstream stable release.\n' "$UPSTREAM_VERSION"
+              printf '\n<!-- packaging-rebuild-run: %s -->\n' "$GITHUB_RUN_ID"
+            } >> release-notes.md
+          fi
 
       - name: Create or resume draft and publish release
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+          PACKAGE_REVISION: ${{ needs.plan.outputs.package_revision }}
+          UPSTREAM_VERSION: ${{ needs.plan.outputs.version }}
+          REBUILD_REASON: ${{ needs.plan.outputs.rebuild_reason }}
         run: |
+          if [[ -n "${REBUILD_REASON:-}" ]]; then
+            python3 scripts/package_revision.py \
+              --repository "$GITHUB_REPOSITORY" \
+              --base "$UPSTREAM_VERSION" \
+              --revision "$PACKAGE_REVISION" \
+              --run-id "$GITHUB_RUN_ID"
+          fi
           assets=(
             nvim-linux-x86_64.deb
             nvim-linux-arm64.deb
