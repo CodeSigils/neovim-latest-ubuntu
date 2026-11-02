@@ -26,6 +26,8 @@ release-tag pushes are the only publication-capable triggers.
 - Each candidate resolves an exact upstream tag commit and must pass native x86_64 and ARM64 package builds.
 - Low-risk releases publish automatically only after package, checksum, metadata, SPDX SBOM, and attestation gates pass.
 - Upstream CMake, CPack, or bundled-dependency changes require approval in `release-reviewed`.
+- Packaging-only rebuilds are manual: provide a reason, and the planner selects the next unused Debian revision.
+- Publishing a packaging-only rebuild always requires approval in `release-reviewed`.
 - Missing comparison evidence fails closed to review rather than publishing automatically.
 - Published releases are independently downloaded and verified before the workflow reports success.
 - Failures create or update one actionable issue; a later successful run closes it.
@@ -229,7 +231,9 @@ Because the test installs and removes the system `neovim` package, it refuses to
 
 For stable CI builds, the upstream release tag is resolved to an exact commit before compilation. Requested source and
 Debian package versions are passed to `test.sh` independently of generated package metadata. Package revisions such as
-`vX.Y.Z-1` therefore verify Neovim `X.Y.Z` while requiring Debian package version `X.Y.Z-1`.
+`vX.Y.Z-1` therefore verify Neovim `X.Y.Z` while requiring Debian package version `X.Y.Z-1`. Maintainers request a
+packaging revision through the `rebuild_reason` workflow input; the planner selects the revision and the release job
+rechecks the claim before creating a draft.
 
 To verify provenance after downloading a release:
 
