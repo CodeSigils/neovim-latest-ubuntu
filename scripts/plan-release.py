@@ -208,6 +208,11 @@ def make_plan(
         assessment = RiskAssessment(False, "build candidate")
     else:
         assessment = RiskAssessment(False, "release already published with required assets")
+    if version.package_revision and publish and should_build:
+        assessment = RiskAssessment(
+            True,
+            f"review required: packaging-only revision {version.tag}; {assessment.summary}",
+        )
     return Plan(
         package_revision=version.package_revision,
         publish=publish,

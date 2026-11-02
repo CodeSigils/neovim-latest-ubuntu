@@ -23,9 +23,6 @@ Neovim's CMake, CPack, or bundled-dependency inputs. Those changes route the pub
 `release-reviewed` environment for maintainer approval. Routine detections do not open issues; failures create or
 update a `new-release` issue and a later successful run closes it.
 
-The proposed move from semver-based approval to exception-based approval is tracked in
-[`docs/roadmap.md`](docs/roadmap.md). Until those stages are implemented, the policy above remains authoritative.
-
 The published GitHub Release—not a Git tag—is the source of truth for whether a version shipped. Repository-level
 immutable-release enforcement protects releases published after the setting was enabled. The legacy `v0.12.5` release
 predates that enforcement and is not retroactively immutable.
@@ -64,7 +61,7 @@ git push origin vX.Y.Z
 ```
 
 Candidate-first scheduled or manual publication is preferred because it creates the tag only after both packages pass.
-For a packaging-only rebuild, use `X.Y.Z-N`, where `N` is a positive Debian package revision.
+Packaging-only revisions remain a planned roadmap operation: do not select an `X.Y.Z-N` suffix manually.
 
 ## Release verification
 

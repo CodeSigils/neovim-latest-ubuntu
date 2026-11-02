@@ -118,8 +118,7 @@ Use it to answer two questions quickly:
 The repository automates repeatable build and evidence checks while reserving policy decisions and remediation for the
 maintainer.
 
-The regression suite currently contains **58 tests** and is run with `python3 -m unittest discover -s tests -p 'test_*.py'`
-in the shared quality gate.
+The regression suite runs with `python3 -m unittest discover -s tests -p 'test_*.py'` in the shared quality gate.
 
 | Automated                                                                                                        | Manual maintainer action                                                                    |
 | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -160,7 +159,7 @@ decision.
 
 ### Candidate-first automation
 
-Cross-repository release events are not delivered directly to this repository, so a daily authenticated poll is the
+Cross-repository release events are not delivered directly to this repository, so a 15-minute authenticated poll is the
 smallest reliable detector. Detection, exact source resolution, package construction, verification, and publication
 remain in one workflow graph. This avoids relying on a tag event created by an automation token and keeps the tested
 artifacts attached to the release job that publishes them.
