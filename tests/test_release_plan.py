@@ -108,6 +108,28 @@ class ReleasePlanTests(unittest.TestCase):
         )
         self.assertFalse(plan.requires_review)
 
+    def test_packaging_revision_requires_review_before_publication(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(),
+            mode="manual",
+            requested="0.12.5-2",
+            publish_requested=True,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
+        self.assertTrue(plan.requires_review)
+        self.assertIn("packaging-only revision v0.12.5-2", plan.reason)
+
+    def test_packaging_revision_artifact_build_does_not_require_review(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(),
+            mode="manual",
+            requested="0.12.5-2",
+            publish_requested=False,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
+        self.assertFalse(plan.publish)
+        self.assertFalse(plan.requires_review)
+
     def test_packaging_critical_upstream_change_requires_review(self) -> None:
         plan = release_plan.make_plan(
             client=FakeGitHub(latest="v0.13.0", changed_files=["cmake/Install.cmake"]),

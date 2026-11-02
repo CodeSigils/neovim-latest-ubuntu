@@ -16,7 +16,7 @@ operator procedures. Update a stage's status only in the same change that delive
 
 The implemented pipeline already:
 
-- Polls daily for GitHub's latest published, non-prerelease Neovim release.
+- Polls every 15 minutes for GitHub's latest published, non-prerelease Neovim release.
 - Resolves the upstream tag to an exact commit.
 - Builds and tests native x86_64 and ARM64 packages.
 - Validates package identity, runtime behavior, dependencies, alternatives registration, removal, and Lintian policy.
@@ -161,7 +161,8 @@ Implemented acceptance criteria:
 **Status:** Planned
 
 Add an explicit manual operation that computes the next unused positive Debian revision for the latest upstream stable
-version. The maintainer should provide a reason, not calculate or enter `X.Y.Z-N` manually.
+version. The maintainer should provide a reason, not calculate or enter `X.Y.Z-N` manually. Until that operation
+exists, a requested suffix is review-gated but is not the supported operator path.
 
 Packaging-only revisions should always require review because they publish repository-owned changes rather than a new
 upstream stable release. Candidate construction, exact-source resolution, native verification, immutable publication,
@@ -175,7 +176,7 @@ Acceptance criteria:
 
 ## Deliberate non-goals
 
-- Adding external webhook infrastructure solely to replace the daily upstream poll.
+- Adding external webhook infrastructure solely to replace the 15-minute upstream poll.
 - Publishing upstream prereleases or nightlies as stable releases.
 - Automatically changing the Ubuntu LTS target or architecture policy.
 - Automatically satisfying or bypassing a required environment approval, or mutating an immutable published release.
