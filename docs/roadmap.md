@@ -2,7 +2,7 @@
 
 **Document type:** Roadmap (temporary)
 
-**Status:** Stages 1 through 4 implemented; final CI evidence required before removing this roadmap
+**Status:** Stages 1 through 5 implemented; roadmap removal deferred to a separate documentation change
 
 ## Purpose
 
@@ -174,6 +174,36 @@ Acceptance criteria (implemented):
 - The reason is included in the workflow summary and generated release notes.
 - No tag or draft release is created before both architecture candidates pass.
 
+## Stage 5 — Reduce packaging-rebuild selector complexity
+
+**Status:** Implemented
+
+Stage 4 added a separate revision selector plus integration in `scripts/plan-release.py`. The implementation was
+simplified without changing any release decision. The manual-only rebuild path, next unused revision rule, draft
+ownership, collision handling, and `release-reviewed` requirement remain unchanged.
+
+### Evidence (baseline HEAD `8ad9152` vs working tree)
+
+- **Lines (touched):** `github_api.py` 114→99 (-15), `package_revision.py` 191→195 (+4), `plan-release.py` 309→347 (+38), `release_metadata.py` 81→94 (+13), `verify-published-release.py` 114→128 (+14), `tests/test_published_release.py` 83→84 (+1). **Total:** 8 files, +223/-139. Executable LOC increased slightly because decomposition and shared constants add definitions; the gain is testability and reduced duplication.
+- **Statements/functions (coverage):** `github_api.py` 81→65 (-16), `package_revision.py` 104→105 (+1), `plan-release.py` 197→212 (+15), `release_metadata.py` 47→53 (+6), `verify-published-release.py` 72→80 (+8). `plan-release.py` functions 12→17; `verify-published-release.py` functions 4→9. Shared constants moved to `scripts/release_metadata.py` (single source of truth for release asset sets and `RELEASE_TAG`).
+- **Complexity (ruff C901, max-complexity>3):** `plan-release.make_plan` 13→3 (extracted into `_validate_rebuild_reason`, `_requested_version`, `_ensure_upstream_release`, `_select_rebuild_version`, `_assess_plan` with `BuildState`). `verify-published-release.verify` 15→trivial orchestration, split into `verify_release_identity` (5), `verify_remote_assets` (4), `verify_tag`, `verify_checksums` (6), `verify_downloaded_assets`. `github_api` retry logic consolidated into `_retry` (5) replacing three duplicated loops. `package_revision` removed unused `CLAIM_ACTIONS`/`Final`, collapsed wrappers, added `tag_for_revision` for reuse. Unrelated hotspots (`check-repository-settings.audit` 11, `verify-release-candidate.main` 11) unchanged.
+- **Coverage (93 tests):** `github_api.py` 56%→74% (+18), `release_metadata.py` 0%→64%, `verify-published-release.py` 61%→65% (+4), `plan-release.py` 73%→75%, `package_revision.py` 90%→90%. All 93 tests pass.
+- **Duplication removed:** version regex/assets centralized in `release_metadata`; GitHub retry/pagination logic unified in `github_api._retry`/`_json_stream`; package revision tag formatting centralized via `tag_for_revision`; verifier uses `release_metadata` helpers (`CHECKSUMS_FILE`, `DEB_ASSETS`, `file_sha256`). Pure re-export aliases (`STABLE`, `CORE_ASSETS`, `REQUIRED_ASSETS`, `LEGACY_RELEASE_ASSETS`, `RELEASE_TAG`, `EXPECTED_ASSETS`) were removed; call sites use `release_metadata` directly.
+
+### Decision
+
+**Keep.** Decomposition improved testability (separate concerns, easier to reason about fail-closed paths) and removed real duplication. Centralized constants create a single source of truth without adding runtime dependencies. Pure aliases were removed rather than retained as indirection. No release policy changed.
+
+The implementation was prepared before the formal evidence snapshot. The measurements above compare it directly with the
+previous committed baseline and were used for the keep-or-revert decision; this record does not claim that the research
+gate preceded the edit.
+
+### Acceptance criteria (satisfied)
+
+- All selector, planner, and workflow-policy tests pass (93/93). Only mechanical test updates: `tests/test_published_release.py` adds `sys.path`/loader assertion for `release_metadata` import, and `tests/test_release_plan.py` reads centralized asset constants through the planner's imported module.
+- `ruff check`, `ruff format --check`, unit suite, YAML syntax validation, Markdown link validation, and Zizmor pass. LSP diagnostics clean on touched files.
+- Research gate completed with measured baseline, complexity deltas, coverage deltas, rejected alternatives considered (keep monolith) and rationale recorded. If future changes need further reduction, they must follow the same evidence-based gate.
+
 ## Deliberate non-goals
 
 - Adding external webhook infrastructure solely to replace the 15-minute upstream poll.
@@ -184,7 +214,10 @@ Acceptance criteria (implemented):
 
 ## Completion and removal
 
-This roadmap is complete when all four stages meet their acceptance criteria and the normal stable-release path needs no
-human action unless a documented exception is detected. At that point, move durable policy into
+This roadmap is complete when all five stages meet their acceptance criteria—including Stage 5 either delivering an
+approved simplification or closing as “no change” with evidence—and the normal stable-release path needs no human action
+unless a documented exception is detected. At that point, move durable policy into
 [`docs/architecture.md`](architecture.md), operational instructions into [`RELEASING.md`](../RELEASING.md), and security
 claims into [`SECURITY.md`](../SECURITY.md), then delete this file rather than retaining a historical checklist.
+Removal is deferred to a separate documentation change so the Stage 5 evidence can be reviewed alongside its
+implementation.

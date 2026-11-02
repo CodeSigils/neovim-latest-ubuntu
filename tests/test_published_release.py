@@ -3,16 +3,18 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "scripts"))
 SPEC = importlib.util.spec_from_file_location(
     "published", REPO / "scripts/verify-published-release.py"
 )
+assert SPEC and SPEC.loader
 published = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader
 SPEC.loader.exec_module(published)
 
 
@@ -21,7 +23,8 @@ class PublishedReleaseTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.directory = Path(self.tmp.name)
         self.commit = "a" * 40
-        for name in published.EXPECTED_ASSETS - {"SHA256SUMS"}:
+        expected = published.release_metadata.REQUIRED_RELEASE_ASSETS
+        for name in expected - {"SHA256SUMS"}:
             (self.directory / name).write_text(f"{name}\n")
         sums = []
         for name in ("nvim-linux-x86_64.deb", "nvim-linux-arm64.deb"):
@@ -33,9 +36,7 @@ class PublishedReleaseTests(unittest.TestCase):
             "draft": False,
             "prerelease": False,
             "target_commitish": self.commit,
-            "assets": [
-                {"name": name, "state": "uploaded", "size": 1} for name in published.EXPECTED_ASSETS
-            ],
+            "assets": [{"name": name, "state": "uploaded", "size": 1} for name in expected],
         }
         self.tag = {"object": {"type": "commit", "sha": self.commit}}
 

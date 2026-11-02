@@ -31,15 +31,12 @@ def _run(command: list[str], path: str) -> tuple[str | None, str | None]:
     return None, result.stderr.strip() or f"gh api failed: {path}"
 
 
-def gh_json(path: str) -> dict | list:
-    """Fetch JSON with bounded retries for transient CLI/network failures."""
+def _retry(path: str, command: list[str]) -> str:
+    """Run a gh command, retrying transient failures within the attempt budget."""
     for attempt in range(MAX_API_ATTEMPTS):
-        output, error = _run(["gh", "api", path], path)
+        output, error = _run(command, path)
         if output is not None:
-            try:
-                return json.loads(output)
-            except json.JSONDecodeError as error:
-                raise RuntimeError(f"GitHub returned invalid JSON for {path}: {error}") from error
+            return output
 
         assert error is not None
         if not any(term in error.lower() for term in TRANSIENT_ERRORS):
@@ -48,6 +45,15 @@ def gh_json(path: str) -> dict | list:
             raise RuntimeError(error)
         time.sleep(2**attempt)
     raise AssertionError("unreachable")
+
+
+def gh_json(path: str) -> dict | list:
+    """Fetch JSON with bounded retries for transient CLI/network failures."""
+    output = _retry(path, ["gh", "api", path])
+    try:
+        return json.loads(output)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"GitHub returned invalid JSON for {path}: {error}") from error
 
 
 def gh_json_optional(path: str) -> dict | list | None:
@@ -62,18 +68,7 @@ def gh_json_optional(path: str) -> dict | list | None:
 
 def gh_text(path: str) -> str:
     """Fetch a text asset through the GitHub API with bounded retries."""
-    for attempt in range(MAX_API_ATTEMPTS):
-        output, error = _run(["gh", "api", "-H", "Accept: application/octet-stream", path], path)
-        if output is not None:
-            return output
-
-        assert error is not None
-        if not any(term in error.lower() for term in TRANSIENT_ERRORS):
-            raise RuntimeError(error)
-        if attempt >= MAX_API_ATTEMPTS - 1:
-            raise RuntimeError(error)
-        time.sleep(2**attempt)
-    raise AssertionError("unreachable")
+    return _retry(path, ["gh", "api", "-H", "Accept: application/octet-stream", path])
 
 
 def _json_stream(text: str, path: str) -> list:
@@ -95,20 +90,10 @@ def _json_stream(text: str, path: str) -> list:
 
 def gh_json_pages(path: str) -> list:
     """Fetch every REST page and flatten array responses."""
-    for attempt in range(MAX_API_ATTEMPTS):
-        output, error = _run(["gh", "api", "--paginate", path], path)
-        if output is not None:
-            flattened: list = []
-            for page in _json_stream(output, path):
-                if not isinstance(page, list):
-                    raise RuntimeError(f"GitHub pagination returned a non-array page for {path}")
-                flattened.extend(page)
-            return flattened
-
-        assert error is not None
-        if not any(term in error.lower() for term in TRANSIENT_ERRORS):
-            raise RuntimeError(error)
-        if attempt >= MAX_API_ATTEMPTS - 1:
-            raise RuntimeError(error)
-        time.sleep(2**attempt)
-    raise AssertionError("unreachable")
+    output = _retry(path, ["gh", "api", "--paginate", path])
+    flattened: list = []
+    for page in _json_stream(output, path):
+        if not isinstance(page, list):
+            raise RuntimeError(f"GitHub pagination returned a non-array page for {path}")
+        flattened.extend(page)
+    return flattened

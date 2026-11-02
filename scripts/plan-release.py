@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 import urllib.parse
 from dataclasses import asdict, dataclass
@@ -15,18 +14,8 @@ from typing import Final
 
 import github_api
 import package_revision
+import release_metadata
 
-STABLE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([1-9]\d*))?$")
-CORE_ASSETS = {"nvim-linux-x86_64.deb", "nvim-linux-arm64.deb", "SHA256SUMS"}
-REQUIRED_ASSETS = CORE_ASSETS | {
-    "BUILD-METADATA-amd64.json",
-    "BUILD-METADATA-arm64.json",
-    "SBOM-amd64.spdx.json",
-    "SBOM-arm64.spdx.json",
-}
-# This release predates metadata/SBOM publication. Keep its historical contract
-# explicit without weakening validation for new releases.
-LEGACY_RELEASE_ASSETS = {"v0.12.5": CORE_ASSETS}
 RISK_PATHS: Final = (
     "CMakeLists.txt",
     "cmake/**",
@@ -61,8 +50,16 @@ class RiskAssessment:
     summary: str
 
 
+@dataclass(frozen=True)
+class BuildState:
+    version: Version
+    publish: bool
+    should_build: bool
+    source_commit: str
+
+
 def parse_version(value: str) -> Version:
-    match = STABLE.fullmatch(value)
+    match = release_metadata.RELEASE_TAG.fullmatch(value)
     if not match:
         raise ValueError("expected a stable X.Y.Z or package-revision X.Y.Z-N version")
     major, minor, patch, revision = match.groups()
@@ -102,7 +99,7 @@ def upstream_commit(client: GitHub, tag: str) -> str:
     for _ in range(4):
         if reference["type"] == "commit":
             sha = reference["sha"]
-            if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            if not release_metadata.FULL_SHA.fullmatch(sha):
                 raise ValueError(f"upstream returned an invalid commit SHA: {sha}")
             return sha
         if reference["type"] != "tag":
@@ -117,7 +114,9 @@ def release_is_complete(client: GitHub, repository: str, tag: str) -> bool:
     if not release or release.get("draft") or release.get("prerelease"):
         return False
     assets = {asset["name"]: asset for asset in release.get("assets", [])}
-    required_assets = LEGACY_RELEASE_ASSETS.get(tag, REQUIRED_ASSETS)
+    required_assets = release_metadata.LEGACY_RELEASE_ASSETS.get(
+        tag, release_metadata.REQUIRED_RELEASE_ASSETS
+    )
     return all(
         name in assets
         and assets[name].get("state") == "uploaded"
@@ -145,7 +144,7 @@ def source_commit_from_release(client: GitHub, repository: str) -> str:
         if not isinstance(upstream, dict):
             raise ValueError("build metadata has no upstream record")
         commit = upstream.get("commit")
-        if isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit):
+        if isinstance(commit, str) and release_metadata.FULL_SHA.fullmatch(commit):
             return commit
         raise ValueError("build metadata has an invalid upstream commit")
 
@@ -186,7 +185,78 @@ def requires_risk_review(client: GitHub, repository: str, candidate_commit: str)
     )
 
 
-def make_plan(  # noqa: PLR0912, PLR0913
+def _validate_rebuild_reason(mode: str, requested: str, rebuild_reason: str) -> str:
+    rebuild_reason = rebuild_reason.strip()
+    if rebuild_reason and mode != "manual":
+        raise ValueError("packaging rebuilds require an explicit manual dispatch")
+    if rebuild_reason and requested not in ("", "latest"):
+        raise ValueError(
+            "packaging rebuilds select the latest upstream release; do not specify a version"
+        )
+    return rebuild_reason
+
+
+def _requested_version(client: GitHub, requested: str) -> Version:
+    if requested in ("", "latest"):
+        upstream = client.get("repos/neovim/neovim/releases/latest")
+        requested = upstream.get("tag_name", "")
+    return parse_version(requested)
+
+
+def _ensure_upstream_release(client: GitHub, version: Version) -> str:
+    """Return the upstream tag after confirming it is a published stable release."""
+    upstream_tag = f"v{version.base}"
+    encoded = urllib.parse.quote(upstream_tag, safe="")
+    release = client.optional(f"repos/neovim/neovim/releases/tags/{encoded}")
+    if not release or release.get("draft") or release.get("prerelease"):
+        raise ValueError(f"{upstream_tag} is not a published upstream stable release")
+    return upstream_tag
+
+
+def _select_rebuild_version(client: GitHub, repository: str, version: Version) -> Version:
+    """Replace the upstream version with the next unused package revision."""
+    releases = client.pages(f"repos/{repository}/releases")
+    revision = package_revision.select_next_revision(version.base, releases)
+    tag = package_revision.tag_for_revision(version.base, revision)
+    encoded_tag = urllib.parse.quote(tag, safe="")
+    if client.optional(f"repos/{repository}/git/ref/tags/{encoded_tag}") is not None:
+        raise ValueError(f"{tag} already exists as a git tag; refusing to reuse a revision")
+    return Version(
+        base=version.base,
+        tag=tag,
+        package_revision=str(revision),
+        feature_release=version.feature_release,
+    )
+
+
+def _assess_plan(
+    client: GitHub,
+    repository: str,
+    *,
+    state: BuildState,
+    rebuild_reason: str,
+) -> RiskAssessment:
+    if state.publish and state.should_build:
+        assessment = requires_risk_review(client, repository, state.source_commit)
+    elif state.should_build:
+        assessment = RiskAssessment(False, "build candidate")
+    else:
+        assessment = RiskAssessment(False, "release already published with required assets")
+
+    if state.version.package_revision and state.publish and state.should_build:
+        reason = f"review required: packaging-only revision {state.version.tag}"
+        if rebuild_reason:
+            reason = f"{reason} (reason: {rebuild_reason})"
+        return RiskAssessment(True, f"{reason}; {assessment.summary}")
+    if rebuild_reason and state.should_build:
+        return RiskAssessment(
+            False,
+            f"packaging-only revision {state.version.tag} ({rebuild_reason}); {assessment.summary}",
+        )
+    return assessment
+
+
+def make_plan(  # noqa: PLR0913
     *,
     client: GitHub,
     mode: str,
@@ -195,64 +265,32 @@ def make_plan(  # noqa: PLR0912, PLR0913
     repository: str,
     rebuild_reason: str = "",
 ) -> Plan:
-    rebuild_reason = rebuild_reason.strip()
-    if rebuild_reason and mode != "manual":
-        raise ValueError("packaging rebuilds require an explicit manual dispatch")
-    if rebuild_reason and requested not in ("", "latest"):
-        raise ValueError(
-            "packaging rebuilds select the latest upstream release; do not specify a version"
-        )
-
-    if requested in ("", "latest"):
-        upstream = client.get("repos/neovim/neovim/releases/latest")
-        requested = upstream.get("tag_name", "")
-    version = parse_version(requested)
+    rebuild_reason = _validate_rebuild_reason(mode, requested, rebuild_reason)
+    version = _requested_version(client, requested)
     if version.package_revision and not rebuild_reason and mode == "manual":
         raise ValueError(
             "packaging revisions are selected by the rebuild workflow; provide a rebuild reason"
         )
 
-    # Explicit versions must correspond to an actual upstream stable release.
-    upstream_tag = f"v{version.base}"
-    encoded = urllib.parse.quote(upstream_tag, safe="")
-    release = client.optional(f"repos/neovim/neovim/releases/tags/{encoded}")
-    if not release or release.get("draft") or release.get("prerelease"):
-        raise ValueError(f"{upstream_tag} is not a published upstream stable release")
-
+    upstream_tag = _ensure_upstream_release(client, version)
     if rebuild_reason:
-        releases = client.pages(f"repos/{repository}/releases")
-        revision = package_revision.select_next_revision(version.base, releases)
-        tag = f"v{version.base}-{revision}"
-        encoded_tag = urllib.parse.quote(tag, safe="")
-        if client.optional(f"repos/{repository}/git/ref/tags/{encoded_tag}") is not None:
-            raise ValueError(f"{tag} already exists as a git tag; refusing to reuse a revision")
-        version = Version(
-            base=version.base,
-            tag=tag,
-            package_revision=str(revision),
-            feature_release=version.feature_release,
-        )
+        version = _select_rebuild_version(client, repository, version)
 
     publish = mode in {"scheduled", "tag"} or publish_requested
     complete = release_is_complete(client, repository, version.tag)
     should_build = not (publish and complete)
     source_commit = upstream_commit(client, upstream_tag)
-    if publish and should_build:
-        assessment = requires_risk_review(client, repository, source_commit)
-    elif should_build:
-        assessment = RiskAssessment(False, "build candidate")
-    else:
-        assessment = RiskAssessment(False, "release already published with required assets")
-    if version.package_revision and publish and should_build:
-        reason = f"review required: packaging-only revision {version.tag}"
-        if rebuild_reason:
-            reason = f"{reason} (reason: {rebuild_reason})"
-        assessment = RiskAssessment(True, f"{reason}; {assessment.summary}")
-    elif rebuild_reason and should_build:
-        assessment = RiskAssessment(
-            False,
-            f"packaging-only revision {version.tag} ({rebuild_reason}); {assessment.summary}",
-        )
+    assessment = _assess_plan(
+        client,
+        repository,
+        state=BuildState(
+            version=version,
+            publish=publish,
+            should_build=should_build,
+            source_commit=source_commit,
+        ),
+        rebuild_reason=rebuild_reason,
+    )
     return Plan(
         package_revision=version.package_revision,
         publish=publish,
