@@ -9,21 +9,13 @@ logic fixture-driven makes the remote gate deterministic and easy to test.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
 from pathlib import Path
 
-EXPECTED_ASSETS = {
-    "nvim-linux-x86_64.deb",
-    "nvim-linux-arm64.deb",
-    "SHA256SUMS",
-    "BUILD-METADATA-amd64.json",
-    "BUILD-METADATA-arm64.json",
-    "SBOM-amd64.spdx.json",
-    "SBOM-arm64.spdx.json",
-}
+import release_metadata
+
 SHA_RE = re.compile(r"^([0-9a-f]{64})  (.+)$")
 
 
@@ -34,9 +26,7 @@ def read_json(path: Path) -> dict:
     return value
 
 
-def verify(  # noqa: PLR0912
-    *, release: dict, tag: dict, asset_dir: Path, expected_tag: str, expected_commit: str
-) -> None:
+def verify_release_identity(release: dict, *, expected_tag: str, expected_commit: str) -> None:
     if release.get("tag_name") != expected_tag:
         raise ValueError("release tag does not match the planned tag")
     if release.get("draft") or release.get("prerelease"):
@@ -46,41 +36,65 @@ def verify(  # noqa: PLR0912
     if release.get("target_commitish") not in (None, "", expected_commit):
         raise ValueError("release target commit does not match the workflow commit")
 
+
+def verify_remote_assets(release: dict) -> None:
     assets = release.get("assets")
     if not isinstance(assets, list):
         raise ValueError("release payload has no asset list")
-    names = {item.get("name") for item in assets if isinstance(item, dict)}
-    if names != EXPECTED_ASSETS:
-        raise ValueError(f"unexpected release assets: {sorted(names ^ EXPECTED_ASSETS)}")
+    names = {
+        name
+        for item in assets
+        if isinstance(item, dict) and isinstance(name := item.get("name"), str)
+    }
+    if names != release_metadata.REQUIRED_RELEASE_ASSETS:
+        raise ValueError(
+            f"unexpected release assets: {sorted(names ^ release_metadata.REQUIRED_RELEASE_ASSETS)}"
+        )
     if any(item.get("state") != "uploaded" or item.get("size", 0) <= 0 for item in assets):
         raise ValueError("release contains an incomplete or empty asset")
 
+
+def verify_tag(tag: dict, expected_commit: str) -> None:
     tag_object = tag.get("object", {})
     if tag_object.get("type") != "commit" or tag_object.get("sha") != expected_commit:
         raise ValueError("tag does not resolve directly to the published workflow commit")
 
-    checksum_file = asset_dir / "SHA256SUMS"
-    lines = checksum_file.read_text().splitlines()
+
+def verify_checksums(asset_dir: Path) -> None:
+    lines = (asset_dir / release_metadata.CHECKSUMS_FILE).read_text().splitlines()
     seen: set[str] = set()
     for line in lines:
         match = SHA_RE.fullmatch(line)
         if not match:
             raise ValueError(f"invalid checksum line: {line!r}")
         digest, name = match.groups()
-        if name not in {"nvim-linux-x86_64.deb", "nvim-linux-arm64.deb"} or name in seen:
+        if name not in release_metadata.DEB_ASSETS or name in seen:
             raise ValueError(f"invalid checksum entry: {name}")
         path = asset_dir / name
-        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+        if not path.is_file() or release_metadata.file_sha256(path) != digest:
             raise ValueError(f"checksum mismatch for {name}")
         seen.add(name)
-    if seen != {"nvim-linux-x86_64.deb", "nvim-linux-arm64.deb"}:
+    if seen != release_metadata.DEB_ASSETS:
         raise ValueError("SHA256SUMS does not cover both packages")
 
+
+def verify_downloaded_assets(asset_dir: Path) -> None:
     local_names = {path.name for path in asset_dir.iterdir() if path.is_file()}
-    if local_names != EXPECTED_ASSETS:
+    if local_names != release_metadata.REQUIRED_RELEASE_ASSETS:
         raise ValueError(
-            f"downloaded asset set differs from release: {sorted(local_names ^ EXPECTED_ASSETS)}"
+            "downloaded asset set differs from release: "
+            f"{sorted(local_names ^ release_metadata.REQUIRED_RELEASE_ASSETS)}"
         )
+
+
+def verify(
+    *, release: dict, tag: dict, asset_dir: Path, expected_tag: str, expected_commit: str
+) -> None:
+    verify_release_identity(release, expected_tag=expected_tag, expected_commit=expected_commit)
+    verify_remote_assets(release)
+    verify_tag(tag, expected_commit)
+    verify_checksums(asset_dir)
+    verify_downloaded_assets(asset_dir)
 
 
 def parse_args() -> argparse.Namespace:

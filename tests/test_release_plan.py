@@ -73,8 +73,8 @@ class FakeGitHub:
             assets = (
                 self.existing_assets
                 if self.existing_assets is not None
-                else release_plan.LEGACY_RELEASE_ASSETS.get(
-                    self.latest, release_plan.REQUIRED_ASSETS
+                else release_plan.release_metadata.LEGACY_RELEASE_ASSETS.get(
+                    self.latest, release_plan.release_metadata.REQUIRED_RELEASE_ASSETS
                 )
             )
             return {
@@ -295,7 +295,7 @@ class ReleasePlanTests(unittest.TestCase):
             client=FakeGitHub(
                 latest="v0.12.6",
                 existing=True,
-                existing_assets=release_plan.CORE_ASSETS,
+                existing_assets=release_plan.release_metadata.CORE_RELEASE_ASSETS,
             ),
             mode="scheduled",
             requested="latest",

@@ -11,13 +11,12 @@ import sys
 import urllib.parse
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any
 
 import github_api
+import release_metadata
 
-RELEASE_TAG = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([1-9]\d*))?$")
 RUN_MARKER = re.compile(r"<!--\s*packaging-rebuild-run:\s*(\d+)\s*-->")
-CLAIM_ACTIONS: Final = ("create", "resume")
 
 
 @dataclass(frozen=True)
@@ -54,7 +53,7 @@ def _records(releases: Iterable[Mapping[str, Any]]) -> list[ReleaseRecord]:
 
 def parse_revision_tag(tag: str, base: str) -> int | None:
     """Return the positive revision encoded in *tag* for *base*, if any."""
-    match = RELEASE_TAG.fullmatch(tag)
+    match = release_metadata.RELEASE_TAG.fullmatch(tag)
     if not match:
         return None
     major, minor, patch, revision = match.groups()
@@ -63,7 +62,7 @@ def parse_revision_tag(tag: str, base: str) -> int | None:
     return int(revision)
 
 
-def _used_revisions_from_records(base: str, records: Iterable[ReleaseRecord]) -> set[int]:
+def _used_revisions(base: str, records: Iterable[ReleaseRecord]) -> set[int]:
     revisions: set[int] = set()
     for record in records:
         revision = parse_revision_tag(record.tag, base)
@@ -78,16 +77,21 @@ def used_revisions(base: str, releases: Iterable[Mapping[str, Any]]) -> set[int]
     Draft and published releases both reserve a revision. Malformed tags and
     revisions for other upstream versions are ignored.
     """
-    return _used_revisions_from_records(base, _records(releases))
+    return _used_revisions(base, _records(releases))
 
 
-def _next_revision_from_records(base: str, records: Iterable[ReleaseRecord]) -> int:
-    return max(_used_revisions_from_records(base, records), default=0) + 1
+def _next_revision(base: str, records: Iterable[ReleaseRecord]) -> int:
+    return max(_used_revisions(base, records), default=0) + 1
 
 
 def select_next_revision(base: str, releases: Iterable[Mapping[str, Any]]) -> int:
     """Select the next unused revision without backfilling gaps."""
-    return _next_revision_from_records(base, _records(releases))
+    return _next_revision(base, _records(releases))
+
+
+def tag_for_revision(base: str, revision: int) -> str:
+    """Return the canonical release tag for a package revision."""
+    return f"v{base}-{revision}"
 
 
 def rebuild_marker(run_id: str) -> str:
@@ -117,8 +121,8 @@ def evaluate_claim(
     if revision < 1:
         raise RevisionConflict(f"revision must be a positive integer, got {revision}")
     records = _records(releases)
-    next_revision = _next_revision_from_records(base, records)
-    tag = f"v{base}-{revision}"
+    next_revision = _next_revision(base, records)
+    tag = tag_for_revision(base, revision)
     matching = next(
         (record for record in records if record.tag in {tag, tag.removeprefix("v")}),
         None,
@@ -145,7 +149,7 @@ def evaluate_claim(
 def claim_from_github(*, repository: str, base: str, revision: int, run_id: str) -> str:
     """Read repository release state through the authenticated GitHub API."""
     releases = github_api.gh_json_pages(f"repos/{repository}/releases")
-    tag = f"v{base}-{revision}"
+    tag = tag_for_revision(base, revision)
     encoded = urllib.parse.quote(tag, safe="")
     reference = github_api.gh_json_optional(f"repos/{repository}/git/ref/tags/{encoded}")
     return evaluate_claim(

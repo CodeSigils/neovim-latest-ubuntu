@@ -11,6 +11,19 @@ ARTIFACTS = {
     "amd64": "nvim-linux-x86_64.deb",
     "arm64": "nvim-linux-arm64.deb",
 }
+CHECKSUMS_FILE = "SHA256SUMS"
+DEB_ASSETS = frozenset(ARTIFACTS.values())
+CORE_RELEASE_ASSETS = DEB_ASSETS | {CHECKSUMS_FILE}
+REQUIRED_RELEASE_ASSETS = CORE_RELEASE_ASSETS | {
+    "BUILD-METADATA-amd64.json",
+    "BUILD-METADATA-arm64.json",
+    "SBOM-amd64.spdx.json",
+    "SBOM-arm64.spdx.json",
+}
+# This release predates metadata/SBOM publication. Keep its historical contract
+# explicit without weakening validation for new releases.
+LEGACY_RELEASE_ASSETS = {"v0.12.5": CORE_RELEASE_ASSETS}
+RELEASE_TAG = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-([1-9]\d*))?$")
 FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_DIGEST = re.compile(r"^[0-9a-f]{64}$")
 STABLE_VERSION = re.compile(r"^[0-9]+[.][0-9]+[.][0-9]+$")
