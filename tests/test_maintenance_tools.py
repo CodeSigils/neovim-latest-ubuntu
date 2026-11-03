@@ -104,10 +104,12 @@ class MaintenanceToolTests(unittest.TestCase):
             subprocess.run(["git", "init", "-q", root], check=True)
             (root / ".gitignore").write_text("cache/\n")
             (root / "tracked.md").write_text("tracked\n")
+            (root / "deleted.md").write_text("deleted\n")
             (root / "visible.md").write_text("visible\n")
             (root / "cache").mkdir()
             (root / "cache" / "ignored.md").write_text("ignored\n")
-            subprocess.run(["git", "-C", root, "add", "tracked.md"], check=True)
+            subprocess.run(["git", "-C", root, "add", "tracked.md", "deleted.md"], check=True)
+            (root / "deleted.md").unlink()
             previous = Path.cwd()
             try:
                 os.chdir(root)

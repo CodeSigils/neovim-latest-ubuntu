@@ -19,7 +19,9 @@ def markdown_paths() -> list[Path]:
     )
     if result.returncode != 0:
         raise RuntimeError(result.stderr.decode(errors="replace").strip())
-    return sorted(Path(raw.decode()) for raw in result.stdout.split(b"\0") if raw)
+    return sorted(
+        path for raw in result.stdout.split(b"\0") if raw and (path := Path(raw.decode())).is_file()
+    )
 
 
 def main() -> int:
