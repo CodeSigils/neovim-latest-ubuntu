@@ -61,8 +61,14 @@ metadata, and the SBOMs are also release assets so verification does not depend 
 
 ## GitHub Actions and runners
 
+GitHub release, branch-protection, and workflow-command guidance in this section was checked on 2026-11-02. The
+pipeline-specific consequences stated below are local inferences from those sources and this repository's permissions.
+
 - [Workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) — triggers,
   expressions, permissions, and reusable workflows.
+- [Using conditions to control job execution](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions)
+  — a skipped packaging-rebuild preflight is an expected state for scheduled and tag runs, so dependent package and
+  release jobs explicitly use `always()` while still requiring successful prerequisite results.
 - [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
   — event-specific filtering behavior and `workflow_dispatch` inputs.
 - [Manually running a workflow](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow)
@@ -72,8 +78,13 @@ metadata, and the SBOMs are also release assets so verification does not depend 
   — feature-release and packaging-rebuild approval gates.
 - [GitHub-hosted runner images](https://github.com/actions/runner-images) — available x86_64 and ARM64 labels.
 - [REST API endpoints for releases](https://docs.github.com/en/rest/releases/releases) — release and draft state used
-  for Debian revision selection. Only tokens with push access can list drafts, and a draft does not create its git tag
-  until publication.
+  for Debian revision selection. Only tokens with push access can list drafts, so read-only planning is followed by a
+  write-capable draft/tag preflight; a draft does not create its git tag until publication.
+- [REST API branch protection](https://docs.github.com/en/rest/branches/branch-protection) — branch-protection reads
+  require Administration permission, so they are part of the maintainer-authenticated audit rather than the scheduled
+  `GITHUB_TOKEN` report.
+- [Workflow commands](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands) —
+  `GITHUB_OUTPUT` serialization and multiline-value constraints for release-plan outputs.
 - [Immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
   — release immutability behavior.
 - [Automation identities and permissions](automation-identities.md) — repository-specific bot boundaries and

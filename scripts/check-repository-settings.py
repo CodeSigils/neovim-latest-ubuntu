@@ -48,7 +48,11 @@ def repository_name() -> str:
 
 
 def audit(
-    repository: str, variables: set[str], immutable_releases_enabled: bool | None
+    repository: str,
+    variables: set[str],
+    immutable_releases_enabled: bool | None,
+    *,
+    include_admin_checks: bool = True,
 ) -> list[str]:
     errors: list[str] = []
 
@@ -61,6 +65,9 @@ def audit(
     missing_variables = sorted(REQUIRED_VARIABLES - variables)
     if missing_variables:
         errors.append("missing Actions variables: " + ", ".join(missing_variables))
+
+    if not include_admin_checks:
+        return errors
 
     release_auto = gh_json(f"repos/{repository}/environments/release-auto")
     if release_auto.get("protection_rules"):
@@ -99,7 +106,8 @@ def audit(
 def main() -> int:
     try:
         repository = repository_name()
-        if os.environ.get("GITHUB_ACTIONS") == "true":
+        actions_context = os.environ.get("GITHUB_ACTIONS") == "true"
+        if actions_context:
             variables = {
                 name for name in REQUIRED_VARIABLES if os.environ.get(f"REPOSITORY_VARIABLE_{name}")
             }
@@ -109,7 +117,12 @@ def main() -> int:
             variables = {item["name"] for item in variable_data["variables"]}
             immutable_data = gh_json(f"repos/{repository}/immutable-releases")
             immutable_releases_enabled = immutable_data.get("enabled") is True
-        errors = audit(repository, variables, immutable_releases_enabled)
+        errors = audit(
+            repository,
+            variables,
+            immutable_releases_enabled,
+            include_admin_checks=not actions_context,
+        )
     except (KeyError, RuntimeError, TypeError) as error:
         print(f"FAIL: could not audit repository settings: {error}", file=sys.stderr)
         return 1
@@ -120,9 +133,11 @@ def main() -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
 
-    checked = "labels, Actions variables, release environments, and main protection"
-    if immutable_releases_enabled is not None:
-        checked += ", plus immutable-release enforcement"
+    checked = "labels and Actions variables"
+    if not actions_context:
+        checked += ", release environments, main protection, and immutable-release enforcement"
+    else:
+        checked += "; admin-only release settings require a maintainer-authenticated audit"
     print(f"PASS: configured {checked}")
     return 0
 

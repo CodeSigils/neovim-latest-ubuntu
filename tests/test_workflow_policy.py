@@ -24,7 +24,12 @@ class WorkflowPolicyTests(unittest.TestCase):
         planner = (REPO / "scripts/plan-release.py").read_text()
         self.assertEqual(triggers["schedule"], [{"cron": "*/15 * * * *"}])
         self.assertEqual(triggers["push"], {"tags": ["v*"]})
+        concurrency_group = build["concurrency"]["group"]
+        self.assertIn("pull_request", concurrency_group)
+        self.assertIn("release", concurrency_group)
         self.assertEqual(build["jobs"]["package"]["uses"], "./.github/workflows/package.yml")
+        self.assertIn("always()", build["jobs"]["package"]["if"])
+        self.assertIn("always()", build["jobs"]["release"]["if"])
         self.assertIn("needs.package.result == 'success'", build["jobs"]["release"]["if"])
         self.assertIn("--draft", source)
         self.assertIn("--draft=false", source)
@@ -45,10 +50,16 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("Summarize release plan", source)
         self.assertIn("GITHUB_STEP_SUMMARY", source)
         self.assertIn("packaging-rebuild-run", source)
-        self.assertEqual(source.count("scripts/package_revision.py"), 1)
+        self.assertEqual(source.count("scripts/package_revision.py"), 2)
         self.assertIn("--rebuild-reason", source)
         self.assertIn("rebuild_reason", planner)
         self.assertIn("select_next_revision", planner)
+        claim = build["jobs"]["claim-rebuild"]
+        self.assertEqual(claim["needs"], "plan")
+        self.assertEqual(claim["permissions"], {"contents": "write"})
+        self.assertIn("manual stable releases must run from main", source)
+        self.assertIn("claim_action", source)
+        self.assertIn("refusing to resume", source)
 
     def test_release_review_is_based_on_upstream_packaging_risk(self) -> None:
         planner = (REPO / "scripts/plan-release.py").read_text()
@@ -199,6 +210,11 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("actionlint@sha256:", quality)
         self.assertIn("python3 -m unittest discover", quality)
         self.assertIn("ruff check", quality)
+        self.assertIn("Enforce release-script complexity ceiling", quality)
+        self.assertIn("lint.mccabe.max-complexity=9", quality)
+        self.assertIn("scripts/package_revision.py", quality)
+        self.assertIn("scripts/plan-release.py", quality)
+        self.assertIn("scripts/verify-published-release.py", quality)
         self.assertTrue(type_check["continue-on-error"])
         self.assertIn("ty check scripts", quality)
         self.assertIn("zizmor --offline", quality)
@@ -225,6 +241,20 @@ class WorkflowPolicyTests(unittest.TestCase):
         ignored = set(triggers["pull_request"]["paths-ignore"])
         self.assertTrue(expected_ignored <= ignored)
         self.assertNotIn(".github/workflows/**", ignored)
+
+    def test_rebuild_preflight_does_not_skip_non_rebuild_paths_or_release_after_failure(
+        self,
+    ) -> None:
+        build = load_workflow("build.yml")
+        package_condition = build["jobs"]["package"]["if"]
+        release_condition = build["jobs"]["release"]["if"]
+        failure_condition = build["jobs"]["report-failure"]["if"]
+
+        for condition in (package_condition, release_condition):
+            self.assertIn("always()", condition)
+            self.assertIn("needs.claim-rebuild.result == 'success'", condition)
+            self.assertIn("needs.claim-rebuild.result == 'skipped'", condition)
+        self.assertIn("needs.claim-rebuild.result == 'failure'", failure_condition)
 
     def test_failure_issues_are_exception_only_and_self_healing(self) -> None:
         stable = (REPO / ".github/workflows/build.yml").read_text()

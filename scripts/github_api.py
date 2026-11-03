@@ -8,7 +8,7 @@ import time
 
 MAX_API_ATTEMPTS = 3
 API_TIMEOUT_SECONDS = 30
-TRANSIENT_ERRORS = ("connection", "timeout", "temporarily", "could not resolve")
+TRANSIENT_ERRORS = ("connection", "timeout", "temporarily", "could not resolve", "http 5")
 # gh reports a missing resource in stderr rather than through an exit code that
 # distinguishes it from other failures.
 NOT_FOUND_MARKER = "HTTP 404"

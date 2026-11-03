@@ -28,8 +28,8 @@ Use it to answer two questions quickly:
 - `.github/workflows/dependency-freshness.yml` — weekly action-freshness and token-readable release-configuration audit.
 - `.github/workflows/stale-branches.yml` — weekly report-only inactive-branch monitor.
 - `.github/workflows/dependabot-triage.yml` — weekly report-only Dependabot readiness classifier.
-- `scripts/check-repository-settings.py` — labels, Actions variables, environment protection, and local admin
-  immutability drift gate.
+- `scripts/check-repository-settings.py` — token-readable label/variable checks in CI plus an administrator-local
+  audit of release environments, branch protection, and immutable-release enforcement.
 - `scripts/plan-release.py` — authenticated upstream resolution, published-release state planning, and manual
   packaging-rebuild selection.
 - `scripts/package_revision.py` — next Debian revision selection and fail-closed draft/tag claim verification.
@@ -43,8 +43,7 @@ Use it to answer two questions quickly:
   CI installs them with uv. The initial `ty` check is advisory while existing dynamic API-boundary diagnostics are
   eliminated.
 - `docs/automation-identities.md` — current bot identities, permissions, trigger boundaries, and manual controls.
-- `docs/` — implemented architecture and replayability guidance, the temporary automation roadmap, and curated
-  reference material.
+- `docs/` — implemented architecture, replayability guidance, automation boundaries, and curated reference material.
 - `deps/` — source-of-truth dependency manifests for build and CI/container tooling.
 
 ## Architectural invariants
@@ -105,14 +104,14 @@ Use it to answer two questions quickly:
     - A draft with an unexpected or incomplete asset set is never published.
     - Stable releases publish automatically unless the upstream comparison finds a change to CMake, CPack, or bundled
       dependencies; those candidates use the protected `release-reviewed` environment.
-    - Packaging-only rebuilds are a manual operation: the maintainer supplies a reason, and the planner selects the next
-      unused positive Debian revision from release state. Typed `X.Y.Z-N` suffixes are rejected in manual mode.
-    - The release job rechecks draft, published, and tag state immediately before creating the draft. GitHub only
-      exposes drafts to tokens with write access, so this check runs in the publication job; the planner remains
-      read-only. A rebuild resumes only its own run-marked draft and fails closed on every other claim.
+    - Packaging-only rebuilds are a manual `main`-branch operation: the maintainer supplies a reason, and the planner
+      proposes the next positive Debian revision. Typed `X.Y.Z-N` suffixes are rejected in manual mode.
+    - A write-capable preflight checks draft and tag state before candidates build because GitHub hides drafts from the
+      read-only planner. The release job checks again immediately before creating a draft; a rebuild resumes only its
+      own run-marked draft and fails closed on every other claim.
     - Packaging-only publications always use `release-reviewed`, even when the upstream risk comparison is clean.
     - Routine `main` pushes do not start stable package builds; scheduled, manual, and emergency tag-triggered runs
-      retain independent release lanes.
+      share one stable-release concurrency lane.
     - Routine release/nightly success creates no issue; release/nightly failures create a self-healing maintainer issue.
     - The post-publication verifier runs with read-only contents/attestation permissions; success reporting waits for it.
     - Dependency updates remain maintainer-reviewed and manually merged; GitHub native auto-merge is currently disabled.
@@ -120,6 +119,22 @@ Use it to answer two questions quickly:
     - Dependabot triage observes checks and paths but never mutates PRs or branches.
     - `main` requires the author-attribution, policy, and workflow-CodeQL checks; protections apply to administrators,
       reject force pushes, and reject deletion.
+
+### Packaging-rebuild transition table
+
+The workflow has one decision layer (the planner and `package_revision.py`) and one orchestration layer (the GitHub
+workflow). The preflight reads state but does not create a draft; candidate-first publication remains intact.
+
+| Trigger and observed state | Preflight result | Candidate/release behavior |
+| --- | --- | --- |
+| Scheduled, tag, or ordinary manual run | Preflight skipped | Candidate and release jobs follow the planner result. |
+| Manual `main` rebuild; next revision has no release or tag | `create` | Build candidates; create a draft only after both architectures pass. |
+| Manual `main` rebuild; head draft carries the current run marker | `resume` | Build candidates; resume only that draft after both architectures pass. |
+| Draft owned by another run, published release, existing tag, or stale revision | Failure | Block candidate and release jobs; report a release failure. |
+| Planner or preflight failure | Failure | Block candidate and release jobs; report a release failure. |
+
+The package and release jobs use explicit `always()` conditions because a skipped preflight is normal for non-rebuild
+runs; they still require the preflight to have succeeded or been skipped.
 
 ## Automation and maintainer boundaries
 

@@ -31,8 +31,8 @@ def verify_release_identity(release: dict, *, expected_tag: str, expected_commit
         raise ValueError("release tag does not match the planned tag")
     if release.get("draft") or release.get("prerelease"):
         raise ValueError("release is still draft or prerelease")
-    if "immutable" in release and release["immutable"] is not True:
-        raise ValueError("GitHub reports the release is mutable")
+    if release.get("immutable") is not True:
+        raise ValueError("GitHub does not confirm that the release is immutable")
     if release.get("target_commitish") not in (None, "", expected_commit):
         raise ValueError("release target commit does not match the workflow commit")
 
@@ -41,22 +41,29 @@ def verify_remote_assets(release: dict) -> None:
     assets = release.get("assets")
     if not isinstance(assets, list):
         raise ValueError("release payload has no asset list")
-    names = {
-        name
-        for item in assets
-        if isinstance(item, dict) and isinstance(name := item.get("name"), str)
-    }
+    if not all(isinstance(item, dict) and isinstance(item.get("name"), str) for item in assets):
+        raise ValueError("release payload contains an invalid asset entry")
+    names = {item["name"] for item in assets}
     if names != release_metadata.REQUIRED_RELEASE_ASSETS:
         raise ValueError(
             f"unexpected release assets: {sorted(names ^ release_metadata.REQUIRED_RELEASE_ASSETS)}"
         )
-    if any(item.get("state") != "uploaded" or item.get("size", 0) <= 0 for item in assets):
+    if len(assets) != len(release_metadata.REQUIRED_RELEASE_ASSETS):
+        raise ValueError("release contains duplicate assets")
+    if any(
+        item.get("state") != "uploaded" or type(size := item.get("size")) is not int or size <= 0
+        for item in assets
+    ):
         raise ValueError("release contains an incomplete or empty asset")
 
 
 def verify_tag(tag: dict, expected_commit: str) -> None:
     tag_object = tag.get("object", {})
-    if tag_object.get("type") != "commit" or tag_object.get("sha") != expected_commit:
+    if (
+        not isinstance(tag_object, dict)
+        or tag_object.get("type") != "commit"
+        or tag_object.get("sha") != expected_commit
+    ):
         raise ValueError("tag does not resolve directly to the published workflow commit")
 
 
