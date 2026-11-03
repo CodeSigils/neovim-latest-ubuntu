@@ -186,6 +186,8 @@ def requires_risk_review(client: GitHub, repository: str, candidate_commit: str)
 
 
 def _validate_rebuild_reason(mode: str, requested: str, rebuild_reason: str) -> str:
+    if "\r" in rebuild_reason or "\n" in rebuild_reason:
+        raise ValueError("packaging rebuild reason must be a single line")
     rebuild_reason = rebuild_reason.strip()
     if rebuild_reason and mode != "manual":
         raise ValueError("packaging rebuilds require an explicit manual dispatch")
@@ -194,6 +196,17 @@ def _validate_rebuild_reason(mode: str, requested: str, rebuild_reason: str) -> 
             "packaging rebuilds select the latest upstream release; do not specify a version"
         )
     return rebuild_reason
+
+
+def _github_output_lines(payload: dict[str, object]) -> list[str]:
+    """Serialize scalar planner outputs without allowing environment-file injection."""
+    lines: list[str] = []
+    for key, value in payload.items():
+        rendered = str(value).lower() if isinstance(value, bool) else str(value)
+        if "\r" in rendered or "\n" in rendered:
+            raise ValueError(f"GitHub output {key} must be a single line")
+        lines.append(f"{key}={rendered}\n")
+    return lines
 
 
 def _requested_version(client: GitHub, requested: str) -> Version:
@@ -334,12 +347,16 @@ def main() -> int:
         return 1
 
     payload = asdict(plan)
+    try:
+        output_lines = _github_output_lines(payload)
+        if args.github_output:
+            with args.github_output.open("a") as output:
+                output.writelines(output_lines)
+    except (OSError, ValueError) as error:
+        print(f"error: could not write release-plan output: {error}", file=sys.stderr)
+        return 1
+
     print(json.dumps(payload, indent=2, sort_keys=True))
-    if args.github_output:
-        with args.github_output.open("a") as output:
-            for key, value in payload.items():
-                rendered = str(value).lower() if isinstance(value, bool) else value
-                output.write(f"{key}={rendered}\n")
     return 0
 
 

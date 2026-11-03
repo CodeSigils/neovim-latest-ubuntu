@@ -83,6 +83,23 @@ class RepositorySettingsTests(unittest.TestCase):
         )
         self.assertIn("main must require branches to be up to date before merging", errors)
 
+    def test_actions_context_skips_admin_only_endpoints(self) -> None:
+        with patch.object(
+            repository_settings,
+            "gh_json",
+            return_value=[{"name": name} for name in repository_settings.REQUIRED_LABELS],
+        ) as fetch:
+            self.assertEqual(
+                repository_settings.audit(
+                    "owner/repo",
+                    repository_settings.REQUIRED_VARIABLES,
+                    None,
+                    include_admin_checks=False,
+                ),
+                [],
+            )
+        fetch.assert_called_once_with("repos/owner/repo/labels?per_page=100")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

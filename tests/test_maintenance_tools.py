@@ -75,6 +75,19 @@ class MaintenanceToolTests(unittest.TestCase):
         ):
             self.assertEqual(github_api.gh_json_pages("repos/owner/repo/items"), [{"id": 1}])
 
+    def test_paginated_api_retries_server_error(self) -> None:
+        responses = [
+            subprocess.CompletedProcess(
+                args=["gh"], returncode=1, stdout="", stderr="gh: Service unavailable (HTTP 503)"
+            ),
+            subprocess.CompletedProcess(args=["gh"], returncode=0, stdout='[{"id": 1}]', stderr=""),
+        ]
+        with (
+            patch.object(github_api.subprocess, "run", side_effect=responses),
+            patch.object(github_api.time, "sleep"),
+        ):
+            self.assertEqual(github_api.gh_json_pages("repos/owner/repo/items"), [{"id": 1}])
+
     def test_paginated_api_rejects_non_array_page(self) -> None:
         completed = subprocess.CompletedProcess(
             args=["gh"], returncode=0, stdout='{"id": 1}', stderr=""

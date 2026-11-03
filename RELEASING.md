@@ -56,9 +56,11 @@ versions are intentionally rejected by the stable release planner.
 ### Packaging-only rebuilds
 
 Use `rebuild_reason` when the upstream version is unchanged but this repository's packaging must be rebuilt. Leave
-`version` empty, enter the reason, and choose whether to publish. The planner resolves the latest upstream stable
-release, lists this repository's releases including drafts, and selects the next unused positive Debian revision
-(`X.Y.Z-N`). Do not calculate or type the suffix yourself; a manual `version` containing a suffix is rejected.
+`version` empty, enter the reason, and choose whether to publish. The read-only planner resolves the latest upstream
+stable release and proposes the next positive Debian revision (`X.Y.Z-N`). A write-capable preflight then checks draft
+and tag state before candidate builds; it refuses a revision owned by another run rather than silently selecting around
+it. Do not calculate or type the suffix yourself; a manual `version` containing a suffix is rejected. Manual stable
+dispatches must run from `main`.
 
 Every publishing rebuild requires approval in `release-reviewed`, even when the upstream comparison finds no
 packaging-critical changes. The reason appears in the workflow summary and generated release notes. Immediately before
@@ -76,6 +78,15 @@ git push origin vX.Y.Z
 ```
 
 Candidate-first scheduled or manual publication is preferred because it creates the tag only after both packages pass.
+
+### Regression dispatch after release-flow changes
+
+After changing the stable workflow, planner, revision selector, or publication verifier, dispatch the workflow from
+`main` with `publish` unchecked and inspect the plan plus both candidate jobs. This exercises the production workflow
+without publishing a release. For a packaging-rebuild preflight change, provide a real `rebuild_reason` and still leave
+`publish` unchecked; confirm the preflight passes before candidates run and that the release job remains skipped.
+
+Do not use a branch dispatch as a substitute: manual stable runs intentionally reject every ref except `main`.
 
 ## Release verification
 
@@ -138,11 +149,13 @@ Lintian. Project-owned packaging findings are fixed, reviewed upstream-content t
 | Lintian baseline              | `scripts/lintian-allowlist.txt` with a reason for each inherited tag | Both stable architectures; never add a tag solely to make CI green |
 | Release asset contract        | Planner, package workflow, release workflow, and tests               | Full stable candidate build                                        |
 
-The weekly repository-maintenance workflow reports action freshness and configuration drift. It retries transient
-GitHub failures, reports freshness as `unknown` when verification remains unavailable, and does not mutate repository
-variables or merge dependency updates. For an Ubuntu image refresh, verify that the selected digest is a
-multi-architecture manifest containing both amd64 and arm64 before updating the three public fallbacks and remote
-variables together.
+The weekly repository-maintenance workflow reports action freshness and checks token-readable labels and Actions
+variables. Branch protection, release-environment protection, and immutable-release enforcement require an
+administrator-authenticated local audit with `scripts/check-repository-settings.py`; the workflow intentionally does
+not carry an administration-capable token. It retries transient GitHub failures, reports freshness as `unknown` when
+verification remains unavailable, and does not mutate repository variables or merge dependency updates. For an Ubuntu
+image refresh, verify that the selected digest is a multi-architecture manifest containing both amd64 and arm64 before
+updating the three public fallbacks and remote variables together.
 
 ## Nightly builds
 
@@ -160,6 +173,9 @@ python3 -m venv .venv
 uv pip install --requirement requirements-dev.txt
 ruff check scripts tests
 ruff format --check scripts tests
+ruff check --select C901 --config 'lint.mccabe.max-complexity=9' \
+  scripts/github_api.py scripts/package_revision.py scripts/plan-release.py \
+  scripts/release_metadata.py scripts/verify-published-release.py
 python -m unittest discover -s tests -p 'test_*.py'
 zizmor --offline --min-severity medium --min-confidence medium .
 shellcheck build.sh test.sh scripts/*.sh .githooks/prepare-commit-msg
@@ -169,11 +185,11 @@ python3 scripts/check-markdown-links.py
 ```
 
 CI additionally runs Actionlint and Hadolint from pinned tools, and `scripts/check-yaml-syntax.py` is a required gate
-rather than a convenience: dependabot edits workflow files frequently, so a malformed workflow is the most likely
-local-only failure. The weekly repository-maintenance workflow audits
-remote labels, Actions variables, release-environment protection, and action freshness rather than coupling every local
-code check to GitHub API availability. Running `scripts/check-repository-settings.py` locally with an authenticated
-maintainer session additionally verifies the admin-only immutable-release setting.
+rather than a convenience: Dependabot edits workflow files frequently, so a malformed workflow is the most likely
+local-only failure. The weekly repository-maintenance workflow audits token-readable labels, Actions variables, and
+action freshness rather than coupling every local code check to GitHub API availability. Running
+`scripts/check-repository-settings.py` locally with an authenticated maintainer session additionally verifies release
+environments, main protection, and immutable-release enforcement.
 
 ## Troubleshooting
 

@@ -1,7 +1,7 @@
 name: Build and release stable Neovim
 
 concurrency:
-  group: stable-${{ github.ref }}
+  group: stable-${{ github.event_name == 'pull_request' && github.ref || 'release' }}
   cancel-in-progress: false
 
 on:
@@ -92,6 +92,10 @@ jobs:
             mode=scheduled
           elif [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             mode=manual
+            if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+              echo "Error: manual stable releases must run from main." >&2
+              exit 1
+            fi
             if [[ -n "$INPUT_REBUILD_REASON" && -n "$INPUT_VERSION" ]]; then
               echo "Error: rebuild_reason cannot be combined with version." >&2
               exit 1
@@ -139,9 +143,34 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  package:
+  claim-rebuild:
     needs: plan
-    if: needs.plan.outputs.should_build == 'true' && github.actor != 'dependabot[bot]'
+    if: github.event_name == 'workflow_dispatch' && needs.plan.outputs.rebuild_reason != ''
+    runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Validate packaging revision before candidate build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_REVISION: ${{ needs.plan.outputs.package_revision }}
+          UPSTREAM_VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          python3 scripts/package_revision.py \
+            --repository "$GITHUB_REPOSITORY" \
+            --base "$UPSTREAM_VERSION" \
+            --revision "$PACKAGE_REVISION" \
+            --run-id "$GITHUB_RUN_ID"
+
+  package:
+    needs: [plan, claim-rebuild]
+    if: >-
+      always() && needs.plan.outputs.should_build == 'true' && github.actor != 'dependabot[bot]' &&
+      (needs.claim-rebuild.result == 'success' || needs.claim-rebuild.result == 'skipped')
     uses: ./.github/workflows/package.yml
     with:
       version: ${{ needs.plan.outputs.version }}
@@ -152,8 +181,10 @@ jobs:
       run_lintian: true
 
   release:
-    needs: [plan, package]
-    if: needs.plan.outputs.publish == 'true' && needs.package.result == 'success'
+    needs: [plan, claim-rebuild, package]
+    if: >-
+      always() && needs.plan.outputs.publish == 'true' && needs.package.result == 'success' &&
+      (needs.claim-rebuild.result == 'success' || needs.claim-rebuild.result == 'skipped')
     runs-on: ${{ vars.RUNNER_X86_64 || 'ubuntu-26.04' }}
     timeout-minutes: 10
     environment:
@@ -268,12 +299,13 @@ jobs:
           UPSTREAM_VERSION: ${{ needs.plan.outputs.version }}
           REBUILD_REASON: ${{ needs.plan.outputs.rebuild_reason }}
         run: |
+          claim_action=
           if [[ -n "${REBUILD_REASON:-}" ]]; then
-            python3 scripts/package_revision.py \
+            claim_action="$(python3 scripts/package_revision.py \
               --repository "$GITHUB_REPOSITORY" \
               --base "$UPSTREAM_VERSION" \
               --revision "$PACKAGE_REVISION" \
-              --run-id "$GITHUB_RUN_ID"
+              --run-id "$GITHUB_RUN_ID")"
           fi
           assets=(
             nvim-linux-x86_64.deb
@@ -289,9 +321,17 @@ jobs:
               echo "Published release $RELEASE_TAG already exists; refusing to mutate it." >&2
               exit 1
             fi
+            if [[ -n "${REBUILD_REASON:-}" && "$claim_action" != resume ]]; then
+              echo "Packaging rebuild draft appeared after its claim check; refusing to resume it." >&2
+              exit 1
+            fi
             gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
             gh release edit "$RELEASE_TAG" --notes-file release-notes.md
           else
+            if [[ -n "${REBUILD_REASON:-}" && "$claim_action" != create ]]; then
+              echo "Packaging rebuild claim did not authorize draft creation." >&2
+              exit 1
+            fi
             gh release create "$RELEASE_TAG" "${assets[@]}" \
               --target "$GITHUB_SHA" \
               --title "Neovim $RELEASE_TAG" \
@@ -398,10 +438,11 @@ jobs:
           done
 
   report-failure:
-    needs: [plan, package, release, verify-published]
+    needs: [plan, claim-rebuild, package, release, verify-published]
     if: >-
       always() &&
       (needs.plan.result == 'failure' ||
+      needs.claim-rebuild.result == 'failure' ||
       (needs.plan.outputs.publish == 'true' &&
       (needs.package.result == 'failure' || needs.release.result == 'failure' ||
       needs.verify-published.result == 'failure')))

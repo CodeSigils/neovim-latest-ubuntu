@@ -29,6 +29,9 @@ class FakeGitHub:
     tag_requests: list[str] = field(default_factory=list)
     releases: list[dict] = field(default_factory=list)
     existing_tags: set[str] = field(default_factory=set)
+    upstream_release: dict | None = field(
+        default_factory=lambda: {"draft": False, "prerelease": False}
+    )
 
     def get(self, path: str) -> dict:
         if path == "repos/neovim/neovim/releases/latest":
@@ -65,7 +68,7 @@ class FakeGitHub:
 
     def optional(self, path: str) -> dict | None:
         if path.startswith("repos/neovim/neovim/releases/tags/"):
-            return {"draft": False, "prerelease": False}
+            return self.upstream_release
         if "/git/ref/tags/" in path:
             tag = path.rsplit("/", 1)[-1]
             return {} if tag in self.existing_tags else None
@@ -196,6 +199,66 @@ class ReleasePlanTests(unittest.TestCase):
                 repository="CodeSigils/neovim-latest-ubuntu",
                 rebuild_reason="rebuild",
             )
+
+    def test_manual_stable_version_without_rebuild_reason_is_an_ordinary_build(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(),
+            mode="manual",
+            requested="0.12.5",
+            publish_requested=False,
+            repository="CodeSigils/neovim-latest-ubuntu",
+        )
+
+        self.assertEqual(plan.tag, "v0.12.5")
+        self.assertEqual(plan.package_revision, "")
+        self.assertEqual(plan.rebuild_reason, "")
+        self.assertTrue(plan.should_build)
+
+    def test_rebuild_reason_is_normalized(self) -> None:
+        plan = release_plan.make_plan(
+            client=FakeGitHub(),
+            mode="manual",
+            requested="",
+            publish_requested=True,
+            repository="CodeSigils/neovim-latest-ubuntu",
+            rebuild_reason="  refresh package metadata  ",
+        )
+
+        self.assertEqual(plan.rebuild_reason, "refresh package metadata")
+        self.assertEqual(plan.package_revision, "1")
+
+    def test_rebuild_reason_with_a_newline_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be a single line"):
+            release_plan.make_plan(
+                client=FakeGitHub(),
+                mode="manual",
+                requested="",
+                publish_requested=True,
+                repository="CodeSigils/neovim-latest-ubuntu",
+                rebuild_reason="rebuild\npublish=false",
+            )
+
+    def test_github_output_rejects_multiline_values(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be a single line"):
+            release_plan._github_output_lines({"reason": "first\nsecond"})
+
+    def test_unpublished_upstream_release_is_rejected(self) -> None:
+        for upstream_release in (
+            {"draft": True, "prerelease": False},
+            {"draft": False, "prerelease": True},
+            None,
+        ):
+            with (
+                self.subTest(upstream_release=upstream_release),
+                self.assertRaisesRegex(ValueError, "is not a published upstream stable release"),
+            ):
+                release_plan.make_plan(
+                    client=FakeGitHub(upstream_release=upstream_release),
+                    mode="scheduled",
+                    requested="latest",
+                    publish_requested=False,
+                    repository="CodeSigils/neovim-latest-ubuntu",
+                )
 
     def test_rebuild_rejects_an_existing_git_tag(self) -> None:
         with self.assertRaises(ValueError):
